@@ -16,6 +16,8 @@
         cargo build
         cargo run
 
+        cargo add XXX # to add a cargo package
+
 ### vscode
 
     ctrl + shift + b - to run the tasks
@@ -31,14 +33,7 @@
 
     https://torlenor.org/rust/graphics/gamedev/2023/09/16/sdl2_with_rust.html
     https://github.com/wsandy1/rust-verlet-solver
-
-
-
-    https://sunjay.dev/learn-game-dev/refactor-traditional-game-loop.html
-    https://github.com/dimforge/salva
-    https://rust-sdl2.github.io/rust-sdl2/sdl2/render/struct.Canvas.html#method.circle
-    https://github.com/gufoe/rust-fluid
-    https://github.com/Wumpf/blub
+    https://github.com/bit-shift-io/fluidic-space
     
 ## Troubleshooting
 
