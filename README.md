@@ -34,6 +34,7 @@
     https://torlenor.org/rust/graphics/gamedev/2023/09/16/sdl2_with_rust.html
     https://github.com/wsandy1/rust-verlet-solver
     https://github.com/bit-shift-io/fluidic-space
+    https://betterprogramming.pub/making-a-verlet-physics-engine-in-javascript-1dff066d7bc5
     
 ## Troubleshooting
 
