@@ -18,6 +18,8 @@
 
 ### vscode
 
+    ctrl + shift + b - to run the tasks
+
     open in vscode then just hit debug!
 
 ## Benchmark/Testing
@@ -38,3 +40,6 @@
     https://github.com/gufoe/rust-fluid
     https://github.com/Wumpf/blub
     
+## Troubleshooting
+
+Can't debug rust in vscode: https://stackoverflow.com/questions/77218022/why-is-my-debugger-in-vscode-not-working-with-rust-after-mac-update-to-sonoma-14
