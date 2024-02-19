@@ -1,11 +1,12 @@
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color, gfx::primitives::DrawRenderer};
-use cgmath::Vector2;
+use cgmath::{InnerSpace, Vector2};
 use rand::Rng;
 use std::time::Duration;
 
 mod sdl_system;
 mod solver;
 mod verlet_object;
+mod stick_constraint;
 
 use crate::sdl_system::SdlSystem;
 use crate::solver::Solver;
@@ -17,7 +18,7 @@ fn main() -> Result<(), String> {
     let mut event_pump = sdl.sdl_context.event_pump()?;
 
 
-    let mut solver: Solver = Solver { gravity: Vector2::new(0f32, 1000f32), objects: vec![]};
+    let mut solver: Solver = Solver { gravity: Vector2::new(0f32, 1000f32), objects: vec![], stick_constraints: vec![] };
 
     'running: loop {
         //let start = Instant::now();
@@ -39,7 +40,15 @@ fn main() -> Result<(), String> {
                 },
                 Event::MouseButtonDown { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
                     let mut rng = rand::thread_rng();
-                    solver.add_object(x as f32, y as f32, rng.gen_range(5..50), Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255)));
+
+                    let radius = rng.gen_range(5..50);
+                    let radiusf32 = radius as f32;
+                    let p1 = solver.add_object(x as f32, y as f32, radius, Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255)));
+                    let p2 = solver.add_object(x as f32 + radiusf32, y as f32, radius, Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255)));
+                
+                    let length = radiusf32; //(solver.objects[p1].position_current + Vector2::new(radius, 0)).magnitude();
+                    solver.add_stick_constraint(p1, p2, length);
+
                 },
                 _ => {}
             }

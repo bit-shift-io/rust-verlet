@@ -1,21 +1,26 @@
 use sdl2::pixels::Color;
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
-use std::time::Duration;
-use sdl2::gfx::primitives::DrawRenderer;
-use cgmath::Vector2;
-use rand::Rng;
+use cgmath::{InnerSpace, Vector2};
 
 use crate::verlet_object::VerletObject;
+use crate::stick_constraint::StickConstraint;
 
 pub struct Solver {
     pub gravity: Vector2<f32>,
     pub objects: Vec<VerletObject>,
+    pub stick_constraints: Vec<StickConstraint>
 }
 
 impl Solver {
-    pub fn add_object(&mut self, x: f32, y: f32, radius: i16, color: Color) {
+    pub fn add_object(&mut self, x: f32, y: f32, radius: i16, color: Color) -> usize {
+        let handle = self.objects.len();
         self.objects.push(VerletObject { position_current: Vector2::new(x, y), position_old: Vector2::new(x, y), acceleration: Vector2::new(0f32, 0f32), radius: radius, color: color });
+        return handle;
+    }
+
+    pub fn add_stick_constraint(&mut self, p1: usize, p2: usize, length: f32) -> usize {
+        let handle = self.stick_constraints.len();
+        self.stick_constraints.push(StickConstraint { p1: p1, p2: p2, length: length });
+        return handle;
     }
 
     pub fn update(&mut self, dt: f32) {
@@ -26,6 +31,29 @@ impl Solver {
             self.apply_constraint();
             self.solve_collisions();
             self.update_positions(sub_dt);
+            self.update_stick_constraints(sub_dt);
+        }
+    }
+
+    pub fn update_stick_constraints(&mut self, dt: f32) {
+        for stick in self.stick_constraints.iter_mut() {
+            let p1 = &self.objects[stick.p1];
+            let p2 = &self.objects[stick.p2];
+
+            let difference = p1.position_current - p2.position_current;
+            let diff_length = difference.magnitude();
+            let diff_factor = (stick.length - diff_length) / diff_length * 0.5;
+            let offset = difference * diff_factor;
+    
+            {
+                let p1mut = &mut self.objects[stick.p1];
+                p1mut.position_current += offset;
+            }
+
+            {
+                let p2mut = &mut self.objects[stick.p2];
+                p2mut.position_current -= offset;
+            }
         }
     }
 

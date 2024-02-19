@@ -31,10 +31,20 @@
 
 ## Tutorials & Links
 
+    https://pikuma.com/blog/verlet-integration-2d-cloth-physics-simulation
+
     https://torlenor.org/rust/graphics/gamedev/2023/09/16/sdl2_with_rust.html
     https://github.com/wsandy1/rust-verlet-solver
     https://github.com/bit-shift-io/fluidic-space
     https://betterprogramming.pub/making-a-verlet-physics-engine-in-javascript-1dff066d7bc5
+
+### Understanding Verlet
+
+    https://www.youtube.com/watch?v=g55QvpAev0I&list=WL&index=63
+    which explains its just the kinematic equation with time step forward and time step backwards.
+
+    https://www.physicsclassroom.com/class/1dkin/Lesson-6/Kinematic-Equations
+    
     
 ## Troubleshooting
 
