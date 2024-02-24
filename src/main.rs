@@ -1,3 +1,5 @@
+use cloth::CMouse;
+use sdl2::mouse::MouseWheelDirection;
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color, gfx::primitives::DrawRenderer};
 use cgmath::{InnerSpace, Vector2};
 use rand::Rng;
@@ -107,8 +109,9 @@ fn scene_random_bodies(sdl: &mut SdlSystem) -> Result<(), String> {
 
 fn scene_cloth(sdl: &mut SdlSystem) -> Result<(), String> {
     let mut event_pump = sdl.sdl_context.event_pump()?;
-    let mut cloth: Cloth = Cloth::new(10, 10, 20, 100, 100);
-
+    let mut cloth: Cloth = Cloth::new(20, 20, 20, 100, 100);
+    let mut mouse = CMouse::new();
+    
     'running: loop {
         // Handle events
         for event in event_pump.poll_iter() {
@@ -117,24 +120,44 @@ fn scene_cloth(sdl: &mut SdlSystem) -> Result<(), String> {
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running;
                 },
-                Event::MouseButtonDown { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
-                    let xf = x as f32;
-                    let yf = y as f32;
-                    let mut rng = rand::thread_rng();
+                Event::MouseButtonDown { mouse_btn, x, y, .. } => {
+                    mouse.update_position(x, y);
 
-                    let shape = rng.gen_range(0..=1);
+                    if !mouse.left_button_down && mouse_btn == sdl2::mouse::MouseButton::Left {
+                        mouse.left_button_down = true;
+                    }
 
+                    if !mouse.right_button_down && mouse_btn == sdl2::mouse::MouseButton::Right {
+                        mouse.right_button_down = true;
+                    }
+                },
+                Event::MouseButtonUp { timestamp, window_id, which, mouse_btn, clicks, x, y } => {
+                    if mouse.left_button_down && mouse_btn == sdl2::mouse::MouseButton::Left {
+                        mouse.left_button_down = false;
+                    }
+                    if mouse.right_button_down && mouse_btn == sdl2::mouse::MouseButton::Right {
+                        mouse.right_button_down = false;
+                    }
+                },
+                Event::MouseMotion { timestamp, window_id, which, mousestate, x, y, xrel, yrel } => {
+                    mouse.update_position(x, y);
+                },
+                Event::MouseWheel { timestamp, window_id, which, x, y, direction, precise_x, precise_y } => {
+                    if direction == MouseWheelDirection::Normal {
+                        mouse.increase_cursor_size(10f32);
+                    }
+                    if direction == MouseWheelDirection::Flipped {
+                        mouse.increase_cursor_size(-10f32);
+                    }
                 },
                 _ => {}
             }
         }
 
-        cloth.update(0.0167f32);
+        cloth.update(0.0167f32, &mouse);
 
         sdl.canvas.set_draw_color(Color::RGB(255, 255, 255));
         sdl.canvas.clear();
-        //sdl.canvas.set_draw_color(Color::RGB(255, 255, 255));
-        //sdl.canvas.filled_circle(600, 400, 380, Color::RGB(150, 150, 150)).unwrap();
 
         cloth.draw(sdl);
 

@@ -13,17 +13,35 @@ use crate::sdl_system::SdlSystem;
 use crate::stick::Stick;
 
 pub struct CMouse {
-    /* 
-    Vec2 pos;
-    Vec2 prevPos;
+    pub position_current: Vector2<f32>,
+    pub position_old: Vector2<f32>,
 
-    float cursorSize = 20;
-    float maxCursorSize = 100;
-    float minCursorSize = 20;
+    pub cursor_size: f32,
+    pub max_cursor_size: f32,
+    pub min_cursor_size: f32,
 
-    bool leftButtonDown = false;
-    bool rightButtonDown = false;
-    */
+    pub left_button_down: bool,
+    pub right_button_down: bool,
+}
+
+impl CMouse {
+    pub fn new() -> Self {
+        let pos = Vector2::new(0f32, 0f32);
+        Self { position_current: pos, position_old: pos, cursor_size: 20f32, max_cursor_size: 100f32, min_cursor_size: 20f32, left_button_down: false, right_button_down: false }
+    }
+
+    pub fn increase_cursor_size(&mut self, increment: f32) {
+        if self.cursor_size + increment > self.max_cursor_size || self.cursor_size + increment < self.min_cursor_size {
+            return;
+        }
+        self.cursor_size += increment;
+    }
+
+    pub fn update_position(&mut self, x: i32, y: i32) {
+        self.position_old = self.position_current;
+        self.position_current.x = x as f32;
+        self.position_current.y = y as f32;
+    }
 }
 
 pub struct CPoint {
@@ -53,34 +71,41 @@ impl CPoint {
         let acceleration = cloth.gravity;
         let elasticity = cloth.elasticity;
 
-        /* 
-        Vec2 mouseDir = pos - mouse->GetPosition();
-        float mouseDist = sqrtf(mouseDir.x * mouseDir.x + mouseDir.y * mouseDir.y);
-        isSelected = mouseDist < mouse->GetCursorSize();
-      
-        for (Stick* stick : sticks) {
-          if (stick != nullptr) {
-            stick->SetIsSelected(isSelected);
-          }
+        let mouse_dir = self.position_current - mouse.position_current;
+        let mouse_dist = mouse_dir.magnitude();
+        self.is_selected = mouse_dist < mouse.cursor_size;
+
+        for stick in self.sticks.iter() {
+            let stick_ref = stick.upgrade().unwrap();
+            let mut actual_stick = stick_ref.as_ref().borrow_mut();
+            actual_stick.is_selected = self.is_selected;
         }
-      
-        if (mouse->GetLeftButtonDown() && isSelected) {
-          Vec2 difference = mouse->GetPosition() - mouse->GetPreviousPosition();
-          if (difference.x > elasticity) difference.x = elasticity;
-          if (difference.y > elasticity) difference.y = elasticity;
-          if (difference.x < -elasticity) difference.x = -elasticity;
-          if (difference.y < -elasticity) difference.y = -elasticity;
-          prevPos = pos - difference;
-        }
-      
-        if (mouse->GetRightMouseButton() && isSelected) {
-          for (Stick* stick : sticks) {
-            if (stick != nullptr) {
-              stick->Break();
+
+        if mouse.left_button_down && self.is_selected {
+            let mut difference = mouse.position_current - mouse.position_old;
+            if difference.x > elasticity {
+                difference.x = elasticity
             }
-          }
+            if difference.y > elasticity {
+                difference.y = elasticity
+            }
+            if difference.x < -elasticity {
+                difference.x = -elasticity
+            }
+            if difference.y < -elasticity {
+                difference.y = -elasticity
+            }
+            self.position_old = self.position_current - difference;
         }
-      */
+
+        if mouse.right_button_down && self.is_selected {
+            for stick in self.sticks.iter() {
+                let stick_ref = stick.upgrade().unwrap();
+                let mut actual_stick = stick_ref.as_ref().borrow_mut();
+                actual_stick.break_it();
+            }
+        }
+
         if self.is_pinned {
           self.position_current = self.position_init;
           return;
@@ -123,6 +148,10 @@ impl CStick {
         Self { length, is_active: true, is_selected: false, points: [p0, p1] }
     }
 
+    pub fn break_it(&mut self) {
+        self.is_active = false;
+    }
+
     pub fn update(&mut self, dt: f32) {
         if !self.is_active {
             return;
@@ -157,7 +186,8 @@ impl CStick {
         let p0_pos = p0.position_current;
         let p1_pos = p1.position_current;
 
-        sdl.canvas.set_draw_color(Color::RGB(255, 0, 0));
+        let color = if self.is_selected { Color::RGB(255, 0, 0) } else { Color::RGB(0, 0, 0) };
+        sdl.canvas.set_draw_color(color);
         let _ = sdl.canvas.draw_line(Point::new(p0_pos.x as i32, p0_pos.y as i32), Point::new(p1_pos.x as i32, p1_pos.y as i32));
 
         //sdl.canvas.DrawLine(p0Pos.x, p0Pos.y, p1Pos.x, p1Pos.y, isSelected ? colorWhenSelected : color);
@@ -212,10 +242,7 @@ impl Cloth {
     }
 
 
-    pub fn update(&mut self, dt: f32) {
-
-        let mouse = CMouse {};
-
+    pub fn update(&mut self, dt: f32, mouse: &CMouse) {
         const SUB_STEPS: u32 = 16;
         //let sub_dt: f32 = dt / SUB_STEPS as f32;
         let sub_dt = dt;
