@@ -107,7 +107,7 @@ fn scene_random_bodies(sdl: &mut SdlSystem) -> Result<(), String> {
 
 fn scene_cloth(sdl: &mut SdlSystem) -> Result<(), String> {
     let mut event_pump = sdl.sdl_context.event_pump()?;
-    let mut cloth: Cloth = Cloth::new(600, 400, 100, 10, 10);
+    let mut cloth: Cloth = Cloth::new(10, 10, 20, 100, 100);
 
     'running: loop {
         // Handle events
@@ -131,10 +131,10 @@ fn scene_cloth(sdl: &mut SdlSystem) -> Result<(), String> {
 
         cloth.update(0.0167f32);
 
-        sdl.canvas.set_draw_color(Color::RGB(0, 0, 0));
-        sdl.canvas.clear();
         sdl.canvas.set_draw_color(Color::RGB(255, 255, 255));
-        sdl.canvas.filled_circle(600, 400, 380, Color::RGB(150, 150, 150)).unwrap();
+        sdl.canvas.clear();
+        //sdl.canvas.set_draw_color(Color::RGB(255, 255, 255));
+        //sdl.canvas.filled_circle(600, 400, 380, Color::RGB(150, 150, 150)).unwrap();
 
         cloth.draw(sdl);
 

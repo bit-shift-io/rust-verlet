@@ -12,6 +12,20 @@ use crate::particle::Particle;
 use crate::sdl_system::SdlSystem;
 use crate::stick::Stick;
 
+pub struct CMouse {
+    /* 
+    Vec2 pos;
+    Vec2 prevPos;
+
+    float cursorSize = 20;
+    float maxCursorSize = 100;
+    float minCursorSize = 20;
+
+    bool leftButtonDown = false;
+    bool rightButtonDown = false;
+    */
+}
+
 pub struct CPoint {
     pub sticks: [Weak<RefCell<CStick>>; 2],
     pub position_current: Vector2<f32>,
@@ -34,8 +48,67 @@ impl CPoint {
         self.is_pinned  = is_pinned;
     }
 
-    pub fn update(&mut self, dt: f32) {
+    pub fn update(&mut self, dt: f32, cloth: &Cloth, mouse: &CMouse, window_width: i32, window_height: i32) {
+        let drag = cloth.drag;
+        let acceleration = cloth.gravity;
+        let elasticity = cloth.elasticity;
+
+        /* 
+        Vec2 mouseDir = pos - mouse->GetPosition();
+        float mouseDist = sqrtf(mouseDir.x * mouseDir.x + mouseDir.y * mouseDir.y);
+        isSelected = mouseDist < mouse->GetCursorSize();
+      
+        for (Stick* stick : sticks) {
+          if (stick != nullptr) {
+            stick->SetIsSelected(isSelected);
+          }
+        }
+      
+        if (mouse->GetLeftButtonDown() && isSelected) {
+          Vec2 difference = mouse->GetPosition() - mouse->GetPreviousPosition();
+          if (difference.x > elasticity) difference.x = elasticity;
+          if (difference.y > elasticity) difference.y = elasticity;
+          if (difference.x < -elasticity) difference.x = -elasticity;
+          if (difference.y < -elasticity) difference.y = -elasticity;
+          prevPos = pos - difference;
+        }
+      
+        if (mouse->GetRightMouseButton() && isSelected) {
+          for (Stick* stick : sticks) {
+            if (stick != nullptr) {
+              stick->Break();
+            }
+          }
+        }
+      */
+        if self.is_pinned {
+          self.position_current = self.position_init;
+          return;
+        }
+      
+        let velocity = self.position_current - self.position_old;
+        let new_pos = self.position_current + velocity * (1.0f32 - drag) + acceleration * (1.0f32 - drag) * dt * dt;
+        self.position_old = self.position_current;
+        self.position_current = new_pos;
+      
+        self.keep_inside_view(window_width, window_height);
     }
+
+    fn keep_inside_view(&mut self, window_width: i32, window_height: i32) {
+        if self.position_current.y >= (window_height as f32) {
+            self.position_current.y = window_height as f32;
+        }
+        if self.position_current.x >= (window_width as f32) {
+            self.position_current.x = window_width as f32;
+        }
+        if self.position_current.y < 0f32 {
+            self.position_current.y = 0f32;
+        }
+        if self.position_current.x < 0f32 {
+            self.position_current.x = 0f32;
+        }
+      }
+
 }
 
 pub struct CStick {
@@ -51,6 +124,23 @@ impl CStick {
     }
 
     pub fn update(&mut self, dt: f32) {
+        if !self.is_active {
+            return;
+        }
+
+        let p00 = self.points[0].upgrade().unwrap();
+        let p11 = self.points[1].upgrade().unwrap();
+
+        let mut p0 = p00.as_ref().borrow_mut();
+        let mut p1 = p11.as_ref().borrow_mut();
+
+        let difference = p0.position_current - p1.position_current;
+        let diff_length = difference.magnitude();
+        let diff_factor = (self.length - diff_length) / diff_length * 0.5;
+        let offset = difference * diff_factor;
+
+        p0.position_current += offset;
+        p1.position_current -= offset;
     }
 
     pub fn draw(&self, sdl: &mut SdlSystem) {
@@ -59,7 +149,7 @@ impl CStick {
         }
 
         let p00 = self.points[0].upgrade().unwrap();
-        let p11 = self.points[0].upgrade().unwrap();
+        let p11 = self.points[1].upgrade().unwrap();
 
         let p0 = p00.as_ref().borrow();
         let p1 = p11.as_ref().borrow();
@@ -123,17 +213,23 @@ impl Cloth {
 
 
     pub fn update(&mut self, dt: f32) {
+
+        let mouse = CMouse {};
+
         const SUB_STEPS: u32 = 16;
-        let sub_dt: f32 = dt / SUB_STEPS as f32;
-        for _ in 0..SUB_STEPS {
+        //let sub_dt: f32 = dt / SUB_STEPS as f32;
+        let sub_dt = dt;
+
+        //for _ in 0..SUB_STEPS {
             for point in self.points.iter() {
-                point.as_ref().borrow_mut().update(sub_dt);
+                // todo: fix hard coded window width and height
+                point.as_ref().borrow_mut().update(sub_dt, self, &mouse, 1200, 800);
             }
 
             for stick in self.sticks.iter() {
                 stick.as_ref().borrow_mut().update(sub_dt);
             }
-        }
+        //}
     }
 
     pub fn draw(&self, sdl: &mut SdlSystem) {
