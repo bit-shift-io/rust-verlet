@@ -7,31 +7,20 @@ mod sdl_system;
 mod solver;
 mod particle;
 mod stick;
+mod cloth;
 
 use crate::particle::Particle;
 use crate::sdl_system::SdlSystem;
 use crate::solver::Solver;
 use crate::stick::Stick;
+use crate::cloth::Cloth;
 
-fn main() -> Result<(), String> {
-    println!("Hello, world!");
 
-    let mut sdl = SdlSystem::new("Rust Verlet", 1200, 800);
+fn scene_random_bodies(sdl: &mut SdlSystem) -> Result<(), String> {
     let mut event_pump = sdl.sdl_context.event_pump()?;
-
     let mut solver: Solver = Solver::new();
 
     'running: loop {
-        //let start = Instant::now();
-
-        sdl.canvas.set_draw_color(Color::RGB(0, 0, 0));
-        sdl.canvas.clear();
-        
-        sdl.canvas.set_draw_color(Color::RGB(255, 255, 255));
-        
-        sdl.canvas.filled_circle(600, 400, 380, Color::RGB(150, 150, 150)).unwrap();
-        //sdl.canvas.circle(600, 400, 300, Color::RGB(150, 150, 150)).ok();
-
         // Handle events
         for event in event_pump.poll_iter() {
             match event {
@@ -97,39 +86,70 @@ fn main() -> Result<(), String> {
             }
         }
 
-
-/* 
-        for object in solver.particles.iter() {
-            object.draw(&sdl.canvas);
-        }
-*/
-        solver.draw(&mut sdl);
-
         solver.update(0.0167f32);
 
+        sdl.canvas.set_draw_color(Color::RGB(0, 0, 0));
+        sdl.canvas.clear();
+        sdl.canvas.set_draw_color(Color::RGB(255, 255, 255));
+        sdl.canvas.filled_circle(600, 400, 380, Color::RGB(150, 150, 150)).unwrap();
+
+        solver.draw(sdl);
 
         sdl.canvas.present();
+
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
-
-        /* 
-        // Update
-        fluid_sim.update(dt);
-
-        // Render
-        fluid_sim_renderer.draw();
-
-        let duration = start.elapsed();
-        dt = duration.as_nanos() as f32 / 1000000000.0;
-
-        //println!("dt: {:?}", dt);
-
-        // Time management!
-        //Duration::from_millis(1000)
-        //::std::thread::sleep(Duration::from_millis(SLEEP_PER_FRAME_MS));
-        //::std::thread::sleep(Duration::from::new(0, 1_000_000_000u32 / 60));
-        */
     }
 
-    println!("Goodbye, world!");
-    Ok(())   
+    Ok(())
+}
+
+
+
+fn scene_cloth(sdl: &mut SdlSystem) -> Result<(), String> {
+    let mut event_pump = sdl.sdl_context.event_pump()?;
+    let mut cloth: Cloth = Cloth::new(600, 400, 100, 10, 10);
+
+    'running: loop {
+        // Handle events
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit {..} |
+                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                    break 'running;
+                },
+                Event::MouseButtonDown { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
+                    let xf = x as f32;
+                    let yf = y as f32;
+                    let mut rng = rand::thread_rng();
+
+                    let shape = rng.gen_range(0..=1);
+
+                },
+                _ => {}
+            }
+        }
+
+        cloth.update(0.0167f32);
+
+        sdl.canvas.set_draw_color(Color::RGB(0, 0, 0));
+        sdl.canvas.clear();
+        sdl.canvas.set_draw_color(Color::RGB(255, 255, 255));
+        sdl.canvas.filled_circle(600, 400, 380, Color::RGB(150, 150, 150)).unwrap();
+
+        cloth.draw(sdl);
+
+        sdl.canvas.present();
+
+        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+    }
+
+    Ok(())
+}
+
+
+fn main() -> Result<(), String> {
+    let mut sdl = SdlSystem::new("Rust Verlet", 1200, 800);
+    //let r = scene_random_bodies(&mut sdl);
+    let r = scene_cloth(&mut sdl);
+    r
 }
