@@ -66,6 +66,14 @@ impl CPoint {
         self.is_pinned  = is_pinned;
     }
 
+    fn break_sticks(&self) {
+        for stick in self.sticks.iter() {
+            let stick_ref = stick.upgrade().unwrap();
+            let mut actual_stick = stick_ref.as_ref().borrow_mut();
+            actual_stick.break_it();
+        }
+    }
+
     pub fn update(&mut self, dt: f32, cloth: &Cloth, mouse: &CMouse, window_width: i32, window_height: i32) {
         let drag = cloth.drag;
         let acceleration = cloth.gravity;
@@ -83,6 +91,7 @@ impl CPoint {
 
         if mouse.left_button_down && self.is_selected {
             let mut difference = mouse.position_current - mouse.position_old;
+
             if difference.x > elasticity {
                 difference.x = elasticity
             }
@@ -95,15 +104,12 @@ impl CPoint {
             if difference.y < -elasticity {
                 difference.y = -elasticity
             }
+            
             self.position_old = self.position_current - difference;
         }
 
         if mouse.right_button_down && self.is_selected {
-            for stick in self.sticks.iter() {
-                let stick_ref = stick.upgrade().unwrap();
-                let mut actual_stick = stick_ref.as_ref().borrow_mut();
-                actual_stick.break_it();
-            }
+            self.break_sticks();
         }
 
         if self.is_pinned {
@@ -152,7 +158,7 @@ impl CStick {
         self.is_active = false;
     }
 
-    pub fn update(&mut self, dt: f32) {
+    pub fn update(&mut self, dt: f32, cloth: &Cloth) {
         if !self.is_active {
             return;
         }
@@ -165,7 +171,13 @@ impl CStick {
 
         let difference = p0.position_current - p1.position_current;
         let diff_length = difference.magnitude();
+        let diff_pct = diff_length / self.length;
         let diff_factor = (self.length - diff_length) / diff_length * 0.5;
+
+        if diff_pct > cloth.tear_distance_percent {
+            self.break_it();
+        }
+
         let offset = difference * diff_factor;
 
         p0.position_current += offset;
@@ -199,13 +211,14 @@ pub struct Cloth {
     pub gravity: Vector2<f32>,
     pub drag: f32,
     pub elasticity: f32,
+    pub tear_distance_percent: f32, // if stick stretches more than 3 = 300% then tear
     pub points: Vec<Rc<RefCell<CPoint>>>,
     pub sticks: Vec<Rc<RefCell<CStick>>>
 }
 
 impl Cloth {
     pub fn new(width: i32, height: i32, spacing: i32, start_x: i32, start_y: i32) -> Self {
-        let mut s = Self { gravity: Vector2::new(0f32, 1000f32), drag: 0.01f32, elasticity: 10.0f32, points: vec![], sticks: vec![] };
+        let mut s = Self { gravity: Vector2::new(0f32, 1000f32), drag: 0.01f32, elasticity: 10.0f32, tear_distance_percent: 3.0f32, points: vec![], sticks: vec![] };
         s.construct(width, height, spacing, start_x, start_y);
         s
     }
@@ -254,7 +267,7 @@ impl Cloth {
             }
 
             for stick in self.sticks.iter() {
-                stick.as_ref().borrow_mut().update(sub_dt);
+                stick.as_ref().borrow_mut().update(sub_dt, self);
             }
         //}
     }
