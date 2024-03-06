@@ -6,11 +6,13 @@ use rand::Rng;
 use std::time::Duration;
 
 mod sdl_system;
+mod application;
 mod solver;
 mod particle;
 mod stick;
 mod cloth;
 
+use crate::application::Application;
 use crate::particle::Particle;
 use crate::sdl_system::SdlSystem;
 use crate::solver::Solver;
@@ -172,6 +174,11 @@ fn scene_cloth(sdl: &mut SdlSystem) -> Result<(), String> {
 
 fn main() -> Result<(), String> {
     let mut sdl = SdlSystem::new("Rust Verlet", 1200, 800);
+
+    let application = Application::new(&mut sdl);
+    //application.register_scene();
+    //application.run();
+
     //let r = scene_random_bodies(&mut sdl);
     let r = scene_cloth(&mut sdl);
     r
