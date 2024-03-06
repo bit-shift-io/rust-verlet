@@ -1,6 +1,8 @@
 // https://pikuma.com/blog/verlet-integration-2d-cloth-physics-simulation
 
 use cgmath::{InnerSpace, Vector2};
+use sdl2::event::Event;
+use sdl2::mouse::MouseWheelDirection;
 use sdl2::pixels::Color;
 use sdl2::rect::Point;
 use std::borrow::{Borrow, BorrowMut};
@@ -41,6 +43,42 @@ impl CMouse {
         self.position_old = self.position_current;
         self.position_current.x = x as f32;
         self.position_current.y = y as f32;
+    }
+
+    pub fn process_event(&mut self, event: Event) {
+        match event {
+            Event::MouseButtonDown { mouse_btn, x, y, .. } => {
+                self.update_position(x, y);
+
+                if !self.left_button_down && mouse_btn == sdl2::mouse::MouseButton::Left {
+                    self.left_button_down = true;
+                }
+
+                if !self.right_button_down && mouse_btn == sdl2::mouse::MouseButton::Right {
+                    self.right_button_down = true;
+                }
+            },
+            Event::MouseButtonUp { timestamp, window_id, which, mouse_btn, clicks, x, y } => {
+                if self.left_button_down && mouse_btn == sdl2::mouse::MouseButton::Left {
+                    self.left_button_down = false;
+                }
+                if self.right_button_down && mouse_btn == sdl2::mouse::MouseButton::Right {
+                    self.right_button_down = false;
+                }
+            },
+            Event::MouseMotion { timestamp, window_id, which, mousestate, x, y, xrel, yrel } => {
+                self.update_position(x, y);
+            },
+            Event::MouseWheel { timestamp, window_id, which, x, y, direction, precise_x, precise_y } => {
+                if direction == MouseWheelDirection::Normal {
+                    self.increase_cursor_size(10f32);
+                }
+                if direction == MouseWheelDirection::Flipped {
+                    self.increase_cursor_size(-10f32);
+                }
+            },
+            _ => {}
+        }
     }
 }
 
