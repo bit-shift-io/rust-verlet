@@ -7,7 +7,7 @@ use crate::{application::{Context, Scene}, particle::Particle, solver::Solver, s
 pub fn create_wheel(solver: &mut Solver, origin: Vector2<f32>) {
     let mut rng = rand::thread_rng();
 
-    let radius = 50.0f32;
+    let radius = 20.0f32;
     let divisions = 10;
     let particle_radius = 5.0f32;
     let particle_mass = 1.0f32;
