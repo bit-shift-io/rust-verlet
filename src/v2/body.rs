@@ -1,3 +1,8 @@
+use sdl2::pixels::Color;
+use sdl2::rect::Point;
+
+use crate::sdl_system::SdlSystem;
+
 use super::particle::Particle;
 use super::stick::Stick;
 
@@ -19,5 +24,26 @@ impl<'a> Body<'a> {
 
     pub fn add_stick(&mut self, stick: Box<Stick<'a>>) {
         self.sticks.push(stick);
+    }
+
+    pub fn update(&mut self, dt: f32) {
+        /* 
+        self.apply_gravity();
+        self.apply_containment_constraint();
+        self.solve_collisions(sub_dt);
+        self.update_positions(sub_dt);
+        */
+    }
+
+    pub fn draw(&self, sdl: &mut SdlSystem) {
+        // draw particles
+        for particle in self.particles.iter() {
+            particle.draw(sdl);
+        }
+
+        // draw stick constraints
+        for stick in self.sticks.iter() {
+            stick.draw(sdl);
+        }
     }
 }

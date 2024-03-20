@@ -34,10 +34,22 @@ impl<'a> Body<'a> {
         for i in 0..half_divisions { 
             let opposite_division = i + half_divisions;
 
-            let p1 = &body.particles[i];
-            let p2 = &body.particles[opposite_division];
+            let stick = {
+                let p1 = &body.particles[i];
+                let p2 = &body.particles[opposite_division];
 
-            let stick = Box::new(Stick::new(p1, p2));           
+                Box::new(Stick::new(p1, p2))
+            };
+
+            //let mut stick = Box::new(Stick::new(p1, p2));     
+            body.add_stick(stick);
+            /* ERROR FOR ABOVE LINE:
+            cannot borrow `body` as mutable because it is also borrowed as immutable
+            mutable borrow occurs hererustcClick for full compiler diagnostic
+            car_scene.rs(38, 27): immutable borrow occurs here
+            car_scene.rs(7, 6): lifetime `'a` defined here
+            car_scene.rs(57, 9): returning this value requires that `body.particles` is borrowed for `'a`
+            */
         }
 
         // add adjacent sticks
@@ -45,7 +57,8 @@ impl<'a> Body<'a> {
             let p1 = &body.particles[i];
             let p2 = if (i + 1) == divisions { &body.particles[0] } else { &body.particles[i + 1] };
             
-            let stick = Box::new(Stick::new(p1, p2));           
+            let stick = Box::new(Stick::new(p1, p2));
+            body.add_stick(stick);          
         }
 
         body
@@ -103,8 +116,6 @@ impl<'a> Scene for CarScene<'a> {
                 //let body = create_wheel(origin);
                 let body = Box::new(Body::create_wheel(origin));
                 self.solver.add_body(body);
-
-
             },
             _ => {}
         }
