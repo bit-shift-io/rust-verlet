@@ -2,7 +2,7 @@ use cgmath::{InnerSpace, Vector2};
 use sdl2::{event::Event, gfx::primitives::DrawRenderer, pixels::Color};
 use rand::Rng;
 
-use crate::{application::{Context, Scene}, particle::Particle, solver::Solver, stick::Stick};
+use crate::{application::{Context, Scene}, v1::particle::Particle, v1::solver::Solver, v1::stick::Stick};
 
 
 pub struct RandomBodiesScene {

@@ -1,6 +1,6 @@
 use sdl2::{event::Event, pixels::Color};
 
-use crate::{application::{Context, Scene}, cloth::{CMouse, Cloth}};
+use crate::{application::{Context, Scene}, v1::cloth::{CMouse, Cloth}};
 
 pub struct ClothScene {
     pub cloth: Box<Cloth>,

@@ -2,9 +2,9 @@ use cgmath::{InnerSpace, Vector2};
 use sdl2::pixels::Color;
 use sdl2::rect::Point;
 
-use crate::particle::Particle;
+use crate::v1::particle::Particle;
 use crate::sdl_system::SdlSystem;
-use crate::stick::Stick;
+use crate::v1::stick::Stick;
 
 pub struct Solver {
     pub gravity: Vector2<f32>,

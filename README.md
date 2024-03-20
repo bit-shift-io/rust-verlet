@@ -1,5 +1,20 @@
 # rust-verlet
 
+## Controls
+
+~ = Change scene
+
+### Cloth scene
+Mouse wheel = change radius for cloth scene
+Left mouse = pull
+Right mouse = cut
+
+## Architecture
+
+src/scenes - contains a series of scenes which test the verlet particle systems
+src/v1 - version 1 verlet systems
+src/v2 - version 2 verlet systems
+
 ## Install
 
     run ```install.sh``` to setup rust project

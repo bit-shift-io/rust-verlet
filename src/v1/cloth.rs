@@ -10,9 +10,7 @@ use std::cell::RefCell;
 use std::ptr::{self, null};
 use std::rc::{Rc, Weak};
 
-use crate::particle::Particle;
 use crate::sdl_system::SdlSystem;
-use crate::stick::Stick;
 
 pub struct CMouse {
     pub position_current: Vector2<f32>,
