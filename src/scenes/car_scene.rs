@@ -4,28 +4,74 @@ use rand::Rng;
 
 use crate::{application::{Context, Scene}, particle::Particle, solver::Solver, stick::Stick};
 
+pub fn create_wheel(solver: &mut Solver, origin: Vector2<f32>) {
+    let mut rng = rand::thread_rng();
+
+    let radius = 50.0f32;
+    let divisions = 10;
+    let particle_radius = 5.0f32;
+    let particle_mass = 1.0f32;
+    let col = Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255));
+                    
+    let mut particle_indexes: Vec<usize> = vec![];
+
+    for i in 0..divisions {  
+        let percent = i as f32 / divisions as f32;
+        let radians = percent * 2f32 * std::f32::consts::PI;
+        let x = f32::sin(radians);
+        let y = f32::cos(radians);
+        let pos = origin + Vector2::new(x * radius, y * radius);
+        let p_idx = solver.add_particle(Particle::new(pos, particle_radius, particle_mass, col));
+        particle_indexes.push(p_idx);      
+    }
+
+    // add opposite sticks
+    let half_divisions = divisions / 2;
+    for i in 0..half_divisions { 
+        let opposite_division = i + half_divisions;
+        let p1_idx = particle_indexes[i];
+        let p2_idx = particle_indexes[opposite_division];
+
+        let p1 = &solver.particles[p1_idx];
+        let p2 = &solver.particles[p2_idx];
+
+        solver.add_stick(Stick::new((p1.position_current - p2.position_current).magnitude(), p1_idx, p2_idx));           
+    }
+
+    // add adjacent sticks
+    for i in 0..divisions {
+        let p1_idx = particle_indexes[i];
+        let p2_idx = if (i + 1) == divisions { particle_indexes[0] } else { particle_indexes[i + 1] };
+
+        let p1 = &solver.particles[p1_idx];
+        let p2 = &solver.particles[p2_idx];
+
+        solver.add_stick(Stick::new((p1.position_current - p2.position_current).magnitude(), p1_idx, p2_idx));           
+    }
+
+}
 
 pub struct CarScene {
-    pub solver: Box<Solver>,
+    pub solver: Solver,
 }
 
 impl CarScene {
     pub fn new() -> Self {
-        let solver = Box::new(Solver::new());
+        let solver = Solver::new(); //Box::new(Solver::new());
         Self { solver }
     }
 }
 
 impl Scene for CarScene {
     fn update(&mut self, context: &mut Context) {
-        self.solver.as_mut().update(0.0167f32);
+        self.solver.update(0.0167f32);
     }
 
     fn draw(&mut self, context: &mut Context) {
-        context.sdl.canvas.set_draw_color(Color::RGB(255, 255, 255));
+        context.sdl.canvas.set_draw_color(Color::RGB(128, 255, 255));
         context.sdl.canvas.clear();
 
-        self.solver.as_mut().draw(context.sdl);
+        self.solver.draw(context.sdl);
 
         context.sdl.canvas.present();
 
@@ -50,49 +96,11 @@ impl Scene for CarScene {
 
                 let shape = rng.gen_range(0..=1);
 
-                // chain of 3 circles
-                if shape == 0 {
-                    let radius = rng.gen_range(5..50) as f32;
-                    let pos1 = Vector2::new(xf, yf);
-                    let pos2 = Vector2::new(xf + radius, yf);
-                    let pos3 = Vector2::new(xf - radius, yf);
-                    let col = Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255));
-                    let mass = radius;
-                    let p1 = self.solver.add_particle(Particle::new(pos1, radius, mass, col));
-                    let p2 = self.solver.add_particle(Particle::new(pos2, radius, mass, col));
-                    let p3 = self.solver.add_particle(Particle::new(pos3, radius, mass, col));
-                
-                    let length = radius * 2f32;
-                    self.solver.add_stick(Stick::new(length, p1, p2));
-                    self.solver.add_stick(Stick::new(length, p1, p3));
-                }
-
-                // box
-                if shape == 1 {
-                    let radius = rng.gen_range(5..50) as f32;
-
-                    let pos1 = Vector2::new(xf - radius, yf - radius);
-                    let pos2 = Vector2::new(xf + radius, yf - radius);
-                    let pos3 = Vector2::new(xf + radius, yf + radius);
-                    let pos4 = Vector2::new(xf - radius, yf + radius);
-
-                    let col = Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255));
-                    let mass = radius;
-
-                    let p1 = self.solver.add_particle(Particle::new(pos1, radius, mass, col));
-                    let p2 = self.solver.add_particle(Particle::new(pos2, radius, mass, col));
-                    let p3 = self.solver.add_particle(Particle::new(pos3, radius, mass, col));
-                    let p4 = self.solver.add_particle(Particle::new(pos4, radius, mass, col));
-                
-                    //solver.add_stick(Stick::new((pos1 - pos2).magnitude(), p1, p2));
-                    //solver.add_stick(Stick::new((pos2 - pos3).magnitude(), p2, p3));
-                    //solver.add_stick(Stick::new((pos3 - pos4).magnitude(), p3, p4));
-                    self.solver.add_stick(Stick::new((pos4 - pos1).magnitude(), p4, p1));
+                // wheel
+                let origin = Vector2::new(xf, yf);
+                create_wheel(&mut self.solver, origin);
 
 
-                    self.solver.add_stick(Stick::new((pos1 - pos3).magnitude(), p1, p3));
-                    self.solver.add_stick(Stick::new((pos2 - pos4).magnitude(), p2, p4));
-                }
             },
             _ => {}
         }
