@@ -29,28 +29,22 @@ impl<'a> Body<'a> {
             body.add_particle(particle);     
         }
 
-
         // add opposite sticks
         let half_divisions = divisions / 2;
         for i in 0..half_divisions { 
             let opposite_division = i + half_divisions;
-            let p1_idx = particle_indexes[i];
-            let p2_idx = particle_indexes[opposite_division];
 
-            let p1 = &body.particles[p1_idx];
-            let p2 = &body.particles[p2_idx];
+            let p1 = &body.particles[i];
+            let p2 = &body.particles[opposite_division];
 
             let stick = Box::new(Stick::new(p1, p2));           
         }
 
         // add adjacent sticks
         for i in 0..divisions {
-            let p1_idx = particle_indexes[i];
-            let p2_idx = if (i + 1) == divisions { particle_indexes[0] } else { particle_indexes[i + 1] };
-
-            let p1 = &body.particles[p1_idx];
-            let p2 = &body.particles[p2_idx];
-
+            let p1 = &body.particles[i];
+            let p2 = if (i + 1) == divisions { &body.particles[0] } else { &body.particles[i + 1] };
+            
             let stick = Box::new(Stick::new(p1, p2));           
         }
 
