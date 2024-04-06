@@ -22,6 +22,7 @@ mod v1 {
 
 mod v2 {
     pub mod body;
+    pub mod body_shapes;
     pub mod particle;
     pub mod stick;
     pub mod solver;
