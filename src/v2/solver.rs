@@ -2,16 +2,16 @@ use crate::{sdl_system::SdlSystem, v2::body};
 
 use super::body::Body;
 
-pub struct Solver<'a> {
-    pub bodies: Vec<Box<Body<'a>>>,
+pub struct Solver {
+    pub bodies: Vec<Box<Body>>,
 }
 
-impl<'a> Solver<'a> {
+impl Solver {
     pub fn new() -> Self {
         Self { bodies: vec![] }
     }
 
-    pub fn add_body(&mut self, body: Box<Body<'a>>) {
+    pub fn add_body(&mut self, body: Box<Body>) {
         self.bodies.push(body);
     }
 
