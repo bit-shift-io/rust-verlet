@@ -15,8 +15,8 @@ impl CarScene {
     pub fn new() -> Self {
         let mut solver = Solver::new();
 
-        let mut ground_plane = Box::new(Body::create_line(Vector2::new(100.0f32, 800.0f32), Vector2::new(1000.0f32, 800.0f32), 20.0f32));
-        ground_plane.set_static(true);
+        let mut ground_plane = RefCell::new(Body::create_line(Vector2::new(100.0f32, 800.0f32), Vector2::new(1000.0f32, 800.0f32), 20.0f32));
+        ground_plane.borrow_mut().set_static(true);
         solver.add_body(ground_plane);
 
         Self { solver }
@@ -60,7 +60,7 @@ impl Scene for CarScene {
                 // wheel
                 let origin = Vector2::new(xf, yf);
                 //let body = create_wheel(origin);
-                let body = Box::new(Body::create_wheel(origin));
+                let body = RefCell::new(Body::create_wheel(origin));
                 self.solver.add_body(body);
             },
             _ => {}

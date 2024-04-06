@@ -79,49 +79,7 @@ impl Body {
         }
     }
 
-    pub fn solve_collision(&mut self, other: &Body, dt: f32) {
-        if self.is_static {
-            if other.is_static {
-                return;
-            }
-        }
-
-        // todo:
-    }
-
-    fn solve_collisions(&mut self, dt: f32) {
-        let object_count: &usize = &self.particles.len();
-        for i in 0..*object_count {
-            for k in (&i+1)..*object_count {
-                let p1 = self.particles[i].as_ref().borrow();
-                let p2 = self.particles[k].as_ref().borrow();
-                let collision_axis: Vector2<f32> = p1.pos - p2.pos;
-                let dist: f32 = (collision_axis[0].powf(2f32) + collision_axis[1].powf(2f32)).sqrt();
-                let min_dist: f32 = p1.radius + p2.radius;
-                if dist < min_dist as f32 {
-                    let n: Vector2<f32> = collision_axis / dist;
-                    let delta: f32 = min_dist as f32 - dist;
-
-                    {
-                        let mut p1mut = self.particles[i].as_ref().borrow_mut();
-                        p1mut.pos += 0.5f32 * delta * n;
-                    }
-            
-                    {
-                        let mut p2mut = self.particles[k].as_ref().borrow_mut();
-                        p2mut.pos -= 0.5f32 * delta * n;
-                    }
-
-                    // todo: we only want to update the sticks that are connected to particle i and k
-                    //self.update_sticks(dt);
-                }
-            }
-        }
-
-        self.update_sticks(dt);
-    }
-
-    fn update_sticks(&mut self, dt: f32) {
+    pub fn update_sticks(&mut self, dt: f32) {
         for stick in self.sticks.iter() {
             stick.as_ref().borrow_mut().update(dt);
         }
