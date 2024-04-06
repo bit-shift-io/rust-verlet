@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, rc::Rc};
 
 use cgmath::Vector2;
 
@@ -8,7 +8,7 @@ use super::body::Body;
 
 
 pub struct Solver {
-    pub bodies: Vec<RefCell<Body>>,
+    pub bodies: Vec<Rc<RefCell<Body>>>,
 }
 
 impl Solver {
@@ -16,7 +16,7 @@ impl Solver {
         Self { bodies: vec![] }
     }
 
-    pub fn add_body(&mut self, body: RefCell<Body>) {
+    pub fn add_body(&mut self, body: Rc<RefCell<Body>>) {
         self.bodies.push(body);
     }
 
@@ -103,41 +103,9 @@ impl Solver {
                             let mut bp_mut = b_particle.as_ref().borrow_mut();
                             bp_mut.pos -= b_movement_weight * delta * n;
                         }
-
-                        // todo: we only want to update the sticks that are connected to particle i and k
-                        //self.update_sticks(dt);
                     }
                 }
             }
-
-            /* 
-            let object_count: &usize = &self.particles.len();
-            for i in 0..*object_count {
-                for k in (&i+1)..*object_count {
-                    let p1 = self.particles[i].as_ref().borrow();
-                    let p2 = self.particles[k].as_ref().borrow();
-                    let collision_axis: Vector2<f32> = p1.pos - p2.pos;
-                    let dist: f32 = (collision_axis[0].powf(2f32) + collision_axis[1].powf(2f32)).sqrt();
-                    let min_dist: f32 = p1.radius + p2.radius;
-                    if dist < min_dist as f32 {
-                        let n: Vector2<f32> = collision_axis / dist;
-                        let delta: f32 = min_dist as f32 - dist;
-
-                        {
-                            let mut p1mut = self.particles[i].as_ref().borrow_mut();
-                            p1mut.pos += 0.5f32 * delta * n;
-                        }
-                
-                        {
-                            let mut p2mut = self.particles[k].as_ref().borrow_mut();
-                            p2mut.pos -= 0.5f32 * delta * n;
-                        }
-
-                        // todo: we only want to update the sticks that are connected to particle i and k
-                        //self.update_sticks(dt);
-                    }
-                }
-            }*/
         }
 
         // maybe this would be better called a 'notify_collision' or 'post_collision' handler?

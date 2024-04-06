@@ -38,4 +38,9 @@ impl Particle {
         let force = acc * self.mass;
         self.force = force;
     }
+
+    pub fn add_acceleration(&mut self, acc: Vector2<f32>) {
+        let force = acc * self.mass;
+        self.force += force;
+    }
 }

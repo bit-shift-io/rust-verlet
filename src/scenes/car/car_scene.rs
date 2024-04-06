@@ -9,17 +9,26 @@ use crate::{application::{Context, Scene}, v2::particle::Particle, v2::solver::S
 
 pub struct CarScene {
     pub solver: Solver,
+    //pub wheel: Rc<RefCell<Body>>,
 }
 
 impl CarScene {
     pub fn new() -> Self {
         let mut solver = Solver::new();
 
-        let mut ground_plane = RefCell::new(Body::create_line(Vector2::new(100.0f32, 800.0f32), Vector2::new(1000.0f32, 800.0f32), 20.0f32));
+        let mut ground_plane = Rc::new(RefCell::new(Body::create_line(Vector2::new(100.0f32, 800.0f32), Vector2::new(1000.0f32, 800.0f32), 20.0f32)));
         ground_plane.borrow_mut().set_static(true);
         solver.add_body(ground_plane);
 
-        Self { solver }
+        let w = Rc::new(RefCell::new(Body::create_wheel(Vector2::new(200.0f32, 200.0f32))));
+        solver.add_body(w);
+
+        // how to get the wheel Rc into the car scene
+        
+        Self { 
+            solver, 
+            //)
+        }
     }
 }
 
@@ -60,7 +69,7 @@ impl Scene for CarScene {
                 // wheel
                 let origin = Vector2::new(xf, yf);
                 //let body = create_wheel(origin);
-                let body = RefCell::new(Body::create_wheel(origin));
+                let body = Rc::new(RefCell::new(Body::create_wheel(origin)));
                 self.solver.add_body(body);
             },
             _ => {}

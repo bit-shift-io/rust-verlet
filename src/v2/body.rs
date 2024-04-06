@@ -5,10 +5,11 @@ use collision::Aabb2;
 //use sdl2::pixels::Color;
 //use sdl2::rect::Point;
 
+use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use cgmath::Vector2;
+use cgmath::{InnerSpace, Vector2};
 
 use crate::sdl_system::SdlSystem;
 
@@ -95,5 +96,18 @@ impl Body {
         for stick in self.sticks.iter() {
             stick.as_ref().borrow().draw(sdl);
         }
+    }
+
+    pub fn apply_rotational_force_around_point(&mut self, pos: Vector2<f32>, force: f32) {
+        for particle in self.particles.iter() {
+            let mut p = particle.as_ref().borrow_mut();
+            let delta = p.pos - pos;
+            let adjacent = Vector2::new(delta[1], delta[0]); // compute a vector at 90 degress to delta
+            //let dist = delta.normalize();
+            //let dir = delta.cross
+            //p.force += 
+            p.add_acceleration(adjacent);
+        }
+
     }
 }
