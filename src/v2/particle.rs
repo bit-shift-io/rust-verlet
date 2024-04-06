@@ -26,4 +26,16 @@ impl Particle {
         let r = i16::try_from(self.radius as i32).unwrap();
         sdl.canvas.filled_circle(pos_x, pos_y, r, self.color).unwrap();
     }
+
+    pub fn update_position(&mut self, dt: f32) {
+        let velocity: Vector2<f32> = self.pos - self.pos_prev;
+        let acceleration: Vector2<f32> = self.force / self.mass;
+        self.pos_prev = self.pos;
+        self.pos = self.pos + velocity + acceleration * dt * dt;
+    }
+
+    pub fn accelerate(&mut self, acc: Vector2<f32>) {
+        let force = acc * self.mass;
+        self.force = force;
+    }
 }

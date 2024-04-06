@@ -22,6 +22,26 @@ impl Stick {
         Self { length, p1, p2 }
     }
 
+    pub fn update(&mut self, dt: f32) {
+        let p1_pos = self.p1.as_ref().borrow().pos;
+        let p2_pos = self.p2.as_ref().borrow().pos;
+
+        let difference = p1_pos - p2_pos;
+        let diff_length = difference.magnitude();
+        let diff_factor = (self.length - diff_length) / diff_length * 0.5;
+        let offset = difference * diff_factor;
+
+        {
+            let mut p1mut = self.p1.as_ref().borrow_mut();
+            p1mut.pos += offset;
+        }
+
+        {
+            let mut p2mut = self.p2.as_ref().borrow_mut();
+            p2mut.pos -= offset;
+        }
+    }
+
     pub fn draw(&self, sdl: &mut SdlSystem) {
         let p1_pos1 = self.p1.as_ref().borrow().pos[0];
         let p1_pos2 = self.p1.as_ref().borrow().pos[1];
