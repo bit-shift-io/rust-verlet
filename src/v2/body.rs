@@ -44,12 +44,12 @@ impl Body {
         self.is_static = is_static;
     }
 
-    pub fn add_particle(&mut self, particle: Rc<RefCell<Particle>>) {
-        self.particles.push(particle);
+    pub fn add_particle(&mut self, particle: &Rc<RefCell<Particle>>) {
+        self.particles.push(particle.clone());
     }
 
-    pub fn add_stick(&mut self, stick: Rc<RefCell<Stick>>) {
-        self.sticks.push(stick);
+    pub fn add_stick(&mut self, stick: &Rc<RefCell<Stick>>) {
+        self.sticks.push(stick.clone());
     }
 
     pub fn pre_update(&mut self, dt: f32) {
@@ -106,7 +106,7 @@ impl Body {
             //let dist = delta.normalize();
             //let dir = delta.cross
             //p.force += 
-            p.add_acceleration(adjacent);
+            p.add_acceleration(adjacent * force);
         }
 
     }

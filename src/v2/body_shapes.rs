@@ -25,7 +25,7 @@ impl Body {
             let pos = p1 + (delta * percent);
 
             let particle = Rc::new(RefCell::new(Particle::new(pos, radius, particle_mass, col)));
-            body.add_particle(particle);
+            body.add_particle(&particle);
         }
 
         body
@@ -52,7 +52,7 @@ impl Body {
             let pos = origin + Vector2::new(x * radius, y * radius);
     
             let particle = Rc::new(RefCell::new(Particle::new(pos, particle_radius, particle_mass, col)));
-            body.add_particle(particle);     
+            body.add_particle(&particle);     
         }
 
         // add opposite sticks
@@ -68,7 +68,7 @@ impl Body {
             };
 
             //let mut stick = Box::new(Stick::new(p1, p2));     
-            body.add_stick(stick);
+            body.add_stick(&stick);
             /* ERROR FOR ABOVE LINE:
             cannot borrow `body` as mutable because it is also borrowed as immutable
             mutable borrow occurs hererustcClick for full compiler diagnostic
@@ -84,7 +84,7 @@ impl Body {
             let p2 = if (i + 1) == divisions { Rc::clone(&body.particles[0]) } else { Rc::clone(&body.particles[i + 1]) };
             
             let stick = Rc::new(RefCell::new(Stick::new(p1, p2)));
-            body.add_stick(stick);          
+            body.add_stick(&stick);          
         }
 
         body

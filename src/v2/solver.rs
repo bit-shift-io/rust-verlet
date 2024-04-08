@@ -16,8 +16,8 @@ impl Solver {
         Self { bodies: vec![] }
     }
 
-    pub fn add_body(&mut self, body: Rc<RefCell<Body>>) {
-        self.bodies.push(body);
+    pub fn add_body(&mut self, body: &Rc<RefCell<Body>>) {
+        self.bodies.push(body.clone());
     }
 
     pub fn update(&mut self, dt: f32) {
