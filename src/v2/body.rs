@@ -111,3 +111,31 @@ impl Body {
 
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use sdl2::pixels::Color;
+
+    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    use super::*;
+
+    #[test]
+    fn apply_rotational_force_around_point() {
+        let mut body = Body::new();
+
+        let col = Color::RGB(0, 0, 0);
+        let pos = Vector2::new(1f32, 0f32);
+        let particle = Rc::new(RefCell::new(Particle::new(pos, 1f32, 1f32, col)));
+        body.add_particle(&particle);
+
+        body.apply_rotational_force_around_point(Vector2::new(0f32, 0f32), 1000f32);
+        assert_eq!(particle.as_ref().borrow().force, Vector2::new(0f32, 1000f32));
+
+        // clear the force on the particle
+        particle.as_ref().borrow_mut().accelerate(Vector2::new(0f32, 0f32));
+
+        body.apply_rotational_force_around_point(Vector2::new(0f32, 0f32), -1000f32);
+        assert_eq!(particle.as_ref().borrow().force, Vector2::new(0f32, -1000f32));
+    }
+}
