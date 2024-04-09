@@ -21,6 +21,7 @@ impl CarScene {
         solver.add_body(&ground_plane);
 
         let wheel = Rc::new(RefCell::new(Body::create_wheel(Vector2::new(200.0f32, 200.0f32))));
+        wheel.as_ref().borrow_mut().set_gravity_enabled(false); // to let us test rotational force
         solver.add_body(&wheel);
 
         Self { 
@@ -32,6 +33,8 @@ impl CarScene {
 
 impl CarScene {
     fn rotate_wheel(&mut self, direction: f32) {
+        println!("rotate_wheel dir: {}", direction);
+
         // todo: get the Body center to rotate around
         // todo: we should add Body.Axis class to handle this automatically for us
         // todo: unit test apply_rotational_force_around_point
@@ -39,7 +42,7 @@ impl CarScene {
         let p0 = self.wheel.borrow().particles[0].borrow().pos;
         let p1 = self.wheel.borrow().particles[opposite_particle_idx].borrow().pos;
         let centre = p0 + (p1 - p0) * 0.5f32;
-        self.wheel.borrow_mut().apply_rotational_force_around_point(centre, 1000f32 * direction);
+        self.wheel.borrow_mut().apply_rotational_force_around_point(centre, 10f32 * direction);
     }
 }
 

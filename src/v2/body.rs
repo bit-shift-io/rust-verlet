@@ -24,6 +24,7 @@ pub struct Body {
     // collision_group(s) ?
     //pub aabb: Aabb2<f32>,
     pub gravity: Vector2<f32>,
+    pub gravity_enabled: bool,
 }
 
 /* 
@@ -37,7 +38,15 @@ impl Body {
     pub fn new() -> Self {
         //let zero_point: Point<f32> = Point2::<f32>::new(0.0f32, 0.0f32);
         //let aabb: Aabb2<f32> = Aabb2::new(zero_point, zero_point);
-        Self { particles: vec![], sticks: vec![], collides_with_self: false, is_static: false, gravity: Vector2::new(0f32, 1000f32) /* , aabb*/ }
+        Self { particles: vec![], sticks: vec![], collides_with_self: false, is_static: false, gravity: Vector2::new(0f32, 1000f32), gravity_enabled: true /* , aabb*/ }
+    }
+
+    pub fn set_gravity_enabled(&mut self, gravity_enabled: bool) {
+        self.gravity_enabled = gravity_enabled;
+    }
+
+    pub fn set_gravity(&mut self, gravity: Vector2<f32>) {
+        self.gravity = gravity;
     }
 
     pub fn set_static(&mut self, is_static: bool) {
@@ -69,6 +78,10 @@ impl Body {
     }
 
     fn apply_gravity(&mut self) {
+        if !self.gravity_enabled {
+            return;
+        }
+
         for particle in self.particles.iter() {
             particle.as_ref().borrow_mut().accelerate(self.gravity);
         }
