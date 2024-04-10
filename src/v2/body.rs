@@ -54,6 +54,10 @@ impl Body {
         self.gravity = gravity;
     }
 
+    pub fn set_collides_with_self(&mut self, collides_with_self: bool) {
+        self.collides_with_self = collides_with_self;
+    }
+
     pub fn set_static(&mut self, is_static: bool) {
         self.is_static = is_static;
     }
