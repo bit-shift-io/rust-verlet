@@ -1,4 +1,6 @@
 mod sdl_system;
+mod keyboard;
+mod mouse;
 mod application;
 
 mod scenes {

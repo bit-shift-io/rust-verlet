@@ -33,7 +33,7 @@ impl Solver {
         const SUB_STEPS: u32 = 16;
         let sub_dt: f32 = dt / SUB_STEPS as f32;
         for _ in 0..SUB_STEPS {
-            self.apply_gravity();
+            self.add_gravity();
             self.apply_containment_constraint();
             self.solve_collisions(sub_dt);
             self.update_positions(sub_dt);
@@ -68,7 +68,7 @@ impl Solver {
         }
     }
     
-    fn apply_gravity(&mut self) {
+    fn add_gravity(&mut self) {
         for obj in self.particles.iter_mut() {
             obj.accelerate(self.gravity);
         }

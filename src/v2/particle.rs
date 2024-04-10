@@ -34,6 +34,18 @@ impl Particle {
         self.pos = self.pos + velocity + acceleration * dt * dt;
     }
 
+    pub fn set_force(&mut self, force: Vector2<f32>) {
+        self.force = force;
+    }
+
+    pub fn add_force(&mut self, force: Vector2<f32>) {
+        self.force += force;
+    }
+
+    pub fn acceleration_to_force(&self, acc: Vector2<f32>) -> Vector2<f32> {
+        acc * self.mass
+    }
+/* 
     pub fn accelerate(&mut self, acc: Vector2<f32>) {
         let force = acc * self.mass;
         self.force = force;
@@ -42,5 +54,5 @@ impl Particle {
     pub fn add_acceleration(&mut self, acc: Vector2<f32>) {
         let force = acc * self.mass;
         self.force += force;
-    }
+    }*/
 }

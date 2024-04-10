@@ -35,8 +35,8 @@ impl Body {
         let mut rng = rand::thread_rng();
 
         let radius = 20.0f32;
-        let divisions = 10;
-        let particle_radius = 5.0f32;
+        let divisions = 8;
+        let particle_radius = 8.0f32;
         let particle_mass = 1.0f32;
         let col = Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255));
                         
