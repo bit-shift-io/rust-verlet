@@ -6,6 +6,7 @@ mod application;
 mod scenes {
     pub mod car {
         pub mod car_scene;
+        pub mod car;
     }
     pub mod cloth {
         pub mod cloth_scene;
@@ -28,6 +29,7 @@ mod v2 {
     pub mod particle;
     pub mod stick;
     pub mod solver;
+    pub mod attachment;
 }
 
 

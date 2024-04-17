@@ -13,15 +13,12 @@ use cgmath::{InnerSpace, Vector2};
 
 use crate::sdl_system::SdlSystem;
 
+use super::attachment::Attachment;
 use super::particle::Particle;
 use super::stick::Stick;
 
-// a virtual point
-pub struct Pivot {
-
-}
-
 pub struct Body {
+    pub attachments: Vec<Rc<RefCell<Attachment>>>,
     pub particles: Vec<Rc<RefCell<Particle>>>,
     pub sticks: Vec<Rc<RefCell<Stick>>>,
     pub collides_with_self: bool,
@@ -43,7 +40,7 @@ impl Body {
     pub fn new() -> Self {
         //let zero_point: Point<f32> = Point2::<f32>::new(0.0f32, 0.0f32);
         //let aabb: Aabb2<f32> = Aabb2::new(zero_point, zero_point);
-        Self { particles: vec![], sticks: vec![], collides_with_self: false, is_static: false, gravity: Vector2::new(0f32, 1000f32), gravity_enabled: true /* , aabb*/ }
+        Self { attachments: vec![], particles: vec![], sticks: vec![], collides_with_self: false, is_static: false, gravity: Vector2::new(0f32, 1000f32), gravity_enabled: true /* , aabb*/ }
     }
 
     pub fn set_gravity_enabled(&mut self, gravity_enabled: bool) {
@@ -60,6 +57,10 @@ impl Body {
 
     pub fn set_static(&mut self, is_static: bool) {
         self.is_static = is_static;
+    }
+
+    pub fn add_attachment(&mut self, attachment: &Rc<RefCell<Attachment>>) {
+        self.attachments.push(attachment.clone());
     }
 
     pub fn add_particle(&mut self, particle: &Rc<RefCell<Particle>>) {
@@ -86,6 +87,7 @@ impl Body {
         }
 
         self.update_positions(dt);
+        self.update_attachments(dt);
     }
 
     pub fn zero_forces(&mut self) {
@@ -104,6 +106,12 @@ impl Body {
             let mut p = particle.as_ref().borrow_mut();
             let f = p.acceleration_to_force(self.gravity);
             p.add_force(f);
+        }
+    }
+
+    fn update_attachments(&mut self, dt: f32) {
+        for attachment in self.attachments.iter() {
+            attachment.as_ref().borrow_mut().update(dt);
         }
     }
 
@@ -128,6 +136,11 @@ impl Body {
         // draw stick constraints
         for stick in self.sticks.iter() {
             stick.as_ref().borrow().draw(sdl);
+        }
+
+        // draw attachments
+        for attachment in self.attachments.iter() {
+            attachment.as_ref().borrow().draw(sdl);
         }
     }
 
