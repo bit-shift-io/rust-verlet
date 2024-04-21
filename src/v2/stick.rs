@@ -34,8 +34,8 @@ impl Stick {
             let p2_pos = p2.get_position();
 
             // temporary - do some checking
-            let pos_x = i16::try_from(p1_pos[0].round() as i32).unwrap();
-            let pos_y = i16::try_from(p1_pos[1].round() as i32).unwrap();
+            //let pos_x = i16::try_from(p1_pos[0].round() as i32).unwrap();
+            //let pos_y = i16::try_from(p1_pos[1].round() as i32).unwrap();
 
             let difference = p1_pos - p2_pos;
             let diff_length = difference.magnitude();
@@ -48,8 +48,8 @@ impl Stick {
 
         {
             // temporary - do some checking
-            let pos_x = i16::try_from(p1_new_pos[0].round() as i32).unwrap();
-            let pos_y = i16::try_from(p1_new_pos[1].round() as i32).unwrap();
+            //let pos_x = i16::try_from(p1_new_pos[0].round() as i32).unwrap();
+            //let pos_y = i16::try_from(p1_new_pos[1].round() as i32).unwrap();
 
             let mut p1mut = self.p1.as_ref().borrow_mut();
             //println!("set position 1 ({}, {})", p1_new_pos[0], p1_new_pos[1]);
@@ -58,8 +58,8 @@ impl Stick {
 
         {
             // temporary - do some checking
-            let pos_x = i16::try_from(p2_new_pos[0].round() as i32).unwrap();
-            let pos_y = i16::try_from(p2_new_pos[1].round() as i32).unwrap();
+            //let pos_x = i16::try_from(p2_new_pos[0].round() as i32).unwrap();
+            //let pos_y = i16::try_from(p2_new_pos[1].round() as i32).unwrap();
 
             let mut p2mut = self.p2.as_ref().borrow_mut();
             //println!("set position 2 ({}, {})", p2_new_pos[0], p2_new_pos[1]);

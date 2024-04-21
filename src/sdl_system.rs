@@ -1,3 +1,6 @@
+use sdl2::gfx::primitives::DrawRenderer;
+use sdl2::pixels::Color;
+use sdl2::rect::Point;
 use sdl2::Sdl;
 use sdl2::video::WindowPos;
 use sdl2::render::WindowCanvas;
@@ -42,6 +45,34 @@ impl SdlSystem {
         //let texture_creator = self.canvas.texture_creator();
         //let texture = self.texture_creator.load_texture(path).unwrap();
         return self.texture_creator.load_texture(path).unwrap();
+    }
+
+    pub fn draw_filled_circle(&self, point: Point, radius: i32, color: Color) {
+        // I'm getting a panic here, I think the system is exploding and
+        // drawing stuf way off screen more than i16 can handle.
+        // I should ignore if drawn off screen
+        let (width, height) = self.canvas.logical_size(); // or output_size?
+
+        // TODO: fix this bounds checking! its broken
+        if (point.x - radius) < 0 {
+            return
+        }
+
+        if (point.y - radius) < 0 {
+            return
+        }
+
+        if ((point.x - radius) > width) {
+            return
+        }
+        if ((point.y - radius) > height) {
+            return
+        }
+
+        let pos_x = i16::try_from(point.x).unwrap();
+        let pos_y = i16::try_from(point.y).unwrap();
+        let r = i16::try_from(radius as i32).unwrap();
+        self.canvas.filled_circle(pos_x, pos_y, r, color).unwrap();
     }
 
 /*
