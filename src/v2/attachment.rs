@@ -5,7 +5,7 @@ use sdl2::{gfx::primitives::DrawRenderer, pixels::Color};
 
 use crate::sdl_system::SdlSystem;
 
-use super::particle::Particle;
+use super::{particle::Particle, position::Position};
 
 pub struct ParticleAttachment { 
     particle: Rc<RefCell<Particle>>,
@@ -26,6 +26,16 @@ impl ParticleAttachment {
 pub struct Attachment {
     pub particle_attachments: Vec<ParticleAttachment>,
     pub pos: Vector2<f32>,
+}
+
+impl Position for Attachment {
+    fn get_position(&self) -> Vector2<f32> {
+        self.pos
+    }
+
+    fn set_position(&mut self, pos: Vector2<f32>) {
+        self.pos = pos;
+    }
 }
 
 impl Attachment {

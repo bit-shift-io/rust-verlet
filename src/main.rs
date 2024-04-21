@@ -2,6 +2,7 @@ mod sdl_system;
 mod keyboard;
 mod mouse;
 mod application;
+mod point;
 
 mod scenes {
     pub mod car {
@@ -30,6 +31,8 @@ mod v2 {
     pub mod stick;
     pub mod solver;
     pub mod attachment;
+    pub mod position;
+    pub mod types;
 }
 
 
@@ -42,8 +45,8 @@ use scenes::cloth::cloth_scene::ClothScene;
 fn main() -> Result<(), String> {
     let mut sdl = SdlSystem::new("Rust Verlet", 1200, 800);
     let mut application = Application::new(&mut sdl);
-    application.register_scene(Box::new(CarScene::new()));
+    //application.register_scene(Box::new(CarScene::new()));
     application.register_scene(Box::new(RandomBodiesScene::new()));
-    application.register_scene(Box::new(ClothScene::new()));
+    //application.register_scene(Box::new(ClothScene::new()));
     return application.run();
 }

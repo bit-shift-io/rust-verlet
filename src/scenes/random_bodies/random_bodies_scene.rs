@@ -1,27 +1,46 @@
+use std::{cell::RefCell, rc::Rc};
+
 use cgmath::{InnerSpace, Vector2};
 use sdl2::{event::Event, gfx::primitives::DrawRenderer, pixels::Color};
 use rand::Rng;
 
-use crate::{application::{Context, Scene}, v1::particle::Particle, v1::solver::Solver, v1::stick::Stick};
+use crate::{application::{Context, Scene}, v2::{body::Body, solver::Solver}};
 
 
 pub struct RandomBodiesScene {
-    pub solver: Box<Solver>,
+    pub solver: Solver,
 }
 
 impl RandomBodiesScene {
     pub fn new() -> Self {
-        let solver = Box::new(Solver::new());
+        let mut solver = Solver::new();
+
+        let ground_plane = Rc::new(RefCell::new(Body::create_line(Vector2::new(100.0f32, 800.0f32), Vector2::new(600.0f32, 800.0f32), 8.0f32)));
+        ground_plane.borrow_mut().set_static(true);
+        solver.add_body(&ground_plane);
+        
         Self { solver }
     }
 }
 
 impl Scene for RandomBodiesScene {
     fn update(&mut self, context: &mut Context) {
-        self.solver.as_mut().update(0.0167f32);
+
+        for body in self.solver.bodies.iter() {
+            body.borrow_mut().zero_forces();
+            body.borrow_mut().add_gravity();
+        }
+
+        self.solver.update(0.0167f32);
     }
 
     fn draw(&mut self, context: &mut Context) {
+        context.sdl.canvas.set_draw_color(Color::RGB(128, 255, 255));
+        context.sdl.canvas.clear();
+        self.solver.draw(context.sdl);
+        context.sdl.canvas.present();
+
+        /* 
         context.sdl.canvas.set_draw_color(Color::RGB(0, 0, 0));
         context.sdl.canvas.clear();
         context.sdl.canvas.set_draw_color(Color::RGB(255, 255, 255));
@@ -30,6 +49,7 @@ impl Scene for RandomBodiesScene {
         self.solver.as_mut().draw(context.sdl);
 
         context.sdl.canvas.present();
+        */
     }
 
     fn process_event(&mut self, context: &mut Context, event: Event) {
@@ -41,6 +61,9 @@ impl Scene for RandomBodiesScene {
 
                 let shape = rng.gen_range(0..=1);
 
+                let wheel_1 = Rc::new(RefCell::new(Body::create_stick_spoke_wheel(Vector2::new(xf, yf))));
+                self.solver.add_body(&wheel_1);
+                /* 
                 // chain of 3 circles
                 if shape == 0 {
                     let radius = rng.gen_range(5..50) as f32;
@@ -83,7 +106,7 @@ impl Scene for RandomBodiesScene {
 
                     self.solver.add_stick(Stick::new((pos1 - pos3).magnitude(), p1, p3));
                     self.solver.add_stick(Stick::new((pos2 - pos4).magnitude(), p2, p4));
-                }
+                }*/
             },
             _ => {}
         }

@@ -46,6 +46,8 @@ impl CarScene {
 
 impl Scene for CarScene {
     fn update(&mut self, context: &mut Context) {
+        println!("car scnee update start");
+
         self.keyboard.update();
         self.mouse.update();
 
@@ -53,6 +55,7 @@ impl Scene for CarScene {
         self.car.update(&mut car_scene_context);
 
         self.solver.update(0.0167f32);
+        println!("car scnee update end");
     }
 
     fn draw(&mut self, context: &mut Context) {
