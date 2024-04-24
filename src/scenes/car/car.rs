@@ -4,7 +4,7 @@ use cgmath::{InnerSpace, Vector2};
 use sdl2::{event::Event, gfx::primitives::DrawRenderer, keyboard::Keycode, pixels::Color};
 use rand::Rng;
 
-use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{attachment::Attachment, body::Body, particle::Particle, solver::Solver, stick::Stick}};
+use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{attachment::Attachment, body::Body, particle::Particle, position::Position, solver::Solver, stick::Stick}};
 
 use super::car_scene::{self, CarSceneContext};
 
@@ -16,6 +16,8 @@ pub struct Car {
     pub wheel_2_surface_handle: Rc<RefCell<Body>>,
     pub wheel_2_interior_handle: Rc<RefCell<Body>>,
     pub wheel_2_axle: Rc<RefCell<Attachment>>,
+
+    pub chassis: Rc<RefCell<Body>>,
 }
 
 impl Car {
@@ -37,6 +39,14 @@ impl Car {
 
         //wheel_2.as_ref().borrow_mut().set_gravity_enabled(false); // to let us test rotational force
        
+        // okay.... I had not considered this! I'm trying to push an Attachment, which needs to push the whole body
+        // so the Attachment needs to work more like a particle. 
+        let mut chassis_b = Body::new();
+        let wheel_1_axle_dyn: Rc<RefCell<dyn Position>> = wheel_1_axle.clone();
+        let wheel_2_axle_dyn: Rc<RefCell<dyn Position>> = wheel_2_axle.clone();
+        let axle_stick = Rc::new(RefCell::new(Stick::new(&wheel_1_axle_dyn, &wheel_2_axle_dyn)));
+        chassis_b.add_stick(&axle_stick);
+        let chassis = Rc::new(RefCell::new(chassis_b));
 
         Self { 
             wheel_1,
@@ -44,7 +54,9 @@ impl Car {
 
             wheel_2_surface_handle,
             wheel_2_interior_handle,
-            wheel_2_axle
+            wheel_2_axle,
+
+            chassis
         }
     }
 
@@ -53,6 +65,8 @@ impl Car {
 
         solver.add_body(&self.wheel_2_surface_handle);
         solver.add_body(&self.wheel_2_interior_handle);
+
+        solver.add_body(&self.chassis);
     }
 
     fn create_and_attach_wheel_axle(wheel: &Rc<RefCell<Body>>) -> Rc<RefCell<Attachment>> {

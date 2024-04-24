@@ -14,11 +14,11 @@ pub struct Stick {
 }
 
 impl Stick {
-    pub fn new(p1: Rc<RefCell<dyn Position>>, p2: Rc<RefCell<dyn Position>>) -> Self {
+    pub fn new(p1: &Rc<RefCell<dyn Position>>, p2: &Rc<RefCell<dyn Position>>) -> Self {
         let pos1 = p1.as_ref().borrow().get_position();
         let pos2 = p2.as_ref().borrow().get_position();
         let length = (pos1 - pos2).magnitude();
-        Self { length, p1, p2 }
+        Self { length, p1: p1.clone(), p2: p2.clone() }
     }
 
     pub fn update(&mut self, dt: f32) {
@@ -40,10 +40,11 @@ impl Stick {
             let difference = p1_pos - p2_pos;
             let diff_length = difference.magnitude();
             let diff_factor = (self.length - diff_length) / diff_length * 0.5;
+
             let offset = difference * diff_factor;
 
             p1_new_pos = p1_pos + offset;
-            p2_new_pos = p2_pos + offset;
+            p2_new_pos = p2_pos - offset;
         }
 
         {

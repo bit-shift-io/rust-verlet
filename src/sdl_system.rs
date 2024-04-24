@@ -1,3 +1,4 @@
+use collision::Aabb;
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
 use sdl2::rect::Point;
@@ -8,6 +9,7 @@ use sdl2::render::Texture;
 use sdl2::render::TextureCreator;
 use sdl2::image::{InitFlag, LoadTexture};
 use sdl2::video::WindowContext;
+use collision::Aabb2;
 
 pub struct SdlSystem {
     pub sdl_context: Sdl,
@@ -51,21 +53,24 @@ impl SdlSystem {
         // I'm getting a panic here, I think the system is exploding and
         // drawing stuf way off screen more than i16 can handle.
         // I should ignore if drawn off screen
-        let (width, height) = self.canvas.logical_size(); // or output_size?
+        let (u_width, u_height) = self.canvas.output_size().unwrap(); 
+        // ideally we use an AABB here, expand to include the circle radius
+        //let aabb = Aabb2::<Point>::zero();
 
-        // TODO: fix this bounds checking! its broken
-        if (point.x - radius) < 0 {
+        let width = u_width as i32;
+        let height = u_height as i32;
+
+        // bounds checking. Discard circle if out of the window
+        if point.x < -radius {
             return
         }
-
-        if (point.y - radius) < 0 {
+        if point.y < -radius {
             return
         }
-
-        if ((point.x - radius) > width) {
+        if (point.x - radius) > width {
             return
         }
-        if ((point.y - radius) > height) {
+        if (point.y - radius) > height {
             return
         }
 

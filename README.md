@@ -44,6 +44,11 @@ src/v2 - version 2 verlet systems
     cargo bench
     cargo test
 
+## Future
+
+    * Switch to bevy math library: https://docs.rs/bevy/latest/bevy/math/ ?
+    * Use Arena allocators for Particles, Sticks etc to get ride of Rc<RefCell> usage
+
 ## Tutorials & Links
 
     https://pikuma.com/blog/verlet-integration-2d-cloth-physics-simulation
