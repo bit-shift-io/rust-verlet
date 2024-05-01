@@ -1,5 +1,19 @@
 # rust-verlet
 
+
+## v1
+
+Just something that works.
+
+## v2
+
+Attempt to unify into a workable library of sorts.
+
+## v3
+
+Adding abstractions in order to support SIMD or GPU support if required.
+Refer to: https://www.rustsim.org/blog/2020/03/23/simd-aosoa-in-nalgebra/
+
 ## Controls
 
 ~ = Change scene

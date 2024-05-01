@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use cgmath::InnerSpace;
 use sdl2::{pixels::Color, rect::Point};
 
-use crate::{point::vec2_to_point, sdl_system::SdlSystem};
+use crate::{point::{vec2_to_point, vec2_to_point_old}, sdl_system::SdlSystem};
 use super::{particle::Particle, position::Position};
 
 pub struct Stick {
@@ -69,8 +69,8 @@ impl Stick {
     }
 
     pub fn draw(&self, sdl: &mut SdlSystem) {
-        let start = vec2_to_point(self.p1.as_ref().borrow().get_position());
-        let end = vec2_to_point(self.p2.as_ref().borrow().get_position());
+        let start = vec2_to_point_old(self.p1.as_ref().borrow().get_position());
+        let end = vec2_to_point_old(self.p2.as_ref().borrow().get_position());
 
         sdl.canvas.set_draw_color(Color::RGB(255, 255, 255));
         let _ = sdl.canvas.draw_line(start, end);

@@ -4,40 +4,61 @@ use cgmath::{InnerSpace, Vector2};
 use sdl2::{event::Event, gfx::primitives::DrawRenderer, pixels::Color};
 use rand::Rng;
 
-use crate::{application::{Context, Scene}, v2::{body::Body, particle::Particle, position::Position, solver::Solver, stick::Stick, types::Vec2}};
+use crate::{application::{Context, Scene}, v2::{body::Body, particle::Particle, position::Position, solver::Solver, stick::Stick}};
 
+use crate::v3::{types::Vec2, particle_accelerator::ParticleAccelerator, particle_accelerator::ParticleCollider, particle_accelerator::ParticleRenderer, shape_builder::ShapeBuilder};
 
 pub struct RandomBodiesScene {
     pub solver: Solver,
+    pub particle_accelerator: ParticleAccelerator,
 }
 
 impl RandomBodiesScene {
     pub fn new() -> Self {
-        let mut solver = Solver::new();
+        // v3
+        let mut particle_accelerator = ParticleAccelerator::new();
 
+        let mask = 0x1;
+        ShapeBuilder::new()
+            .create_line(Vec2::new(100.0f32, 800.0f32), Vec2::new(600.0f32, 800.0f32), 8.0f32)
+            .create_particles_in_particle_accelerator(&mut particle_accelerator, mask);
+        
+        // v2
+        let mut solver = Solver::new();
         let ground_plane = Rc::new(RefCell::new(Body::create_line(Vector2::new(100.0f32, 800.0f32), Vector2::new(600.0f32, 800.0f32), 8.0f32)));
         ground_plane.borrow_mut().set_static(true);
         solver.add_body(&ground_plane);
         
-        Self { solver }
+        Self { solver, particle_accelerator }
     }
 }
 
 impl Scene for RandomBodiesScene {
     fn update(&mut self, context: &mut Context) {
-
+        // v2
         for body in self.solver.bodies.iter() {
             body.borrow_mut().zero_forces();
             body.borrow_mut().add_gravity();
         }
 
         self.solver.update(0.0167f32);
+
+        // v3
+        let mut collider = ParticleCollider::new();
+        collider.solve_collisions(&mut self.particle_accelerator);
     }
 
     fn draw(&mut self, context: &mut Context) {
         context.sdl.canvas.set_draw_color(Color::RGB(128, 255, 255));
         context.sdl.canvas.clear();
+
+        // v2
         self.solver.draw(context.sdl);
+
+        // v3
+        let renderer = ParticleRenderer::new();
+        renderer.draw(&mut context.sdl, &self.particle_accelerator);
+
         context.sdl.canvas.present();
 
         /* 
@@ -69,7 +90,7 @@ impl Scene for RandomBodiesScene {
                     let mut body = Body::new();
                     let col = Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255));
 
-                    let particle = Particle::new(Vec2::new(xf, yf), 10f32, 1f32, col);
+                    let particle = Particle::new(Vector2::new(xf, yf), 10f32, 1f32, col);
                     body.add_particle(&Rc::new(RefCell::new(particle)));
 
                     let particle_body = Rc::new(RefCell::new(body));
@@ -85,12 +106,12 @@ impl Scene for RandomBodiesScene {
                     let col = Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255));
 
                     //let particle_1 = 
-                    let particle_1_handle = Rc::new(RefCell::new(Particle::new(Vec2::new(xf, yf), radius, 1f32, col)));
+                    let particle_1_handle = Rc::new(RefCell::new(Particle::new(Vector2::new(xf, yf), radius, 1f32, col)));
                     body.add_particle(&particle_1_handle);
                     let particle_1_dyn: Rc<RefCell<dyn Position>> = particle_1_handle;
 
                     //let particle_2: dyn Position = 
-                    let particle_2_handle = Rc::new(RefCell::new(Particle::new(Vec2::new(xf + radius * 2f32, yf), radius, 1f32, col)));
+                    let particle_2_handle = Rc::new(RefCell::new(Particle::new(Vector2::new(xf + radius * 2f32, yf), radius, 1f32, col)));
                     body.add_particle(&particle_2_handle);
                     let particle_2_dyn: Rc<RefCell<dyn Position>> = particle_2_handle.clone();
                     
@@ -100,8 +121,8 @@ impl Scene for RandomBodiesScene {
 
                     // now lets move particles to overlap
                     let p2clone = Rc::clone(&particle_2_handle);
-                    p2clone.as_ref().borrow_mut().set_position(Vec2::new(xf + radius * 1f32, yf));
-                    p2clone.as_ref().borrow_mut().pos_prev = Vec2::new(xf + radius * 1f32, yf);
+                    p2clone.as_ref().borrow_mut().set_position(Vector2::new(xf + radius * 1f32, yf));
+                    p2clone.as_ref().borrow_mut().pos_prev = Vector2::new(xf + radius * 1f32, yf);
 
                     let particle_body = Rc::new(RefCell::new(body));
                     self.solver.add_body(&particle_body);

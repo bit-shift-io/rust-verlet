@@ -1,7 +1,7 @@
 use cgmath::Vector2;
 use sdl2::{gfx::primitives::DrawRenderer, pixels::Color};
 
-use crate::{point::vec2_to_point, sdl_system::SdlSystem};
+use crate::{point::{vec2_to_point, vec2_to_point_old}, sdl_system::SdlSystem};
 
 use super::{position::Position, types::Vec2};
 
@@ -33,7 +33,7 @@ impl Particle {
     }
 
     pub fn draw(&self, sdl: &mut SdlSystem) {
-        sdl.draw_filled_circle(vec2_to_point(self.pos), self.radius as i32, self.color);
+        sdl.draw_filled_circle(vec2_to_point_old(self.pos), self.radius as i32, self.color);
     }
 
     pub fn update_position(&mut self, dt: f32) {
