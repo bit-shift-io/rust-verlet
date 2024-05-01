@@ -4,28 +4,43 @@ use super::{particle_accelerator::{ParticleAccelerator, ParticleHandle}, types::
 struct ParticlePrim {
     pos: Vec2,
     radius: f32,
-    mass: f32
+    mass: f32,
+    is_static: bool
 }
 
 impl ParticlePrim {
-    pub fn new(pos: Vec2, radius: f32, mass: f32) -> Self {
-        Self { pos, radius, mass }
+    pub fn new(pos: Vec2, radius: f32, mass: f32, is_static: bool) -> Self {
+        Self { pos, radius, mass, is_static }
     }
 }
 
 pub struct ShapeBuilder {
-    particles: Vec<ParticlePrim>
+    particles: Vec<ParticlePrim>,
+    is_static: bool,
+    mass: f32
 }
 
 impl ShapeBuilder {
     pub fn new() -> Self {
-        Self { particles: vec![] }    
+        Self { particles: vec![], is_static: false, mass: 1f32 }    
+    }
+
+    pub fn set_static(&mut self, is_static: bool) -> &mut Self {
+        self.is_static = is_static;
+        self
+    }
+
+    pub fn set_mass(&mut self, mass: f32) -> &mut Self {
+        self.mass = mass;
+        self
     }
 
     pub fn create_particles_in_particle_accelerator(&self, particle_accelerator: &mut ParticleAccelerator, mask: u32) -> Vec<ParticleHandle> {
         let mut handles = vec![];
         for particle in self.particles.iter() {
-            handles.push(particle_accelerator.create_particle(particle.pos, particle.radius, particle.mass, mask));
+            let particle_handle = particle_accelerator.create_particle(particle.pos, particle.radius, particle.mass, mask);
+            particle_accelerator.set_particle_static(&particle_handle, particle.is_static);
+            handles.push(particle_handle);
         }
         handles
     }
@@ -43,7 +58,7 @@ impl ShapeBuilder {
         for i in 0..divisions { 
             let percent = i as f32 / divisions as f32;
             let pos = p1 + (delta * percent);
-            self.particles.push(ParticlePrim::new(pos, radius, particle_mass));
+            self.particles.push(ParticlePrim::new(pos, radius, particle_mass, self.is_static));
         }
 
         self

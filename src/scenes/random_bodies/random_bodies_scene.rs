@@ -20,6 +20,7 @@ impl RandomBodiesScene {
 
         let mask = 0x1;
         ShapeBuilder::new()
+            .set_static(true)
             .create_line(Vec2::new(100.0f32, 800.0f32), Vec2::new(600.0f32, 800.0f32), 8.0f32)
             .create_particles_in_particle_accelerator(&mut particle_accelerator, mask);
         
@@ -45,7 +46,16 @@ impl Scene for RandomBodiesScene {
 
         // v3
         let mut collider = ParticleCollider::new();
-        collider.solve_collisions(&mut self.particle_accelerator);
+        collider.reset_forces(&mut self.particle_accelerator);
+
+        // todo: move this into the collider class
+        let dt = 0.0167f32;
+        const SUB_STEPS: u32 = 16;
+        let sub_dt: f32 = dt / SUB_STEPS as f32;
+        for _ in 0..SUB_STEPS {
+            collider.solve_collisions(&mut self.particle_accelerator);
+            collider.update_positions(&mut self.particle_accelerator, sub_dt);
+        }
     }
 
     fn draw(&mut self, context: &mut Context) {
@@ -80,21 +90,27 @@ impl Scene for RandomBodiesScene {
                 let yf = y as f32;
                 let mut rng = rand::thread_rng();
 
-                let shape = 1;//rng.gen_range(0..=1);
+                let shape = 0;//rng.gen_range(0..=1);
 
                 //let wheel_1 = Rc::new(RefCell::new(Body::create_stick_spoke_wheel(Vector2::new(xf, yf))));
                 //self.solver.add_body(&wheel_1);
 
                 // single particle
                 if shape == 0 {
+                    // v2
                     let mut body = Body::new();
                     let col = Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255));
 
-                    let particle = Particle::new(Vector2::new(xf, yf), 10f32, 1f32, col);
+                    let particle = Particle::new(Vector2::new(xf + 10f32, yf), 10f32, 1f32, col);
                     body.add_particle(&Rc::new(RefCell::new(particle)));
 
                     let particle_body = Rc::new(RefCell::new(body));
                     self.solver.add_body(&particle_body);
+
+
+                    // v3
+                    let mask = 0x1;
+                    self.particle_accelerator.create_particle(Vec2::new(xf, yf), 10f32, 1f32, mask);
                 }
 
                 // chain of 2 particles
