@@ -48,13 +48,11 @@ impl Scene for RandomBodiesScene {
         let mut collider = ParticleCollider::new();
         collider.reset_forces(&mut self.particle_accelerator);
 
-        // todo: move this into the collider class
         let dt = 0.0167f32;
-        const SUB_STEPS: u32 = 16;
-        let sub_dt: f32 = dt / SUB_STEPS as f32;
-        for _ in 0..SUB_STEPS {
+        const SUB_STEPS: usize = 16;
+        for sub_dt in collider.range_substeps(dt, SUB_STEPS).iter() {
             collider.solve_collisions(&mut self.particle_accelerator);
-            collider.update_positions(&mut self.particle_accelerator, sub_dt);
+            collider.update_positions(&mut self.particle_accelerator, *sub_dt);
             collider.update_sticks(&mut self.particle_accelerator);
         }
     }
@@ -138,8 +136,8 @@ impl Scene for RandomBodiesScene {
                     // v3
                     let mask = 0x1;
                     ShapeBuilder::new()
-                        .add_particle(Vec2::new(xf, yf), 8.0)
-                        .add_particle(Vec2::new(xf + radius * 2.0, yf), 8.0)
+                        .add_particle(Vec2::new(xf, yf), radius)
+                        .add_particle(Vec2::new(xf + radius * 2.0, yf), radius)
                         .add_stick([-2, -1]) // -2 = second to last, -1 = last
                         .create_in_particle_accelerator(&mut self.particle_accelerator, mask);
         

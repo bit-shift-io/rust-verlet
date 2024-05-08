@@ -139,6 +139,11 @@ impl ParticleCollider {
         (a_movement_weight, b_movement_weight)
     }
 
+    pub fn range_substeps(&self, dt: f32, substeps: usize) -> Vec<f32> {
+        let sub_dt: f32 = dt / substeps as f32;
+        vec![sub_dt; substeps]
+    }
+
 
     /* 
     pub fn solve_particle_particle_collision(
