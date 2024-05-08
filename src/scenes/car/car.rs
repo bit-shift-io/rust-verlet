@@ -9,6 +9,7 @@ use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2:
 use super::car_scene::{self, CarSceneContext};
 
 pub struct CarWheel {
+    hub_particle_handle: ParticleHandle,
     surface_particle_handles: Vec<ParticleHandle>,
     interior_particle_handles: Vec<ParticleHandle>,
 }
@@ -16,6 +17,15 @@ pub struct CarWheel {
 impl CarWheel {
     pub fn new(origin: Vec2, particle_accelerator: &mut ParticleAccelerator) -> Self {
         let mask = 0x1;
+
+        // wheel hub
+        let hub_particle_handle = {
+            let particle_radius = 4.0;
+            let mut builder = ShapeBuilder::new();
+            builder.add_particle(origin, particle_radius)
+                .create_in_particle_accelerator(particle_accelerator, mask);
+            builder.particle_handles.first().unwrap().clone()
+        };
 
         // wheel surface
         let surface_particle_handles = {
@@ -37,9 +47,19 @@ impl CarWheel {
             builder.add_circle(origin, circle_radius, particle_radius, divisions)
                 .create_in_particle_accelerator(particle_accelerator, mask);
             builder.particle_handles.clone()
-        };
+        };       
+
+
+        // notes:
+        // the wheel hub needs a constraint to set its position to the centre of the wheel
+        // that is its position should be determined by a few points on the surface wheel.
+        // that said, this might cause issues with the air inside the wheel. If this is the case
+        // we need a way to disable collisions for the hub. Set its layer to zero to mean the no collisions layer?
+        // or add a flag to particles to say they are "invisible"?
+
 
         Self {
+            hub_particle_handle,
             surface_particle_handles,
             interior_particle_handles
         }
@@ -86,6 +106,12 @@ impl Car {
     pub fn new(particle_accelerator: &mut ParticleAccelerator) -> Self {
         let wheel_1 = CarWheel::new(Vec2::new(300.0f32, 300.0f32), particle_accelerator);
         let wheel_2 = CarWheel::new(Vec2::new(400.0f32, 300.0f32), particle_accelerator);
+
+        // axle stick to connect the two wheel hubs
+        {
+            let length = (particle_accelerator.get_particle_position(&wheel_1.hub_particle_handle) - particle_accelerator.get_particle_position(&wheel_2.hub_particle_handle)).magnitude(); 
+            particle_accelerator.create_stick([&wheel_1.hub_particle_handle, &wheel_2.hub_particle_handle], length);
+        }
 /* 
         let mask = 0x1;
 

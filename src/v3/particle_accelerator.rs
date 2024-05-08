@@ -123,6 +123,10 @@ impl ParticleAccelerator {
     pub fn set_particle_static(&mut self, particle_handle: &ParticleHandle, is_static: bool) {
         self.particles[particle_handle.id].is_static = is_static;
     }
+
+    pub fn get_particle_position(&self, particle_handle: &ParticleHandle) -> Vec2 {
+        self.verlet_positions[particle_handle.id].pos
+    }
 }
 
 pub struct ParticleCollider {
