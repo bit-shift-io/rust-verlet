@@ -6,7 +6,7 @@ use crate::{point::vec2_to_point, sdl_system::SdlSystem};
 
 use super::types::Vec2;
 
-
+#[derive(Clone)]
 pub struct ParticleHandle {
     id: usize,
 }
@@ -50,6 +50,7 @@ struct Particle {
     radius: f32,
     mask: u32,
     is_static: bool,
+    color: Color,
     //verlet_position_index: usize,
 }
 
@@ -94,7 +95,7 @@ impl ParticleAccelerator {
         StickHandle::new(id)
     }
 
-    pub fn create_particle(&mut self, pos: Vec2, radius: f32, mass: f32, mask: u32) -> ParticleHandle {
+    pub fn create_particle(&mut self, pos: Vec2, radius: f32, mass: f32, mask: u32, color: Color) -> ParticleHandle {
         let id = self.particles.len();
 
         let layer = self.layer_map.entry(mask).or_insert(Layer::new(mask));
@@ -106,6 +107,7 @@ impl ParticleAccelerator {
             radius,
             mask,
             is_static: false,
+            color
             //verlet_position_index
         };
         self.particles.push(particle);
@@ -316,9 +318,8 @@ impl ParticleRenderer {
 
     pub fn draw(&self, sdl: &mut SdlSystem, particle_accelerator: &ParticleAccelerator) {
         // draw particles
-        let col = Color::RGB(128, 0, 0);
         for (particle, verlet_position) in particle_accelerator.particles.iter().zip(particle_accelerator.verlet_positions.iter()) {
-            sdl.draw_filled_circle(vec2_to_point(verlet_position.pos), particle.radius as i32, col);
+            sdl.draw_filled_circle(vec2_to_point(verlet_position.pos), particle.radius as i32, particle.color);
             /* 
             let layer_option = particle_accelerator.layer_map.get(&particle.mask);
             layer_option.as_ref().map(|layer| {

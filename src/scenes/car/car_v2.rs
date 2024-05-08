@@ -4,72 +4,12 @@ use cgmath::{InnerSpace, Vector2};
 use sdl2::{event::Event, gfx::primitives::DrawRenderer, keyboard::Keycode, pixels::Color};
 use rand::Rng;
 
-use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{attachment::Attachment, body::Body, particle::Particle, position::Position, solver::Solver, stick::Stick}, v3::{particle_accelerator::{ParticleAccelerator, ParticleHandle}, shape_builder::ShapeBuilder, types::Vec2}};
+use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{attachment::Attachment, body::Body, particle::Particle, position::Position, solver::Solver, stick::Stick}};
 
 use super::car_scene::{self, CarSceneContext};
 
-pub struct CarWheel {
-    surface_particle_handles: Vec<ParticleHandle>,
-    interior_particle_handles: Vec<ParticleHandle>,
-}
 
-impl CarWheel {
-    pub fn new(origin: Vec2, particle_accelerator: &mut ParticleAccelerator) -> Self {
-        let mask = 0x1;
-
-        // wheel surface
-        let surface_particle_handles = {
-            let divisions = 8;
-            let circle_radius = 20.0;
-            let particle_radius = 7.0;
-            let mut builder = ShapeBuilder::new();
-            builder.add_adjacent_stick_circle(origin, circle_radius, particle_radius, divisions)
-                .create_in_particle_accelerator(particle_accelerator, mask);
-            builder.particle_handles.clone()
-        };
-
-        // wheel interior
-        let interior_particle_handles = {
-            let divisions = 6;
-            let circle_radius = 10.0;
-            let particle_radius = 4.0;
-            let mut builder = ShapeBuilder::new();
-            builder.add_circle(origin, circle_radius, particle_radius, divisions)
-                .create_in_particle_accelerator(particle_accelerator, mask);
-            builder.particle_handles.clone()
-        };
-
-        Self {
-            surface_particle_handles,
-            interior_particle_handles
-        }
-    }
-
-    fn rotate(&mut self, direction: f32) {
-        /* 
-        // something wrong here, z should be counterclockwise. x should be clockwise
-        // be it seems reversed!? because in SDL the y-axis is mirrored around the x-axis
-        // so lets fix that here:
-        self.rotate_wheel_wheel(-direction, &self.wheel_1_surface_handle);
-        self.rotate_wheel_wheel(-direction, &self.wheel_2_surface_handle);
-        */
-        /* 
-        // todo: get the Body center to rotate around
-        // todo: we should add Body.Axis class to handle this automatically for us
-        // todo: unit test add_rotational_force_around_point
-        let opposite_particle_idx = (wheel.borrow().particles.len() as f32 / 2f32) as usize;
-        let p0 = wheel.borrow().particles[0].borrow().pos;
-        let p1 = wheel.borrow().particles[opposite_particle_idx].borrow().pos;
-        let centre = p0 + (p1 - p0) * 0.5f32;
-        let force_magnitude = 50f32;
-        wheel.borrow_mut().add_rotational_force_around_point(centre, force_magnitude * direction);
-        */
-    }
-}
-
-pub struct Car {
-    pub wheels: [CarWheel; 2],
-    /* 
+pub struct CarV2 {
     pub wheel_1_surface_handle: Rc<RefCell<Body>>,
     pub wheel_1_interior_handle: Rc<RefCell<Body>>,
     pub wheel_1_axle: Rc<RefCell<Attachment>>,
@@ -79,37 +19,10 @@ pub struct Car {
     pub wheel_2_axle: Rc<RefCell<Attachment>>,
 
     pub chassis: Rc<RefCell<Body>>,
-    */
 }
 
-impl Car {
-    pub fn new(particle_accelerator: &mut ParticleAccelerator) -> Self {
-        let wheel_1 = CarWheel::new(Vec2::new(300.0f32, 300.0f32), particle_accelerator);
-        let wheel_2 = CarWheel::new(Vec2::new(400.0f32, 300.0f32), particle_accelerator);
-/* 
-        let mask = 0x1;
-
-        // wheel surface
-        {
-            let divisions = 8;
-            let circle_radius = 20.0;
-            let particle_radius = 7.0;
-            ShapeBuilder::new()
-                .add_adjacent_stick_circle( Vec2::new(300.0f32, 300.0f32), circle_radius, particle_radius, divisions)
-                .create_in_particle_accelerator(particle_accelerator, mask);
-        }
-
-        // wheel interior
-        {
-            let divisions = 6;
-            let circle_radius = 10.0;
-            let particle_radius = 4.0;
-            ShapeBuilder::new()
-                .add_circle( Vec2::new(300.0f32, 300.0f32), circle_radius, particle_radius, divisions)
-                .create_in_particle_accelerator(particle_accelerator, mask);
-        }
-*/
-/* 
+impl CarV2 {
+    pub fn new() -> Self {
         let (wheel_1_surface, wheel_1_interior) = Body::create_fluid_filled_wheel(Vector2::new(300.0f32, 300.0f32));
         let wheel_1_surface_handle = Rc::new(RefCell::new(wheel_1_surface));
         let wheel_1_interior_handle = Rc::new(RefCell::new(wheel_1_interior));
@@ -145,14 +58,19 @@ impl Car {
             wheel_2_axle,
 
             chassis
-        }*/
-
-        Self {
-            wheels: [wheel_1, wheel_2],
         }
     }
 
-    /* 
+    pub fn add_to_solver(&self, solver: &mut Solver) {
+        solver.add_body(&self.wheel_1_surface_handle);
+        solver.add_body(&self.wheel_1_interior_handle);
+
+        solver.add_body(&self.wheel_2_surface_handle);
+        solver.add_body(&self.wheel_2_interior_handle);
+
+        solver.add_body(&self.chassis);
+    }
+
     fn create_and_attach_wheel_axle(wheel: &Rc<RefCell<Body>>) -> Rc<RefCell<Attachment>> {
         // lets make an axle at the centre of the wheel
         let axle = Rc::new(RefCell::new(Attachment::new()));
@@ -161,9 +79,8 @@ impl Car {
         axle.as_ref().borrow_mut().update(0f32);
         wheel.as_ref().borrow_mut().add_attachment(&axle);
         axle
-    }*/
+    }
 
-    /* 
     fn rotate_wheel_wheel(&self, direction: f32, wheel: &Rc<RefCell<Body>>) {
         // todo: get the Body center to rotate around
         // todo: we should add Body.Axis class to handle this automatically for us
@@ -174,24 +91,17 @@ impl Car {
         let centre = p0 + (p1 - p0) * 0.5f32;
         let force_magnitude = 50f32;
         wheel.borrow_mut().add_rotational_force_around_point(centre, force_magnitude * direction);
-    }*/
+    }
 
     fn rotate_wheel(&mut self, direction: f32) {
-        
         // something wrong here, z should be counterclockwise. x should be clockwise
         // be it seems reversed!? because in SDL the y-axis is mirrored around the x-axis
         // so lets fix that here:
-        /* 
         self.rotate_wheel_wheel(-direction, &self.wheel_1_surface_handle);
         self.rotate_wheel_wheel(-direction, &self.wheel_2_surface_handle);
-        */
-        for wheel in self.wheels.iter_mut() { 
-            wheel.rotate(-direction);
-        }
     }
 
     pub fn update(&mut self, car_scene_context: &mut CarSceneContext) {
-        /* 
         self.wheel_1_interior_handle.borrow_mut().zero_forces();
         self.wheel_1_interior_handle.borrow_mut().add_gravity();
         self.wheel_1_surface_handle.borrow_mut().zero_forces();
@@ -201,7 +111,6 @@ impl Car {
         self.wheel_2_interior_handle.borrow_mut().add_gravity();
         self.wheel_2_surface_handle.borrow_mut().zero_forces();
         self.wheel_2_surface_handle.borrow_mut().add_gravity();
-        */
 
         if car_scene_context.keyboard.get_keystate(Keycode::Z).is_down() {
             self.rotate_wheel(1f32); // ccw

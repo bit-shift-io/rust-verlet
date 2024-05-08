@@ -101,7 +101,7 @@ impl Scene for RandomBodiesScene {
 
                     // v3
                     let mask = 0x1;
-                    self.particle_accelerator.create_particle(Vec2::new(xf, yf), 10f32, 1f32, mask);
+                    self.particle_accelerator.create_particle(Vec2::new(xf, yf), 10f32, 1f32, mask, col);
                 }
 
                 // chain of 2 particles

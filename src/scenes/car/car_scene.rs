@@ -6,7 +6,7 @@ use rand::Rng;
 
 use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{attachment::Attachment, body::Body, particle::Particle, solver::Solver, stick::Stick}, v3::{particle_accelerator::{ParticleAccelerator, ParticleCollider, ParticleRenderer}, shape_builder::ShapeBuilder, types::Vec2}};
 
-use super::car::Car;
+use super::{car::Car, car_v2::CarV2};
 
 pub struct CarSceneContext<'a> {
     pub keyboard: &'a mut Keyboard,
@@ -16,11 +16,12 @@ pub struct CarSceneContext<'a> {
 pub struct CarScene {
     // v2
     pub solver: Solver,
-    pub car: Car,
+    pub car_v2: CarV2,
     pub keyboard: Keyboard,
     pub mouse: Mouse,
 
     // v3
+    pub car: Car,
     pub particle_accelerator: ParticleAccelerator,
 }
 
@@ -37,8 +38,8 @@ impl CarScene {
         ground_plane_2.borrow_mut().set_static(true);
         solver.add_body(&ground_plane_2);
 
-        let car = Car::new();
-        car.add_to_solver(&mut solver);
+        let car_v2 = CarV2::new();
+        car_v2.add_to_solver(&mut solver);
 
         // v3
         let mut particle_accelerator = ParticleAccelerator::new();
@@ -50,13 +51,15 @@ impl CarScene {
             .add_line(Vec2::new(600.0f32, 800.0f32), Vec2::new(1000.0f32, 700.0f32), 8.0f32)
             .create_in_particle_accelerator(&mut particle_accelerator, mask);
         
+        let car = Car::new(&mut particle_accelerator);
 
         Self { 
             solver, 
-            car,
+            car_v2,
             keyboard: Keyboard::new(),
             mouse: Mouse::new(),
-            particle_accelerator
+            particle_accelerator,
+            car
         }
     }
 }
@@ -67,12 +70,14 @@ impl Scene for CarScene {
         self.mouse.update();
 
         let mut car_scene_context = CarSceneContext{ keyboard: &mut self.keyboard, mouse: &mut self.mouse };
-        self.car.update(&mut car_scene_context);
-
+        
         // v2
+        self.car_v2.update(&mut car_scene_context);
         self.solver.update(0.0167f32);
 
         // v3
+        self.car.update(&mut car_scene_context);
+
         let mut collider = ParticleCollider::new();
         collider.reset_forces(&mut self.particle_accelerator);
 

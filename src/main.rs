@@ -7,6 +7,7 @@ mod point;
 mod scenes {
     pub mod car {
         pub mod car_scene;
+        pub mod car_v2;
         pub mod car;
     }
     pub mod cloth {
