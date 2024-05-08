@@ -49,6 +49,11 @@ impl SdlSystem {
         return self.texture_creator.load_texture(path).unwrap();
     }
 
+    pub fn draw_line(&mut self, start: Point, end: Point, color: Color) {
+        self.canvas.set_draw_color(color);
+        self.canvas.draw_line(start, end).unwrap();
+    }
+
     pub fn draw_filled_circle(&self, point: Point, radius: i32, color: Color) {
         // I'm getting a panic here, I think the system is exploding and
         // drawing stuf way off screen more than i16 can handle.

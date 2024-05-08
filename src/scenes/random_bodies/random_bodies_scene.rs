@@ -21,8 +21,8 @@ impl RandomBodiesScene {
         let mask = 0x1;
         ShapeBuilder::new()
             .set_static(true)
-            .create_line(Vec2::new(100.0f32, 800.0f32), Vec2::new(600.0f32, 800.0f32), 8.0f32)
-            .create_particles_in_particle_accelerator(&mut particle_accelerator, mask);
+            .add_line(Vec2::new(100.0f32, 800.0f32), Vec2::new(600.0f32, 800.0f32), 8.0f32)
+            .create_in_particle_accelerator(&mut particle_accelerator, mask);
         
         // v2
         let mut solver = Solver::new();
@@ -55,6 +55,7 @@ impl Scene for RandomBodiesScene {
         for _ in 0..SUB_STEPS {
             collider.solve_collisions(&mut self.particle_accelerator);
             collider.update_positions(&mut self.particle_accelerator, sub_dt);
+            collider.update_sticks(&mut self.particle_accelerator);
         }
     }
 
@@ -70,17 +71,6 @@ impl Scene for RandomBodiesScene {
         renderer.draw(&mut context.sdl, &self.particle_accelerator);
 
         context.sdl.canvas.present();
-
-        /* 
-        context.sdl.canvas.set_draw_color(Color::RGB(0, 0, 0));
-        context.sdl.canvas.clear();
-        context.sdl.canvas.set_draw_color(Color::RGB(255, 255, 255));
-        context.sdl.canvas.filled_circle(600, 400, 380, Color::RGB(150, 150, 150)).unwrap();
-
-        self.solver.as_mut().draw(context.sdl);
-
-        context.sdl.canvas.present();
-        */
     }
 
     fn process_event(&mut self, context: &mut Context, event: Event) {
@@ -90,7 +80,7 @@ impl Scene for RandomBodiesScene {
                 let yf = y as f32;
                 let mut rng = rand::thread_rng();
 
-                let shape = 0;//rng.gen_range(0..=1);
+                let shape = 1;//rng.gen_range(0..=1);
 
                 //let wheel_1 = Rc::new(RefCell::new(Body::create_stick_spoke_wheel(Vector2::new(xf, yf))));
                 //self.solver.add_body(&wheel_1);
@@ -115,9 +105,10 @@ impl Scene for RandomBodiesScene {
 
                 // chain of 2 particles
                 if shape == 1 {
-                    let mut body = Body::new();
-
                     let radius = 10f32;
+
+                    // v2
+                    let mut body = Body::new();
 
                     let col = Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255));
 
@@ -142,6 +133,16 @@ impl Scene for RandomBodiesScene {
 
                     let particle_body = Rc::new(RefCell::new(body));
                     self.solver.add_body(&particle_body);
+
+
+                    // v3
+                    let mask = 0x1;
+                    ShapeBuilder::new()
+                        .add_particle(Vec2::new(xf, yf), 8.0)
+                        .add_particle(Vec2::new(xf + radius * 2.0, yf), 8.0)
+                        .add_stick([-2, -1]) // -2 = second to last, -1 = last
+                        .create_in_particle_accelerator(&mut self.particle_accelerator, mask);
+        
                 }
                 /* 
                 // chain of 3 circles

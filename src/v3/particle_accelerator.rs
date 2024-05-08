@@ -17,6 +17,8 @@ impl ParticleHandle {
     }
 }
 
+pub type StickHandle = ParticleHandle;
+
 struct VerletPosition {
     pos: Vec2,
     pos_prev: Vec2,
@@ -51,10 +53,23 @@ struct Particle {
     //verlet_position_index: usize,
 }
 
+struct Stick {
+    particle_indicies: [usize; 2],
+    length: f32,
+}
+
+/* 
+pub struct ParticleConstraintHandleVectors {
+    particle_handles: Vec<ParticleHandle>,
+    stick_handles: Vec<StickHandle>,
+}*/
+
 pub struct ParticleAccelerator {
     // here a particle is broken into two "channels", in order to perform SIMD operations on one part
     particles: Vec<Particle>,
     verlet_positions: Vec<VerletPosition>,
+
+    sticks: Vec<Stick>,
 
     layer_map: HashMap<u32, Layer>,
 }
@@ -63,9 +78,20 @@ impl ParticleAccelerator {
     pub fn new() -> Self {
         Self {
             particles: vec![],
+            sticks: vec![],
             verlet_positions: vec![],
             layer_map: HashMap::new(),
         }
+    }
+
+    pub fn create_stick(&mut self, particle_handles: [&ParticleHandle; 2], length: f32) -> StickHandle {
+        let id = self.sticks.len();
+        let sitck = Stick {
+            particle_indicies: [particle_handles[0].id, particle_handles[1].id],
+            length
+        };
+        self.sticks.push(sitck);
+        StickHandle::new(id)
     }
 
     pub fn create_particle(&mut self, pos: Vec2, radius: f32, mass: f32, mask: u32) -> ParticleHandle {
@@ -249,6 +275,29 @@ impl ParticleCollider {
             verlet_position.pos = verlet_position.pos + velocity + acceleration * dt * dt;
         }
     }
+
+    pub fn update_sticks(&mut self, particle_accelerator: &mut ParticleAccelerator) {
+        for stick in particle_accelerator.sticks.iter_mut() {
+
+            let p1 = &particle_accelerator.verlet_positions[stick.particle_indicies[0]];
+            let p2 = &particle_accelerator.verlet_positions[stick.particle_indicies[1]];
+
+            let difference = p1.pos - p2.pos;
+            let diff_length = difference.magnitude();
+            let diff_factor = (stick.length - diff_length) / diff_length * 0.5;
+            let offset = difference * diff_factor;
+    
+            {
+                let p1mut = &mut particle_accelerator.verlet_positions[stick.particle_indicies[0]];
+                p1mut.pos += offset;
+            }
+
+            {
+                let p2mut = &mut particle_accelerator.verlet_positions[stick.particle_indicies[1]];
+                p2mut.pos -= offset;
+            }
+        }
+    }
 }
 
 pub struct ParticleRenderer {
@@ -261,8 +310,8 @@ impl ParticleRenderer {
     }
 
     pub fn draw(&self, sdl: &mut SdlSystem, particle_accelerator: &ParticleAccelerator) {
+        // draw particles
         let col = Color::RGB(128, 0, 0);
-
         for (particle, verlet_position) in particle_accelerator.particles.iter().zip(particle_accelerator.verlet_positions.iter()) {
             sdl.draw_filled_circle(vec2_to_point(verlet_position.pos), particle.radius as i32, col);
             /* 
@@ -271,6 +320,14 @@ impl ParticleRenderer {
                 let verlet_position = &layer.verlet_positions[particle.verlet_position_index];
                 
             });*/
+        }
+
+        // draw sticks
+        let col = Color::RGB(0, 128, 0);
+        for stick in particle_accelerator.sticks.iter() {
+            let p1pos = particle_accelerator.verlet_positions[stick.particle_indicies[0]].pos;
+            let p2pos = particle_accelerator.verlet_positions[stick.particle_indicies[1]].pos;
+            sdl.draw_line(vec2_to_point(p1pos), vec2_to_point(p2pos), col);
         }
     }
 }
