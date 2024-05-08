@@ -15,9 +15,14 @@ impl ParticleHandle {
     fn new(id: usize) -> Self {
         Self { id }
     }
+
+   pub fn id(&self) -> usize {
+        self.id
+    }
 }
 
 pub type StickHandle = ParticleHandle;
+pub type WeightedAverageConstraintHandle = ParticleHandle;
 
 struct VerletPosition {
     pos: Vec2,
@@ -54,9 +59,29 @@ struct Particle {
     //verlet_position_index: usize,
 }
 
+// todo: rename to StickConstraint
 struct Stick {
-    particle_indicies: [usize; 2],
+    particle_indicies: [usize; 2], // rename to particle_ids ?
     length: f32,
+}
+
+pub struct WeightedParticle {
+    particle_id: usize,
+    weight: f32,
+}
+
+impl WeightedParticle {
+    pub fn new(particle_handle: ParticleHandle, weight: f32) -> Self {
+        Self {
+            particle_id: particle_handle.id,
+            weight
+        }
+    }
+}
+
+struct WeightedAverageConstraint {
+    weighted_particles: Vec<WeightedParticle>, // source particles
+    target_particle_id: usize, // target output particle
 }
 
 /* 
@@ -71,6 +96,7 @@ pub struct ParticleAccelerator {
     verlet_positions: Vec<VerletPosition>,
 
     sticks: Vec<Stick>,
+    weighted_average_constraints: Vec<WeightedAverageConstraint>,
 
     layer_map: HashMap<u32, Layer>,
 }
@@ -79,10 +105,23 @@ impl ParticleAccelerator {
     pub fn new() -> Self {
         Self {
             particles: vec![],
-            sticks: vec![],
             verlet_positions: vec![],
+
+            sticks: vec![],
+            weighted_average_constraints: vec![],
+            
             layer_map: HashMap::new(),
         }
+    }
+
+    pub fn create_weighted_average_constraint(&mut self, weighted_particles: Vec<WeightedParticle>, target_particle_id: ParticleHandle) -> WeightedAverageConstraintHandle {
+        let id = self.weighted_average_constraints.len();
+        let constraint = WeightedAverageConstraint {
+            weighted_particles,
+            target_particle_id: target_particle_id.id,
+        };
+        self.weighted_average_constraints.push(constraint);
+        WeightedAverageConstraintHandle::new(id)
     }
 
     pub fn create_stick(&mut self, particle_handles: [&ParticleHandle; 2], length: f32) -> StickHandle {
@@ -284,6 +323,25 @@ impl ParticleCollider {
             let acceleration: Vec2 = verlet_position.force / verlet_position.mass;
             verlet_position.pos_prev = verlet_position.pos;
             verlet_position.pos = verlet_position.pos + velocity + acceleration * dt * dt;
+        }
+    }
+
+    pub fn update_constraints(&mut self, particle_accelerator: &mut ParticleAccelerator) {
+        self.update_weighted_average_constraints(particle_accelerator);
+        self.update_sticks(particle_accelerator);
+    }
+
+    pub fn update_weighted_average_constraints(&mut self, particle_accelerator: &mut ParticleAccelerator) {
+        for weighted_average_constraint in particle_accelerator.weighted_average_constraints.iter_mut() {
+            let mut pos = Vec2::new(0f32, 0f32);
+            for weighted_particle in weighted_average_constraint.weighted_particles.iter() {
+                let p = &particle_accelerator.verlet_positions[weighted_particle.particle_id];
+                pos += p.pos * weighted_particle.weight;
+            }
+            pos /= weighted_average_constraint.weighted_particles.len() as f32;
+
+            let target_particle = &mut particle_accelerator.verlet_positions[weighted_average_constraint.target_particle_id];
+            target_particle.pos = pos;
         }
     }
 

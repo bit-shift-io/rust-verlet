@@ -56,7 +56,7 @@ impl Scene for RandomBodiesScene {
         for sub_dt in collider.range_substeps(dt, SUB_STEPS).iter() {
             collider.solve_collisions(&mut self.particle_accelerator);
             collider.update_positions(&mut self.particle_accelerator, *sub_dt);
-            collider.update_sticks(&mut self.particle_accelerator);
+            collider.update_constraints(&mut self.particle_accelerator);
         }
     }
 

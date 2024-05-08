@@ -4,7 +4,7 @@ use cgmath::{InnerSpace, Vector2};
 use sdl2::{event::Event, gfx::primitives::DrawRenderer, keyboard::Keycode, pixels::Color};
 use rand::Rng;
 
-use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{attachment::Attachment, body::Body, particle::Particle, position::Position, solver::Solver, stick::Stick}, v3::{particle_accelerator::{ParticleAccelerator, ParticleHandle}, shape_builder::ShapeBuilder, types::Vec2}};
+use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{attachment::Attachment, body::Body, particle::Particle, position::Position, solver::Solver, stick::Stick}, v3::{particle_accelerator::{ParticleAccelerator, ParticleHandle, WeightedParticle}, shape_builder::ShapeBuilder, types::Vec2}};
 
 use super::car_scene::{self, CarSceneContext};
 
@@ -26,6 +26,7 @@ impl CarWheel {
                 .create_in_particle_accelerator(particle_accelerator, mask);
             builder.particle_handles.first().unwrap().clone()
         };
+
 
         // wheel surface
         let surface_particle_handles = {
@@ -53,10 +54,17 @@ impl CarWheel {
         // notes:
         // the wheel hub needs a constraint to set its position to the centre of the wheel
         // that is its position should be determined by a few points on the surface wheel.
-        // that said, this might cause issues with the air inside the wheel. If this is the case
-        // we need a way to disable collisions for the hub. Set its layer to zero to mean the no collisions layer?
+        // that said, this might cause issues with the air inside the wheel (YES, this is happening!). If this is the case
+        // we need a way to disable collisions for the hub (set radius to 0 - no we need to disable collision for the hub with the air - could use collision masks?). Set its layer to zero to mean the no collisions layer?
         // or add a flag to particles to say they are "invisible"?
 
+        // to optimise this we really only need maybe 4 points to determine the centre of the wheel
+        let mut weighted_particles = vec![];
+        for particle_handle in surface_particle_handles.iter() {
+            weighted_particles.push(WeightedParticle::new(particle_handle.clone(), 1.0));
+        }
+        particle_accelerator.create_weighted_average_constraint(weighted_particles, hub_particle_handle.clone());
+        
 
         Self {
             hub_particle_handle,
