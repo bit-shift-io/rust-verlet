@@ -9,7 +9,10 @@ use crate::{application::{Context, Scene}, v2::{body::Body, particle::Particle, 
 use crate::v3::{types::Vec2, particle_accelerator::ParticleAccelerator, particle_accelerator::ParticleCollider, particle_accelerator::ParticleRenderer, shape_builder::ShapeBuilder};
 
 pub struct RandomBodiesScene {
+    // v2
     pub solver: Solver,
+
+    // v3
     pub particle_accelerator: ParticleAccelerator,
 }
 
