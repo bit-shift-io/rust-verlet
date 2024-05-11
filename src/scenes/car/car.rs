@@ -1,12 +1,7 @@
-use std::{cell::RefCell, rc::Rc};
+use sdl2::keyboard::Keycode;
+use crate::v3::{particle_accelerator::{ParticleAccelerator, ParticleHandle, ParticleManipulator, WeightedParticle}, shape_builder::ShapeBuilder, types::Vec2};
 
-use cgmath::{InnerSpace, Vector2};
-use sdl2::{event::Event, gfx::primitives::DrawRenderer, keyboard::Keycode, pixels::Color};
-use rand::Rng;
-
-use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{attachment::Attachment, body::Body, particle::Particle, position::Position, solver::Solver, stick::Stick}, v3::{particle_accelerator::{self, ParticleAccelerator, ParticleHandle, ParticleManipulator, WeightedParticle}, shape_builder::ShapeBuilder, types::Vec2}};
-
-use super::car_scene::{self, CarSceneContext};
+use super::car_scene::CarSceneContext;
 
 pub struct CarWheel {
     hub_particle_handle: ParticleHandle,
@@ -66,6 +61,8 @@ impl CarWheel {
         for particle_handle in surface_particle_handles.iter() {
             weighted_particles.push(WeightedParticle::new(particle_handle.clone(), 1.0));
         }
+
+        // todo: reenable outgoing_particles
         particle_accelerator.create_attachment_constraint(weighted_particles.clone(), vec![]/*weighted_particles.clone()*/, hub_particle_handle.clone());
         
 
@@ -97,12 +94,12 @@ impl Car {
         let wheel_1 = CarWheel::new(Vec2::new(300.0f32, 300.0f32), particle_accelerator);
         let wheel_2 = CarWheel::new(Vec2::new(400.0f32, 300.0f32), particle_accelerator);
 
-        
+        /*  todo: reenable this
         // axle stick to connect the two wheel hubs
         {
             let length = (particle_accelerator.get_particle_position(&wheel_1.hub_particle_handle) - particle_accelerator.get_particle_position(&wheel_2.hub_particle_handle)).magnitude(); 
             particle_accelerator.create_stick([&wheel_1.hub_particle_handle, &wheel_2.hub_particle_handle], length);
-        }
+        }*/
 
         Self {
             wheels: [wheel_1, wheel_2],

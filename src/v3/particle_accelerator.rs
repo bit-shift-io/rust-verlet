@@ -33,18 +33,14 @@ struct VerletPosition {
 }
 
 struct Layer {
-    mask: u32,
-
+    id: usize,
     particle_ids: Vec<usize>, // this lets us map back to the particle
-
-    // todo: split into dynamic and static particle positions?
-    //verlet_positions: Vec<VerletPosition>,
 }
 
 impl Layer {
-    fn new(mask: u32) -> Self {
+    fn new(id: usize) -> Self {
         Self {
-            mask,
+            id,
             particle_ids: vec![],
         }
     }
@@ -56,7 +52,6 @@ struct Particle {
     mask: u32,
     is_static: bool,
     color: Color,
-    //verlet_position_index: usize,
 }
 
 // todo: rename to StickConstraint
@@ -94,11 +89,6 @@ struct AttachmentConstraint {
     target_particle_id: usize, // target output particle
 }
 
-/* 
-pub struct ParticleConstraintHandleVectors {
-    particle_handles: Vec<ParticleHandle>,
-    stick_handles: Vec<StickHandle>,
-}*/
 
 pub struct ParticleAccelerator {
     // here a particle is broken into two "channels", in order to perform SIMD operations on one part
@@ -108,7 +98,7 @@ pub struct ParticleAccelerator {
     sticks: Vec<Stick>,
     attachment_constraints: Vec<AttachmentConstraint>,
 
-    layer_map: HashMap<u32, Layer>,
+    layer_map: HashMap<usize, Layer>,
 }
 
 impl ParticleAccelerator {
@@ -145,12 +135,29 @@ impl ParticleAccelerator {
         StickHandle::new(id)
     }
 
+    fn mask_to_layer_indicies(mask: u32) -> Vec<usize> {
+        let mut indicies = vec![];
+        let mut tmp_mask = mask;
+        let mut idx = 0;
+        while (tmp_mask != 0) {
+            if ((tmp_mask & 0x1) == 0x1) {
+                indicies.push(idx);
+            }
+            tmp_mask >>= 1;
+            idx += 1;
+        }
+        return indicies;
+    }
+
     pub fn create_particle(&mut self, pos: Vec2, radius: f32, mass: f32, mask: u32, color: Color) -> ParticleHandle {
         let id = self.particles.len();
 
-        let layer = self.layer_map.entry(mask).or_insert(Layer::new(mask));
-        layer.particle_ids.push(id);
-        //let verlet_position_index = layer.verlet_positions.len();
+        // push this particle index into each collision layer it needs to go into
+        let layer_indicies = ParticleAccelerator::mask_to_layer_indicies(mask);
+        for layer_index in layer_indicies {
+            let layer = self.layer_map.entry(layer_index).or_insert(Layer::new(layer_index));
+            layer.particle_ids.push(id);
+        }
 
         let particle = Particle {
             id,
@@ -158,15 +165,12 @@ impl ParticleAccelerator {
             mask,
             is_static: false,
             color
-            //verlet_position_index
         };
         self.particles.push(particle);
 
         let verlet_position = VerletPosition { pos, pos_prev: pos, force: Vec2::zeros(), mass };
         self.verlet_positions.push(verlet_position);
 
-        //layer.verlet_positions.push(VerletPosition { pos, pos_prev: pos });
-        
         ParticleHandle::new(id) 
     }
 
@@ -205,54 +209,6 @@ impl ParticleCollider {
         vec![sub_dt; substeps]
     }
 
-
-    /* 
-    pub fn solve_particle_particle_collision(
-        &self, 
-        particle_accelerator: &mut ParticleAccelerator,
-        particle_id_a: usize, 
-        particle_id_b: usize,
-        dt: f32
-    ) {
-        let particle_a = &particle_accelerator.particles[particle_id_a];
-        let particle_b = &particle_accelerator.particles[particle_id_b];
-
-        let (a_movement_weight, b_movement_weight) = self.compute_movement_weight(particle_a.is_static, particle_b.is_static);
-        
-        let collision_axis: Vec2;
-        let dist: f32;
-        let min_dist: f32;
-
-        // in a code block so ap and bp borrows are released as we need to borrow mut later if
-        // there is a collision
-        {
-            //let ap = a_particle.as_ref().borrow();
-            //let bp = b_particle.as_ref().borrow();
-            let verlet_position_a = &particle_accelerator.verlet_positions[particle_id_a];
-            let verlet_position_b = &particle_accelerator.verlet_positions[particle_id_b];
-        
-            collision_axis = verlet_position_a.pos - verlet_position_b.pos;
-            dist = (collision_axis[0].powf(2f32) + collision_axis[1].powf(2f32)).sqrt();
-            min_dist = particle_a.radius + particle_b.radius;
-        }
-
-        if dist < min_dist as f32 {
-            let n: Vec2 = collision_axis / dist;
-            let delta: f32 = min_dist as f32 - dist;
-
-            // is it better to have no if statement to make the loop tight at the cost
-            // of wasted vector computations?
-            //let mut ap_mut = a_particle.as_ref().borrow_mut();
-            let verlet_position_a = &mut particle_accelerator.verlet_positions[particle_id_a];
-            verlet_position_a.pos += a_movement_weight * delta * n;
-
-            //let mut bp_mut = b_particle.as_ref().borrow_mut();
-            let verlet_position_b = &mut particle_accelerator.verlet_positions[particle_id_b];
-            verlet_position_b.pos -= b_movement_weight * delta * n;
-        }
-    }
-*/
-
     pub fn acceleration_to_force(acc: Vec2, mass: f32) -> Vec2 {
         acc * mass
     }
@@ -266,18 +222,13 @@ impl ParticleCollider {
 
     pub fn solve_collisions(&mut self, particle_accelerator: &mut ParticleAccelerator) {
         for layer in particle_accelerator.layer_map.values() {
-            // for each layer, we need to collide with other layers that share a bit of the bitmask
-            // for now, assume a layer is self contained (i.e. wont collide with another layer)
-
             // for each layer, we need to collide with each particle
-
             let particle_count: usize = layer.particle_ids.len();
             for ai in 0..particle_count {
                 for bi in (&ai+1)..particle_count {
                     let particle_id_a = layer.particle_ids[ai];
                     let particle_id_b = layer.particle_ids[bi];
-                    //self.solve_particle_particle_collision(&mut *particle_accelerator, particle_id_a, particle_id_b, dt);
-
+                   
                     let particle_a = &particle_accelerator.particles[particle_id_a];
                     let particle_b = &particle_accelerator.particles[particle_id_b];
 
