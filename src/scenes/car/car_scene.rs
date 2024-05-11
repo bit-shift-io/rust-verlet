@@ -11,6 +11,7 @@ use super::{car::Car, car_v2::CarV2};
 pub struct CarSceneContext<'a> {
     pub keyboard: &'a mut Keyboard,
     pub mouse: &'a mut Mouse,
+    pub particle_accelerator: &'a mut ParticleAccelerator,
 }
 
 pub struct CarScene {
@@ -69,24 +70,41 @@ impl Scene for CarScene {
         self.keyboard.update();
         self.mouse.update();
 
-        let mut car_scene_context = CarSceneContext{ keyboard: &mut self.keyboard, mouse: &mut self.mouse };
-        
-        // v2
-        self.car_v2.update(&mut car_scene_context);
-        self.solver.update(0.0167f32);
+        {
+            let mut car_scene_context = CarSceneContext{ 
+                keyboard: &mut self.keyboard, 
+                mouse: &mut self.mouse,
+                particle_accelerator: &mut self.particle_accelerator,
+            };
+            
+            // v2
+            self.car_v2.update(&mut car_scene_context);
+            self.solver.update(0.0167f32);
+        }
 
         // v3
-        self.car.update(&mut car_scene_context);
+        {
+            // reset forces to just the gravity value
+            let gravity = Vec2::new(0f32, 1000f32);
+            let mut collider = ParticleCollider::new();
+            collider.reset_forces(&mut self.particle_accelerator, gravity);
 
-        let mut collider = ParticleCollider::new();
-        collider.reset_forces(&mut self.particle_accelerator);
+            // now update the car which will setup its forces on the particles
+            let mut car_scene_context = CarSceneContext{ 
+                keyboard: &mut self.keyboard, 
+                mouse: &mut self.mouse,
+                particle_accelerator: &mut self.particle_accelerator,
+            };
+            self.car.update(&mut car_scene_context);
 
-        let dt = 0.0167f32;
-        const SUB_STEPS: usize = 16;
-        for sub_dt in collider.range_substeps(dt, SUB_STEPS).iter() {
-            collider.solve_collisions(&mut self.particle_accelerator);
-            collider.update_positions(&mut self.particle_accelerator, *sub_dt);
-            collider.update_constraints(&mut self.particle_accelerator);
+            // finally, solve everything for this frame
+            let dt = 0.0167f32;
+            const SUB_STEPS: usize = 16;
+            for sub_dt in collider.range_substeps(dt, SUB_STEPS).iter() {
+                collider.solve_collisions(&mut self.particle_accelerator);
+                collider.update_constraints(&mut self.particle_accelerator);
+                collider.update_positions(&mut self.particle_accelerator, *sub_dt);
+            }
         }
     }
 

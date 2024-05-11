@@ -22,7 +22,7 @@ impl ParticleHandle {
 }
 
 pub type StickHandle = ParticleHandle;
-pub type WeightedAverageConstraintHandle = ParticleHandle;
+pub type AttachmentConstraintHandle = ParticleHandle;
 
 struct VerletPosition {
     pos: Vec2,
@@ -65,6 +65,7 @@ struct Stick {
     length: f32,
 }
 
+#[derive(Clone)]
 pub struct WeightedParticle {
     particle_id: usize,
     weight: f32,
@@ -79,8 +80,17 @@ impl WeightedParticle {
     }
 }
 
-struct WeightedAverageConstraint {
-    weighted_particles: Vec<WeightedParticle>, // source particles
+
+// An Attachment has a set of weighted particles
+// such that when updated, computes a virtual position
+// from which you can attach things too. This set is called incomming_particles
+//
+// An Attachment also has a set of weighted particles to 'push' for when this attachment itself is moved. This set is called outgoing_particles
+//
+// todo: consider if this is just a 'constraint', and can be just lumped in with sticks?
+struct AttachmentConstraint {
+    incoming_weighted_particles: Vec<WeightedParticle>, // source particles
+    outgoing_weighted_particles: Vec<WeightedParticle>, // target particles
     target_particle_id: usize, // target output particle
 }
 
@@ -96,7 +106,7 @@ pub struct ParticleAccelerator {
     verlet_positions: Vec<VerletPosition>,
 
     sticks: Vec<Stick>,
-    weighted_average_constraints: Vec<WeightedAverageConstraint>,
+    attachment_constraints: Vec<AttachmentConstraint>,
 
     layer_map: HashMap<u32, Layer>,
 }
@@ -108,20 +118,21 @@ impl ParticleAccelerator {
             verlet_positions: vec![],
 
             sticks: vec![],
-            weighted_average_constraints: vec![],
+            attachment_constraints: vec![],
             
             layer_map: HashMap::new(),
         }
     }
 
-    pub fn create_weighted_average_constraint(&mut self, weighted_particles: Vec<WeightedParticle>, target_particle_id: ParticleHandle) -> WeightedAverageConstraintHandle {
-        let id = self.weighted_average_constraints.len();
-        let constraint = WeightedAverageConstraint {
-            weighted_particles,
+    pub fn create_attachment_constraint(&mut self, incoming_weighted_particles: Vec<WeightedParticle>, outgoing_weighted_particles: Vec<WeightedParticle>, target_particle_id: ParticleHandle) -> AttachmentConstraintHandle {
+        let id = self.attachment_constraints.len();
+        let constraint = AttachmentConstraint {
+            incoming_weighted_particles,
+            outgoing_weighted_particles,
             target_particle_id: target_particle_id.id,
         };
-        self.weighted_average_constraints.push(constraint);
-        WeightedAverageConstraintHandle::new(id)
+        self.attachment_constraints.push(constraint);
+        AttachmentConstraintHandle::new(id)
     }
 
     pub fn create_stick(&mut self, particle_handles: [&ParticleHandle; 2], length: f32) -> StickHandle {
@@ -166,6 +177,11 @@ impl ParticleAccelerator {
     pub fn get_particle_position(&self, particle_handle: &ParticleHandle) -> Vec2 {
         self.verlet_positions[particle_handle.id].pos
     }
+
+    pub fn add_particle_force(&mut self, particle_handle: &ParticleHandle, force: Vec2) {
+        self.verlet_positions[particle_handle.id].force += force;
+    }
+
 }
 
 pub struct ParticleCollider {
@@ -241,16 +257,11 @@ impl ParticleCollider {
         acc * mass
     }
 
-    pub fn reset_forces(&mut self, particle_accelerator: &mut ParticleAccelerator) {
-        let gravity = Vec2::new(0f32, 1000f32);
+    pub fn reset_forces(&mut self, particle_accelerator: &mut ParticleAccelerator, gravity: Vec2) {
         for verlet_position in particle_accelerator.verlet_positions.iter_mut() {
             let force = Self::acceleration_to_force(gravity, verlet_position.mass);
             verlet_position.force = force;
         }
-        /*
-        for (particle, verlet_position) in particle_accelerator.particles.iter().zip(particle_accelerator.verlet_positions.iter_mut()) {
-            verlet_position.force = Vec2::zeros();
-        }*/
     }
 
     pub fn solve_collisions(&mut self, particle_accelerator: &mut ParticleAccelerator) {
@@ -327,21 +338,31 @@ impl ParticleCollider {
     }
 
     pub fn update_constraints(&mut self, particle_accelerator: &mut ParticleAccelerator) {
-        self.update_weighted_average_constraints(particle_accelerator);
+        self.update_attachment_constraints(particle_accelerator);
         self.update_sticks(particle_accelerator);
     }
 
-    pub fn update_weighted_average_constraints(&mut self, particle_accelerator: &mut ParticleAccelerator) {
-        for weighted_average_constraint in particle_accelerator.weighted_average_constraints.iter_mut() {
+    pub fn update_attachment_constraints(&mut self, particle_accelerator: &mut ParticleAccelerator) {
+        for attachment_constraint in particle_accelerator.attachment_constraints.iter_mut() {
             let mut pos = Vec2::new(0f32, 0f32);
-            for weighted_particle in weighted_average_constraint.weighted_particles.iter() {
+            for weighted_particle in attachment_constraint.incoming_weighted_particles.iter() {
                 let p = &particle_accelerator.verlet_positions[weighted_particle.particle_id];
                 pos += p.pos * weighted_particle.weight;
             }
-            pos /= weighted_average_constraint.weighted_particles.len() as f32;
+            pos /= attachment_constraint.incoming_weighted_particles.len() as f32;
 
-            let target_particle = &mut particle_accelerator.verlet_positions[weighted_average_constraint.target_particle_id];
-            target_particle.pos = pos;
+            let delta_pos;
+            {
+                let target_particle = &mut particle_accelerator.verlet_positions[attachment_constraint.target_particle_id];
+                target_particle.pos = pos;
+                delta_pos = pos - target_particle.pos_prev;
+            }
+/* 
+            // push any outgoing particles based on their weight
+            for weighted_particle in attachment_constraint.outgoing_weighted_particles.iter() {
+                let p = &mut particle_accelerator.verlet_positions[weighted_particle.particle_id];
+                p.pos += delta_pos * weighted_particle.weight;
+            }*/
         }
     }
 
@@ -396,6 +417,28 @@ impl ParticleRenderer {
             let p1pos = particle_accelerator.verlet_positions[stick.particle_indicies[0]].pos;
             let p2pos = particle_accelerator.verlet_positions[stick.particle_indicies[1]].pos;
             sdl.draw_line(vec2_to_point(p1pos), vec2_to_point(p2pos), col);
+        }
+    }
+}
+
+/**
+ * Utility class to help with particle manipulation.
+ */
+pub struct ParticleManipulator {
+
+}
+
+impl ParticleManipulator {
+    pub fn new() -> Self {
+        Self{}
+    }
+
+    pub fn add_rotational_force_around_point(&self, particle_accelerator: &mut ParticleAccelerator, particle_handles: &Vec<ParticleHandle>, pos: Vec2, force_magnitude: f32) {
+        for particle_handle in particle_handles.iter() {
+            let particle_pos = particle_accelerator.get_particle_position(particle_handle);
+            let delta = particle_pos - pos;
+            let adjacent = Vec2::new(-delta[1], delta[0]); // compute a vector at 90 degress to delta
+            particle_accelerator.add_particle_force(particle_handle, adjacent * force_magnitude);
         }
     }
 }

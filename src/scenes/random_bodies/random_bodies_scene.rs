@@ -48,8 +48,9 @@ impl Scene for RandomBodiesScene {
         self.solver.update(0.0167f32);
 
         // v3
+        let gravity = Vec2::new(0f32, 1000f32);
         let mut collider = ParticleCollider::new();
-        collider.reset_forces(&mut self.particle_accelerator);
+        collider.reset_forces(&mut self.particle_accelerator, gravity);
 
         let dt = 0.0167f32;
         const SUB_STEPS: usize = 16;
