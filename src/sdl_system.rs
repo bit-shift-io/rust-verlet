@@ -1,15 +1,13 @@
-use collision::Aabb;
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
 use sdl2::rect::Point;
 use sdl2::Sdl;
 use sdl2::video::WindowPos;
 use sdl2::render::WindowCanvas;
-use sdl2::render::Texture;
+//use sdl2::render::Texture;
 use sdl2::render::TextureCreator;
-use sdl2::image::{InitFlag, LoadTexture};
+//use sdl2::image::LoadTexture;
 use sdl2::video::WindowContext;
-use collision::Aabb2;
 
 pub struct SdlSystem {
     pub sdl_context: Sdl,
@@ -43,11 +41,12 @@ impl SdlSystem {
         }
     }
 
+    /* 
     pub fn load_texture(&self, path: &str) -> Texture {
         //let texture_creator = self.canvas.texture_creator();
         //let texture = self.texture_creator.load_texture(path).unwrap();
         return self.texture_creator.load_texture(path).unwrap();
-    }
+    }*/
 
     pub fn draw_line(&mut self, start: Point, end: Point, color: Color) {
         self.canvas.set_draw_color(color);

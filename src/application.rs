@@ -58,7 +58,7 @@ impl<'a> Application<'a> {
                         Event::KeyDown { keycode: Some(Keycode::Backquote), .. } => {
                             // change the current scene_idx
                             self.current_scene_idx += 1;
-                            if (self.current_scene_idx >= self.scenes.len()) {
+                            if self.current_scene_idx >= self.scenes.len() {
                                 self.current_scene_idx = 0;
                             }
                         },

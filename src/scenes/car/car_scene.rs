@@ -1,10 +1,9 @@
 use std::{cell::RefCell, rc::Rc};
 
-use cgmath::{InnerSpace, Vector2};
-use sdl2::{event::Event, gfx::primitives::DrawRenderer, keyboard::Keycode, pixels::Color};
-use rand::Rng;
+use cgmath::Vector2;
+use sdl2::{event::Event, pixels::Color};
 
-use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{attachment::Attachment, body::Body, particle::Particle, solver::Solver, stick::Stick}, v3::{particle_accelerator::{ParticleAccelerator, ParticleCollider, ParticleRenderer}, shape_builder::ShapeBuilder, types::Vec2}};
+use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{body::Body, solver::Solver}, v3::{particle_accelerator::{ParticleAccelerator, ParticleCollider, ParticleRenderer}, shape_builder::ShapeBuilder, types::Vec2}};
 
 use super::{car::Car, car_v2::CarV2};
 
@@ -66,7 +65,7 @@ impl CarScene {
 }
 
 impl Scene for CarScene {
-    fn update(&mut self, context: &mut Context) {
+    fn update(&mut self, _context: &mut Context) {
         self.keyboard.update();
         self.mouse.update();
 
@@ -122,7 +121,7 @@ impl Scene for CarScene {
         context.sdl.canvas.present();
     }
 
-    fn process_event(&mut self, context: &mut Context, event: Event) {
+    fn process_event(&mut self, _context: &mut Context, event: Event) {
         self.mouse.process_event(event.clone());
         self.keyboard.process_event(event.clone());
     }

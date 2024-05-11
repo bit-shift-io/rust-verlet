@@ -61,6 +61,8 @@ impl Keyboard {
     }
 
     pub fn update(&mut self) {
-        // todo: update all keys
+        for (_, keystate) in self.keystates.iter_mut() {
+            keystate.update();
+        }
     }
 }

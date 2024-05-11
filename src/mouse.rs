@@ -46,7 +46,7 @@ impl Mouse {
                     self.right_button_down = true;
                 }
             },
-            Event::MouseButtonUp { timestamp, window_id, which, mouse_btn, clicks, x, y } => {
+            Event::MouseButtonUp { mouse_btn, .. } => {
                 if self.left_button_down && mouse_btn == sdl2::mouse::MouseButton::Left {
                     self.left_button_down = false;
                 }
@@ -54,10 +54,10 @@ impl Mouse {
                     self.right_button_down = false;
                 }
             },
-            Event::MouseMotion { timestamp, window_id, which, mousestate, x, y, xrel, yrel } => {
+            Event::MouseMotion { x, y, .. } => {
                 self.update_position(x, y);
             },
-            Event::MouseWheel { timestamp, window_id, which, x, y, direction, precise_x, precise_y } => {
+            Event::MouseWheel { direction, .. } => {
                 if direction == MouseWheelDirection::Normal {
                     self.increase_cursor_size(10f32);
                 }
