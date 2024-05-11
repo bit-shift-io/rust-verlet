@@ -173,64 +173,36 @@ impl ShapeBuilder {
 
     }
 
-    /* 
-    pub fn add_fluid_filled_wheel(origin: Vec2) -> (Self, Self) {
-        let mut rng = rand::thread_rng();
+    pub fn add_cloth_grid(&mut self, width: i32, height: i32, spacing: f32, origin: Vec2) -> &mut Self {
+        let particle_radius = 4.0;
 
-        // create the surface (tyre) body    
-        let mut surface_body = Body::new();
-        {
-            let radius = 20.0f32;
-            let divisions = 8;
-            let particle_radius = 8.0f32;
-            let particle_mass = 1.0f32;
-            let col = Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255));
-               
-            
-            for i in 0..divisions {  
-                let percent = i as f32 / divisions as f32;
-                let radians = percent * 2f32 * std::f32::consts::PI;
-                let x = f32::sin(radians);
-                let y = f32::cos(radians);
-                let pos = origin + Vector2::new(x * radius, y * radius);
-        
-                let particle = Rc::new(RefCell::new(Particle::new(pos, particle_radius, particle_mass, col)));
-                surface_body.add_particle(&particle);     
+        for y in 0..=height {
+            for x in 0..=width {
+                let is_static = if y == 0 && x % 2 == 0 { true } else { false };
+                let pos = Vec2::new((origin[0] + x as f32 * spacing) as f32, (origin[1] + y as f32 * spacing) as f32);
+              
+                self.particles.push(ParticlePrim::new(pos, particle_radius, self.mass, is_static, self.color));
+
+                if x != 0 {
+                    let particle_indicies: [i64; 2] = [
+                        -2,
+                        -1
+                    ];
+                    self.add_stick(particle_indicies); 
+                }
+              
+                if y != 0 {
+                    let up_point = (x + (y - 1) * (width + 1)) as i64;
+                    let particle_indicies: [i64; 2] = [
+                        up_point,
+                        -1
+                    ];
+                    self.add_stick(particle_indicies); 
+                }
             }
+          }
 
-            // add adjacent sticks
-            for i in 0..divisions {
-                let p1: Rc<RefCell<dyn Position>> = surface_body.particles[i].clone();
-                let p2: Rc<RefCell<dyn Position>> = if (i + 1) == divisions { surface_body.particles[0].clone() } else { surface_body.particles[i + 1].clone() };
-                
-                let stick = Rc::new(RefCell::new(Stick::new(&p1, &p2)));
-                surface_body.add_stick(&stick);          
-            }
-        }
+          self
+    }
 
-        // create the interior (fluid) body
-        let mut interior_body = Body::new();
-        {
-            let radius = 10.0f32;
-            let divisions = 6;
-            let particle_radius = 4.0f32;
-            let particle_mass = 1.0f32;
-            let col = Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255));
-               
-            interior_body.set_collides_with_self(true);
-
-            for i in 0..divisions {  
-                let percent = i as f32 / divisions as f32;
-                let radians = percent * 2f32 * std::f32::consts::PI;
-                let x = f32::sin(radians);
-                let y = f32::cos(radians);
-                let pos = origin + Vector2::new(x * radius, y * radius);
-        
-                let particle = Rc::new(RefCell::new(Particle::new(pos, particle_radius, particle_mass, col)));
-                interior_body.add_particle(&particle);     
-            }
-        }
-
-        (surface_body, interior_body)
-    }*/
 }

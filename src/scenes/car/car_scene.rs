@@ -5,7 +5,7 @@ use sdl2::{event::Event, pixels::Color};
 
 use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{body::Body, solver::Solver}, v3::{particle_accelerator::{ParticleAccelerator, ParticleCollider, ParticleRenderer}, shape_builder::ShapeBuilder, types::Vec2}};
 
-use super::{car::Car, car_v2::CarV2};
+use super::{car::Car, car_v2::CarV2, cloth::Cloth};
 
 pub struct CarSceneContext<'a> {
     pub keyboard: &'a mut Keyboard,
@@ -22,6 +22,7 @@ pub struct CarScene {
 
     // v3
     pub car: Car,
+    pub cloth: Cloth,
     pub particle_accelerator: ParticleAccelerator,
 }
 
@@ -52,6 +53,8 @@ impl CarScene {
             .create_in_particle_accelerator(&mut particle_accelerator, mask);
         
         let car = Car::new(&mut particle_accelerator);
+        
+        let cloth = Cloth::new(&mut particle_accelerator);
 
         Self { 
             solver, 
@@ -59,7 +62,8 @@ impl CarScene {
             keyboard: Keyboard::new(),
             mouse: Mouse::new(),
             particle_accelerator,
-            car
+            car,
+            cloth
         }
     }
 }
@@ -95,6 +99,7 @@ impl Scene for CarScene {
                 particle_accelerator: &mut self.particle_accelerator,
             };
             self.car.update(&mut car_scene_context);
+            self.cloth.update(&mut car_scene_context);
 
             // finally, solve everything for this frame
             let dt = 0.0167f32;

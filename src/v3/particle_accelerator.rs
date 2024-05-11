@@ -186,6 +186,14 @@ impl ParticleAccelerator {
         self.verlet_positions[particle_handle.id].force += force;
     }
 
+    pub fn set_particle_position_previous(&mut self, particle_handle: &ParticleHandle, pos_prev: Vec2) {
+        self.verlet_positions[particle_handle.id].pos_prev = pos_prev;
+    }
+
+    pub fn set_particle_color(&mut self, particle_handle: &ParticleHandle, color: Color) {
+        self.particles[particle_handle.id].color = color;
+    }
+
 }
 
 pub struct ParticleCollider {
