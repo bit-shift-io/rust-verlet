@@ -12,7 +12,7 @@ pub struct ParticleHandle {
 }
 
 impl ParticleHandle {
-    fn new(id: usize) -> Self {
+    pub fn new(id: usize) -> Self {
         Self { id }
     }
 
@@ -52,12 +52,14 @@ struct Particle {
     mask: u32,
     is_static: bool,
     color: Color,
+    is_enabled: bool,
 }
 
 // todo: rename to StickConstraint
-struct Stick {
-    particle_indicies: [usize; 2], // rename to particle_ids ?
-    length: f32,
+pub struct Stick {
+    pub particle_indicies: [usize; 2], // rename to particle_ids ?
+    pub length: f32,
+    pub is_enabled: bool
 }
 
 #[derive(Clone)]
@@ -129,7 +131,8 @@ impl ParticleAccelerator {
         let id = self.sticks.len();
         let sitck = Stick {
             particle_indicies: [particle_handles[0].id, particle_handles[1].id],
-            length
+            length,
+            is_enabled: true
         };
         self.sticks.push(sitck);
         StickHandle::new(id)
@@ -164,7 +167,8 @@ impl ParticleAccelerator {
             radius,
             mask,
             is_static: false,
-            color
+            color,
+            is_enabled: true,
         };
         self.particles.push(particle);
 
@@ -194,6 +198,17 @@ impl ParticleAccelerator {
         self.particles[particle_handle.id].color = color;
     }
 
+    pub fn get_stick(&self, stick_handle: &StickHandle) -> &Stick {
+        &self.sticks[stick_handle.id]
+    }
+
+    pub fn set_stick_enabled(&mut self, stick_handle: &StickHandle, is_enabled: bool) {
+        self.sticks[stick_handle.id].is_enabled = is_enabled
+    }
+
+    pub fn set_particle_enabled(&mut self, particle_handle: &StickHandle, is_enabled: bool) {
+        self.particles[particle_handle.id].is_enabled = is_enabled
+    }
 }
 
 pub struct ParticleCollider {
@@ -245,6 +260,11 @@ impl ParticleCollider {
                         continue;
                     }
 
+                    // ignore disabled particles
+                    if !particle_a.is_enabled || !particle_b.is_enabled {
+                        continue;
+                    }
+
                     let (a_movement_weight, b_movement_weight) = self.compute_movement_weight(particle_a.is_static, particle_b.is_static);
                     
                     let collision_axis: Vec2;
@@ -285,7 +305,7 @@ impl ParticleCollider {
 
     pub fn update_positions(&mut self, particle_accelerator: &mut ParticleAccelerator, dt: f32) {
         for (particle, verlet_position) in particle_accelerator.particles.iter().zip(particle_accelerator.verlet_positions.iter_mut()) {
-            if particle.is_static {
+            if particle.is_static || !particle.is_enabled {
                 continue
             }
 
@@ -327,7 +347,15 @@ impl ParticleCollider {
 
     pub fn update_sticks(&mut self, particle_accelerator: &mut ParticleAccelerator) {
         for stick in particle_accelerator.sticks.iter_mut() {
+            if !stick.is_enabled {
+                continue;
+            }
 
+            let particle_a = &particle_accelerator.particles[stick.particle_indicies[0]];
+            let particle_b = &particle_accelerator.particles[stick.particle_indicies[1]];
+
+            let (a_movement_weight, b_movement_weight) = self.compute_movement_weight(particle_a.is_static, particle_b.is_static);
+                    
             let p1 = &particle_accelerator.verlet_positions[stick.particle_indicies[0]];
             let p2 = &particle_accelerator.verlet_positions[stick.particle_indicies[1]];
 
@@ -338,12 +366,12 @@ impl ParticleCollider {
     
             {
                 let p1mut = &mut particle_accelerator.verlet_positions[stick.particle_indicies[0]];
-                p1mut.pos += offset;
+                p1mut.pos += offset * a_movement_weight;
             }
 
             {
                 let p2mut = &mut particle_accelerator.verlet_positions[stick.particle_indicies[1]];
-                p2mut.pos -= offset;
+                p2mut.pos -= offset * b_movement_weight;
             }
         }
     }
@@ -361,6 +389,10 @@ impl ParticleRenderer {
     pub fn draw(&self, sdl: &mut SdlSystem, particle_accelerator: &ParticleAccelerator) {
         // draw particles
         for (particle, verlet_position) in particle_accelerator.particles.iter().zip(particle_accelerator.verlet_positions.iter()) {
+            if !particle.is_enabled {
+                continue;
+            }
+
             sdl.draw_filled_circle(vec2_to_point(verlet_position.pos), particle.radius as i32, particle.color);
             /* 
             let layer_option = particle_accelerator.layer_map.get(&particle.mask);
@@ -373,6 +405,10 @@ impl ParticleRenderer {
         // draw sticks
         let col = Color::RGB(0, 128, 0);
         for stick in particle_accelerator.sticks.iter() {
+            if !stick.is_enabled {
+                continue;
+            }
+            
             let p1pos = particle_accelerator.verlet_positions[stick.particle_indicies[0]].pos;
             let p2pos = particle_accelerator.verlet_positions[stick.particle_indicies[1]].pos;
             sdl.draw_line(vec2_to_point(p1pos), vec2_to_point(p2pos), col);

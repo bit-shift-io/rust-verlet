@@ -99,7 +99,7 @@ impl Scene for CarScene {
                 particle_accelerator: &mut self.particle_accelerator,
             };
             self.car.update(&mut car_scene_context);
-            self.cloth.update(&mut car_scene_context);
+            
 
             // finally, solve everything for this frame
             let dt = 0.0167f32;
@@ -109,6 +109,13 @@ impl Scene for CarScene {
                 collider.update_constraints(&mut self.particle_accelerator);
                 collider.update_positions(&mut self.particle_accelerator, *sub_dt);
             }
+
+            let mut car_scene_context = CarSceneContext{ 
+                keyboard: &mut self.keyboard, 
+                mouse: &mut self.mouse,
+                particle_accelerator: &mut self.particle_accelerator,
+            };
+            self.cloth.update(&mut car_scene_context, dt);
         }
     }
 
