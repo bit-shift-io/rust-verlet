@@ -41,6 +41,7 @@ mod v3 {
     pub mod types;
     pub mod particle_accelerator;
     pub mod particle_renderer;
+    pub mod particle_collider;
     pub mod shape_builder;
 }
 

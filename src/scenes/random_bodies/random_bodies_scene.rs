@@ -4,9 +4,9 @@ use cgmath::{InnerSpace, Vector2};
 use sdl2::{event::Event, gfx::primitives::DrawRenderer, pixels::Color};
 use rand::Rng;
 
-use crate::{application::{Context, Scene}, v2::{body::Body, particle::Particle, position::Position, solver::Solver, stick::Stick}, v3::particle_renderer::ParticleRenderer};
+use crate::{application::{Context, Scene}, v2::{body::Body, particle::Particle, position::Position, solver::Solver, stick::Stick}, v3::{particle_collider::ParticleCollider, particle_renderer::ParticleRenderer}};
 
-use crate::v3::{types::Vec2, particle_accelerator::ParticleAccelerator, particle_accelerator::ParticleCollider, shape_builder::ShapeBuilder};
+use crate::v3::{types::Vec2, particle_accelerator::ParticleAccelerator, shape_builder::ShapeBuilder};
 
 pub struct RandomBodiesScene {
     // v2

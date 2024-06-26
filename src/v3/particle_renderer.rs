@@ -41,5 +41,17 @@ impl ParticleRenderer {
             let p2pos = particle_accelerator.verlet_positions[stick.particle_indicies[1]].pos;
             sdl.draw_line(vec2_to_point(p1pos), vec2_to_point(p2pos), col);
         }
+
+        // draw springs
+        let col = Color::RGB(0, 0, 128);
+        for spring in particle_accelerator.springs.iter() {
+            if !spring.is_enabled {
+                continue;
+            }
+            
+            let p1pos = particle_accelerator.verlet_positions[spring.particle_indicies[0]].pos;
+            let p2pos = particle_accelerator.verlet_positions[spring.particle_indicies[1]].pos;
+            sdl.draw_line(vec2_to_point(p1pos), vec2_to_point(p2pos), col);
+        }
     }
 }

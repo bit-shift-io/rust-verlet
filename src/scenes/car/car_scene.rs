@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use cgmath::Vector2;
 use sdl2::{event::Event, pixels::Color};
 
-use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{body::Body, solver::Solver}, v3::{particle_accelerator::{ParticleAccelerator, ParticleCollider}, particle_renderer::ParticleRenderer, shape_builder::ShapeBuilder, types::Vec2}};
+use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{body::Body, solver::Solver}, v3::{particle_accelerator::ParticleAccelerator, particle_collider::ParticleCollider, particle_renderer::ParticleRenderer, shape_builder::ShapeBuilder, types::Vec2}};
 
 use super::{car::Car, car_v2::CarV2, cloth::Cloth};
 
@@ -55,6 +55,13 @@ impl CarScene {
         let car = Car::new(&mut particle_accelerator);
         
         let cloth = Cloth::new(&mut particle_accelerator);
+
+        
+        // add a jellow cube to the scene
+        ShapeBuilder::new()
+            .add_spring_grid(5, 5, 20.0, Vec2::new(500.0, 100.0))
+            .create_in_particle_accelerator(&mut particle_accelerator, mask);
+
 
         Self { 
             solver, 
