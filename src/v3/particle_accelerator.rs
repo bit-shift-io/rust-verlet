@@ -66,7 +66,12 @@ pub struct Stick {
 pub struct Spring {
     pub particle_indicies: [usize; 2], // rename to particle_ids ?
     pub length: f32,
-    pub is_enabled: bool
+    pub is_enabled: bool,
+
+    pub elastic_limit: f32, // see 2. Plastic deformation here: https://www.khanacademy.org/science/physics/work-and-energy/hookes-law/a/what-is-hookes-law
+        // -ve number = non elastic limit
+
+    pub spring_constant: f32, // aka tightness: https://www.linkedin.com/pulse/springs-video-games-kieran-bradbury
 }
 
 #[derive(Clone)]
@@ -147,12 +152,14 @@ impl ParticleAccelerator {
         StickHandle::new(id)
     }
 
-    pub fn create_spring(&mut self, particle_handles: [&ParticleHandle; 2], length: f32) -> StickHandle {
+    pub fn create_spring(&mut self, particle_handles: [&ParticleHandle; 2], length: f32, spring_constant: f32, elastic_limit: f32) -> SpringHandle {
         let id = self.sticks.len();
         let spring = Spring {
             particle_indicies: [particle_handles[0].id, particle_handles[1].id],
             length,
-            is_enabled: true
+            is_enabled: true,
+            spring_constant,
+            elastic_limit,
         };
         self.springs.push(spring);
         StickHandle::new(id)

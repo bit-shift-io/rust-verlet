@@ -185,7 +185,7 @@ impl ParticleCollider {
             let difference = p1.pos - p2.pos;
             let diff_length = difference.magnitude();
             let diff_factor = (spring.length - diff_length) / diff_length * 0.5;
-            let offset = difference * diff_factor;
+            let offset = difference * diff_factor * spring.spring_constant;
     
             {
                 let p1mut = &mut particle_accelerator.verlet_positions[spring.particle_indicies[0]];
