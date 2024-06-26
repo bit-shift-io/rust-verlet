@@ -24,12 +24,12 @@ impl ParticleHandle {
 pub type StickHandle = ParticleHandle;
 pub type AttachmentConstraintHandle = ParticleHandle;
 
-struct VerletPosition {
-    pos: Vec2,
-    pos_prev: Vec2,
+pub(crate) struct VerletPosition {
+    pub(crate) pos: Vec2,
+    pub(crate) pos_prev: Vec2,
 
-    force: Vec2,
-    mass: f32,
+    pub(crate) force: Vec2,
+    pub(crate) mass: f32,
 }
 
 struct Layer {
@@ -46,13 +46,13 @@ impl Layer {
     }
 }
 
-struct Particle {
-    id: usize,
-    radius: f32,
-    mask: u32,
-    is_static: bool,
-    color: Color,
-    is_enabled: bool,
+pub(crate) struct Particle {
+    pub(crate) id: usize,
+    pub(crate) radius: f32,
+    pub(crate) mask: u32,
+    pub(crate) is_static: bool,
+    pub(crate) color: Color,
+    pub(crate) is_enabled: bool,
 }
 
 // todo: rename to StickConstraint
@@ -94,13 +94,13 @@ struct AttachmentConstraint {
 
 pub struct ParticleAccelerator {
     // here a particle is broken into two "channels", in order to perform SIMD operations on one part
-    particles: Vec<Particle>,
-    verlet_positions: Vec<VerletPosition>,
+    pub(crate) particles: Vec<Particle>,
+    pub(crate) verlet_positions: Vec<VerletPosition>,
 
-    sticks: Vec<Stick>,
-    attachment_constraints: Vec<AttachmentConstraint>,
+    pub(crate) sticks: Vec<Stick>,
+    pub(crate) attachment_constraints: Vec<AttachmentConstraint>,
 
-    layer_map: HashMap<usize, Layer>,
+    pub(crate) layer_map: HashMap<usize, Layer>,
 }
 
 impl ParticleAccelerator {
@@ -373,45 +373,6 @@ impl ParticleCollider {
                 let p2mut = &mut particle_accelerator.verlet_positions[stick.particle_indicies[1]];
                 p2mut.pos -= offset * b_movement_weight;
             }
-        }
-    }
-}
-
-pub struct ParticleRenderer {
-
-}
-
-impl ParticleRenderer {
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn draw(&self, sdl: &mut SdlSystem, particle_accelerator: &ParticleAccelerator) {
-        // draw particles
-        for (particle, verlet_position) in particle_accelerator.particles.iter().zip(particle_accelerator.verlet_positions.iter()) {
-            if !particle.is_enabled {
-                continue;
-            }
-
-            sdl.draw_filled_circle(vec2_to_point(verlet_position.pos), particle.radius as i32, particle.color);
-            /* 
-            let layer_option = particle_accelerator.layer_map.get(&particle.mask);
-            layer_option.as_ref().map(|layer| {
-                let verlet_position = &layer.verlet_positions[particle.verlet_position_index];
-                
-            });*/
-        }
-
-        // draw sticks
-        let col = Color::RGB(0, 128, 0);
-        for stick in particle_accelerator.sticks.iter() {
-            if !stick.is_enabled {
-                continue;
-            }
-            
-            let p1pos = particle_accelerator.verlet_positions[stick.particle_indicies[0]].pos;
-            let p2pos = particle_accelerator.verlet_positions[stick.particle_indicies[1]].pos;
-            sdl.draw_line(vec2_to_point(p1pos), vec2_to_point(p2pos), col);
         }
     }
 }

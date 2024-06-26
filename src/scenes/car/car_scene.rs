@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use cgmath::Vector2;
 use sdl2::{event::Event, pixels::Color};
 
-use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{body::Body, solver::Solver}, v3::{particle_accelerator::{ParticleAccelerator, ParticleCollider, ParticleRenderer}, shape_builder::ShapeBuilder, types::Vec2}};
+use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{body::Body, solver::Solver}, v3::{particle_accelerator::{ParticleAccelerator, ParticleCollider}, particle_renderer::ParticleRenderer, shape_builder::ShapeBuilder, types::Vec2}};
 
 use super::{car::Car, car_v2::CarV2, cloth::Cloth};
 
