@@ -59,7 +59,7 @@ impl CarScene {
         
         // add a jellow cube to the scene
         ShapeBuilder::new()
-            .add_spring_grid(5, 5, 20.0, Vec2::new(500.0, 100.0))
+            .add_spring_grid(2, 5, 20.0, Vec2::new(500.0, 500.0))
             .create_in_particle_accelerator(&mut particle_accelerator, mask);
 
 

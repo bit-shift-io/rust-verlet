@@ -251,25 +251,45 @@ impl ShapeBuilder {
                 self.particles.push(ParticlePrim::new(pos, particle_radius, self.mass, is_static, self.color));
 
                 if x != 0 {
+                    // horizonal spring
                     let particle_indicies: [i64; 2] = [
                         -2,
                         -1
                     ];
-                    self.add_spring(particle_indicies); 
+                    self.add_spring(particle_indicies);
                 }
               
                 if y != 0 {
+                    // vertical spring
                     let up_point = (x + (y - 1) * (width + 1)) as i64;
                     let particle_indicies: [i64; 2] = [
                         up_point,
                         -1
                     ];
                     self.add_spring(particle_indicies); 
+
+                    // cross spring (bottom left to top right)
+                    if x < width {
+                        let particle_indicies: [i64; 2] = [
+                            up_point + 1,
+                            -1
+                        ];
+                        self.add_spring(particle_indicies); 
+                    }
+
+                    // cross spring (bottom right to top left)
+                    if x > 0 {
+                        let particle_indicies: [i64; 2] = [
+                            up_point - 1,
+                            -1
+                        ];
+                        self.add_spring(particle_indicies); 
+                    }
                 }
             }
-          }
+        }
 
-          self
+        self
     }
 
 }
