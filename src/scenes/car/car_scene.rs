@@ -56,13 +56,22 @@ impl CarScene {
         
         let cloth = Cloth::new(&mut particle_accelerator);
 
-        
+        // lets try a hanging particle on a spring
+        ShapeBuilder::new()
+            .set_spring_constant(100.0)
+            .set_damping(10.0)
+            .set_mass(1.0)
+            .set_radius(10.0)
+            .add_hanging_particle(Vec2::new(500.0, 100.0), Vec2::new(600.0, 200.0))
+            .create_in_particle_accelerator(&mut particle_accelerator, mask);
+
         // add a jellow cube to the scene
         ShapeBuilder::new()
-            .set_spring_constant(0.01)
-            .set_mass(1.0)
-            .set_radius(8.0)
-            .add_spring_grid(2, 5, 20.0, Vec2::new(500.0, 500.0))
+            .set_spring_constant(1000.0)
+            .set_damping(100.0)
+            .set_mass(0.6)
+            .set_radius(6.0)
+            .add_spring_grid(2, 4, 15.0, Vec2::new(500.0, 700.0))
             .create_in_particle_accelerator(&mut particle_accelerator, mask);
 
 
@@ -113,7 +122,7 @@ impl Scene for CarScene {
 
             // finally, solve everything for this frame
             let dt = 0.0167f32;
-            const SUB_STEPS: usize = 16;
+            const SUB_STEPS: usize = 2; // higher substeps causes spring issues
             for sub_dt in collider.range_substeps(dt, SUB_STEPS).iter() {
                 collider.solve_collisions(&mut self.particle_accelerator);
                 collider.update_constraints(&mut self.particle_accelerator);

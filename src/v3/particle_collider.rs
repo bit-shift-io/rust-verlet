@@ -1,6 +1,7 @@
 use super::{particle_accelerator::ParticleAccelerator, types::Vec2};
 
 
+/// Handles the moving and colliding of particles and constraints
 pub struct ParticleCollider {
 
 }
@@ -169,6 +170,7 @@ impl ParticleCollider {
 
 
     pub fn update_springs(&mut self, particle_accelerator: &mut ParticleAccelerator) {
+        let mut i = 0;
         for spring in particle_accelerator.springs.iter_mut() {
             if !spring.is_enabled {
                 continue;
@@ -182,20 +184,57 @@ impl ParticleCollider {
             let p1 = &particle_accelerator.verlet_positions[spring.particle_indicies[0]];
             let p2 = &particle_accelerator.verlet_positions[spring.particle_indicies[1]];
 
-            let difference = p1.pos - p2.pos;
-            let diff_length = difference.magnitude();
-            let diff_factor = (spring.length - diff_length) / diff_length * 0.5;
-            let offset = difference * diff_factor * spring.spring_constant;
-    
+            // https://jsfiddle.net/odestcj/g72MA/
+            let difference = p2.pos - p1.pos;
+            let current_length = difference.magnitude();
+            let dir = difference.normalize();
+
+            let extension = current_length - spring.length; // x
+            let spring_force = -spring.spring_constant * extension; // hook's law
+
+            // compute the velocity of the 2 particles
+            let v1 = p1.pos - p1.pos_prev;
+            let v2 =  p2.pos - p2.pos_prev;
+            let velocity = v1 + v2;
+
+            let damped_velocity = -(velocity * spring.damping);
+            
+            let damped_force = (dir * spring_force) + damped_velocity;
+/* 
+            let difference = p2.pos - p1.pos;
+            let current_length = difference.magnitude();
+
+            let dir = difference.normalize();
+
+            let extension = current_length - spring.length;
+
+
+
+            // F = (-k * x) - (velocity * damping_coefficient)
+            let damped_velocity = (velocity * spring.damping);
+            let force = (-dir * extension * spring.spring_constant);
+            let damped_force = force;// - damped_velocity;
+
+            //let diff_factor = (spring.length - diff_length) / diff_length * 0.5;
+            //let offset = difference * diff_factor * spring.spring_constant;
+    */
+
+            /* 
+            if i == 0 && extension != 0.0 {
+                println!("{}", extension);
+            }*/
+
             {
                 let p1mut = &mut particle_accelerator.verlet_positions[spring.particle_indicies[0]];
-                p1mut.pos += offset * a_movement_weight;
+                p1mut.force -= damped_force * a_movement_weight;
             }
 
             {
                 let p2mut = &mut particle_accelerator.verlet_positions[spring.particle_indicies[1]];
-                p2mut.pos -= offset * b_movement_weight;
+                p2mut.force += damped_force * b_movement_weight;
             }
+
+            i += 1;
         }
     }
 }

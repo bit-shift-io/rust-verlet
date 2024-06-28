@@ -22,13 +22,14 @@ struct SpringPrim {
     particle_indicies: [usize; 2],
     length: f32,
     spring_constant: f32,
+    damping: f32,
     elastic_limit: f32,
 }
 
 impl SpringPrim {
-    pub fn new(particle_indicies: [usize; 2], particle_positions: [Vec2; 2], spring_constant: f32, elastic_limit: f32) -> Self {
+    pub fn new(particle_indicies: [usize; 2], particle_positions: [Vec2; 2], spring_constant: f32, damping: f32, elastic_limit: f32) -> Self {
         let length = (particle_positions[1] - particle_positions[0]).magnitude();
-        Self { particle_indicies, length, spring_constant, elastic_limit }
+        Self { particle_indicies, length, spring_constant, damping, elastic_limit }
     }
 }
 
@@ -58,7 +59,7 @@ pub struct ShapeBuilder {
     // spring properties
     spring_constant: f32,
     elastic_limit: f32,
-
+    damping: f32,
 
     pub particle_handles: Vec<ParticleHandle>,
     pub stick_handles: Vec<StickHandle>,
@@ -87,6 +88,7 @@ impl ShapeBuilder {
             spring_handles: vec![],
             color,
             spring_constant: 1.0,
+            damping: 1.0,
             elastic_limit: -1.0,
         }    
     }
@@ -122,6 +124,11 @@ impl ShapeBuilder {
         self
     }
 
+    pub fn set_damping(&mut self, damping: f32) -> &mut Self {
+        self.damping = damping;
+        self
+    }
+
     pub fn set_elastic_limit(&mut self, elastic_limit: f32) -> &mut Self {
         self.elastic_limit = elastic_limit;
         self
@@ -143,7 +150,7 @@ impl ShapeBuilder {
 
         let mut spring_handles = vec![];
         for spring in self.springs.iter() {
-            let spring_handle = particle_accelerator.create_spring([&particle_handles[spring.particle_indicies[0]], &particle_handles[spring.particle_indicies[1]]], spring.length, spring.spring_constant, spring.elastic_limit);
+            let spring_handle = particle_accelerator.create_spring([&particle_handles[spring.particle_indicies[0]], &particle_handles[spring.particle_indicies[1]]], spring.length, spring.spring_constant, spring.damping, spring.elastic_limit);
             spring_handles.push(spring_handle);
         }
 
@@ -180,7 +187,7 @@ impl ShapeBuilder {
             convert_to_real_index(particle_indicies[1], self.particles.len()),
         ];
         let particle_positions = [self.particles[real_particle_indicies[0]].pos, self.particles[real_particle_indicies[1]].pos];
-        self.springs.push(SpringPrim::new(real_particle_indicies, particle_positions, self.spring_constant, self.elastic_limit));
+        self.springs.push(SpringPrim::new(real_particle_indicies, particle_positions, self.spring_constant, self.damping, self.elastic_limit));
 
         let combined_radius = self.particles[real_particle_indicies[0]].radius + self.particles[real_particle_indicies[1]].radius;
         let last_spring = self.springs.last().unwrap();
@@ -314,6 +321,23 @@ impl ShapeBuilder {
                 }
             }
         }
+
+        self
+    }
+
+    pub fn add_hanging_particle(&mut self, origin: Vec2, hanging_origin: Vec2) -> &mut Self {
+        // add a static particle at origin
+        self.particles.push(ParticlePrim::new(origin, self.radius, self.mass, true, self.color));
+
+        // add a handing particle underneath
+        self.particles.push(ParticlePrim::new(hanging_origin, self.radius, self.mass, false, self.color));
+
+        // connecting spring
+        let particle_indicies: [i64; 2] = [
+            -2,
+            -1
+        ];
+        self.add_spring(particle_indicies);
 
         self
     }

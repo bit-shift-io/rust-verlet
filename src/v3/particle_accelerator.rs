@@ -57,12 +57,17 @@ pub(crate) struct Particle {
 }
 
 // todo: rename to StickConstraint
+/// Constraint that ignores weight and forces and just moves particles to try to maintain a
+/// given distance between them
 pub struct Stick {
     pub particle_indicies: [usize; 2], // rename to particle_ids ?
     pub length: f32,
     pub is_enabled: bool
 }
 
+/// Constraint that applies forces to particles in the fashion of a spring
+/// higher spring_constant is a stuffer spring
+/// elastic_limit serves as a a limit where the length can start to be modified
 pub struct Spring {
     pub particle_indicies: [usize; 2], // rename to particle_ids ?
     pub length: f32,
@@ -71,7 +76,8 @@ pub struct Spring {
     pub elastic_limit: f32, // see 2. Plastic deformation here: https://www.khanacademy.org/science/physics/work-and-energy/hookes-law/a/what-is-hookes-law
         // -ve number = non elastic limit
 
-    pub spring_constant: f32, // aka tightness: https://www.linkedin.com/pulse/springs-video-games-kieran-bradbury
+    pub spring_constant: f32, // aka tightness: https://www.linkedin.com/pulse/springs-video-games-kieran-bradbury. Measured in N/m.
+    pub damping: f32, // damping coefficient
 }
 
 #[derive(Clone)]
@@ -104,6 +110,7 @@ pub(crate) struct AttachmentConstraint {
 }
 
 
+/// A container for particles and constraints
 pub struct ParticleAccelerator {
     // here a particle is broken into two "channels", in order to perform SIMD operations on one part
     pub(crate) particles: Vec<Particle>,
@@ -152,7 +159,7 @@ impl ParticleAccelerator {
         StickHandle::new(id)
     }
 
-    pub fn create_spring(&mut self, particle_handles: [&ParticleHandle; 2], length: f32, spring_constant: f32, elastic_limit: f32) -> SpringHandle {
+    pub fn create_spring(&mut self, particle_handles: [&ParticleHandle; 2], length: f32, spring_constant: f32, damping: f32, elastic_limit: f32) -> SpringHandle {
         let id = self.sticks.len();
         let spring = Spring {
             particle_indicies: [particle_handles[0].id, particle_handles[1].id],
@@ -160,6 +167,7 @@ impl ParticleAccelerator {
             is_enabled: true,
             spring_constant,
             elastic_limit,
+            damping
         };
         self.springs.push(spring);
         StickHandle::new(id)
