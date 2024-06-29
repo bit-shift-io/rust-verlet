@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use super::{particle_accelerator::ParticleAccelerator, types::Vec2};
 
 
@@ -16,6 +18,16 @@ impl ParticleCollider {
         let a_movement_weight = if a_is_static { 0.0f32 } else if b_is_static { 1.0f32 } else { 0.5f32 };
         let b_movement_weight = 1.0f32 - a_movement_weight;
         (a_movement_weight, b_movement_weight)
+    }
+
+    // dt = last frame elapsed time
+    // desired_hertz = times per second
+    pub fn range_substeps_2(&self, last_elapsed: Duration, desired_hertz: f32) -> Vec<f32> {
+        let last_elapsed_secs = last_elapsed.as_secs_f32();
+        let substeps: f32 = last_elapsed_secs * desired_hertz as f32;
+        let rounded_substeps = substeps.floor() as usize;
+        let increment = 1.0 / desired_hertz;
+        vec![increment; rounded_substeps]
     }
 
     pub fn range_substeps(&self, dt: f32, substeps: usize) -> Vec<f32> {
@@ -192,6 +204,8 @@ impl ParticleCollider {
             let extension = current_length - spring.length; // x
             let spring_force = -spring.spring_constant * extension; // hook's law
 
+            //spring_force = spring_force * spring_force;
+
             // compute the velocity of the 2 particles
             let v1 = p1.pos - p1.pos_prev;
             let v2 =  p2.pos - p2.pos_prev;
@@ -219,9 +233,9 @@ impl ParticleCollider {
             //let offset = difference * diff_factor * spring.spring_constant;
     */
 
-            /* 
+            /*
             if i == 0 && extension != 0.0 {
-                println!("{}", extension);
+                println!("e: {},    sf: {}", extension, spring_force);
             }*/
 
             {

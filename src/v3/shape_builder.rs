@@ -301,6 +301,7 @@ impl ShapeBuilder {
                     ];
                     self.add_spring(particle_indicies); 
 
+                    /* 
                     // cross spring (bottom left to top right)
                     if x < width {
                         let particle_indicies: [i64; 2] = [
@@ -308,8 +309,9 @@ impl ShapeBuilder {
                             -1
                         ];
                         self.add_spring(particle_indicies); 
-                    }
+                    }*/
 
+                    /* 
                     // cross spring (bottom right to top left)
                     if x > 0 {
                         let particle_indicies: [i64; 2] = [
@@ -317,7 +319,7 @@ impl ShapeBuilder {
                             -1
                         ];
                         self.add_spring(particle_indicies); 
-                    }
+                    }*/
                 }
             }
         }

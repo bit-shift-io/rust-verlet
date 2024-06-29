@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, time::Instant};
 
 use cgmath::Vector2;
 use sdl2::{event::Event, pixels::Color};
@@ -24,6 +24,9 @@ pub struct CarScene {
     pub car: Car,
     pub cloth: Cloth,
     pub particle_accelerator: ParticleAccelerator,
+
+    pub time: f32,
+    pub update_instant: Instant,
 }
 
 impl CarScene {
@@ -58,22 +61,21 @@ impl CarScene {
 
         // lets try a hanging particle on a spring
         ShapeBuilder::new()
-            .set_spring_constant(100.0)
-            .set_damping(10.0)
+            .set_spring_constant(20.0)
+            .set_damping(5.0)
             .set_mass(1.0)
             .set_radius(10.0)
-            .add_hanging_particle(Vec2::new(500.0, 100.0), Vec2::new(600.0, 200.0))
+            .add_hanging_particle(Vec2::new(500.0, 100.0), Vec2::new(500.0, 200.0))
             .create_in_particle_accelerator(&mut particle_accelerator, mask);
 
         // add a jellow cube to the scene
         ShapeBuilder::new()
-            .set_spring_constant(1000.0)
-            .set_damping(100.0)
-            .set_mass(0.6)
-            .set_radius(6.0)
-            .add_spring_grid(2, 4, 15.0, Vec2::new(500.0, 700.0))
+            .set_spring_constant(20.0)
+            .set_damping(5.0)
+            .set_mass(1.0)
+            .set_radius(8.0)
+            .add_spring_grid(2, 2, 20.0, Vec2::new(500.0, 730.0))
             .create_in_particle_accelerator(&mut particle_accelerator, mask);
-
 
         Self { 
             solver, 
@@ -82,13 +84,20 @@ impl CarScene {
             mouse: Mouse::new(),
             particle_accelerator,
             car,
-            cloth
+            cloth,
+            time: 0.0,
+            update_instant: Instant::now()
         }
     }
 }
 
 impl Scene for CarScene {
     fn update(&mut self, _context: &mut Context) {
+        // compute how long the last frame took
+        let last_elapsed = self.update_instant.elapsed();
+        self.update_instant = Instant::now();
+        //println!("Last update took: {} ms", last_elapsed.as_millis());
+
         self.keyboard.update();
         self.mouse.update();
 
@@ -107,7 +116,9 @@ impl Scene for CarScene {
         // v3
         {
             // reset forces to just the gravity value
-            let gravity = Vec2::new(0f32, 1000f32);
+            // 9.8 = units are in metres per second
+            // 980 = units are cm per second
+            let gravity = Vec2::new(0.0, 9.8);
             let mut collider = ParticleCollider::new();
             collider.reset_forces(&mut self.particle_accelerator, gravity);
 
@@ -121,20 +132,25 @@ impl Scene for CarScene {
             
 
             // finally, solve everything for this frame
-            let dt = 0.0167f32;
-            const SUB_STEPS: usize = 2; // higher substeps causes spring issues
-            for sub_dt in collider.range_substeps(dt, SUB_STEPS).iter() {
+            let desired_hertz = 100.0; // 100 times per second
+            //let dt = last_elapsed.as_millis();
+            //let dt = 0.0167f32; // 1 / 60
+            //const SUB_STEPS: usize = 16; // higher substeps causes spring issues
+            for sub_dt in collider.range_substeps_2(last_elapsed, desired_hertz).iter() {
                 collider.solve_collisions(&mut self.particle_accelerator);
                 collider.update_constraints(&mut self.particle_accelerator);
                 collider.update_positions(&mut self.particle_accelerator, *sub_dt);
             }
+            //self.time += dt;
 
             let mut car_scene_context = CarSceneContext{ 
                 keyboard: &mut self.keyboard, 
                 mouse: &mut self.mouse,
                 particle_accelerator: &mut self.particle_accelerator,
             };
-            self.cloth.update(&mut car_scene_context, dt);
+            self.cloth.update(&mut car_scene_context, last_elapsed.as_secs_f32());
+
+            //println!("time: {}", self.time);
         }
     }
 
