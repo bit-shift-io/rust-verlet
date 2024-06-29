@@ -25,9 +25,9 @@ impl CarWheel {
         // wheel surface
         let surface_particle_handles = {
             let mask = 0x1;
-            let divisions = 8;
+            let divisions = 12;
             let circle_radius = 20.0;
-            let particle_radius = 7.0;
+            let particle_radius = 5.0;
             let mut builder = ShapeBuilder::new();
             builder.add_adjacent_stick_circle(origin, circle_radius, particle_radius, divisions)
                 .create_in_particle_accelerator(particle_accelerator, mask);
@@ -37,9 +37,9 @@ impl CarWheel {
         // wheel interior
         let interior_particle_handles = {
             let mask = 0x1;
-            let divisions = 6;
-            let circle_radius = 10.0;
-            let particle_radius = 4.0;
+            let divisions = 5;
+            let circle_radius = 12.0;
+            let particle_radius = 5.0;
             let mut builder = ShapeBuilder::new();
             builder.add_circle(origin, circle_radius, particle_radius, divisions)
                 .create_in_particle_accelerator(particle_accelerator, mask);

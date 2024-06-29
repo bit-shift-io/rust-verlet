@@ -14,9 +14,13 @@ pub struct CarSceneContext<'a> {
 }
 
 pub struct CarScene {
+    /*
     // v2
     pub solver: Solver,
     pub car_v2: CarV2,
+
+    */
+
     pub keyboard: Keyboard,
     pub mouse: Mouse,
 
@@ -25,12 +29,13 @@ pub struct CarScene {
     pub cloth: Cloth,
     pub particle_accelerator: ParticleAccelerator,
 
-    pub time: f32,
+    //pub time: f32,
     pub update_instant: Instant,
 }
 
 impl CarScene {
     pub fn new() -> Self {
+        /*
         // v2
         let mut solver = Solver::new();
 
@@ -44,6 +49,7 @@ impl CarScene {
 
         let car_v2 = CarV2::new();
         car_v2.add_to_solver(&mut solver);
+        */
 
         // v3
         let mut particle_accelerator = ParticleAccelerator::new();
@@ -70,21 +76,21 @@ impl CarScene {
 
         // add a jellow cube to the scene
         ShapeBuilder::new()
-            .set_stiffness_factor(0.9)
+            .set_stiffness_factor(2.98)
             .set_mass(1.0)
-            .set_radius(8.0)
-            .add_stick_grid(2, 5, 20.0, Vec2::new(500.0, 680.0))
+            .set_radius(5.0)
+            .add_stick_grid(2, 5, 12.0, Vec2::new(500.0, 680.0))
             .create_in_particle_accelerator(&mut particle_accelerator, mask);
 
         Self { 
-            solver, 
-            car_v2,
+            //solver, 
+            //car_v2,
             keyboard: Keyboard::new(),
             mouse: Mouse::new(),
             particle_accelerator,
             car,
             cloth,
-            time: 0.0,
+            //time: 0.0,
             update_instant: Instant::now()
         }
     }
@@ -100,6 +106,7 @@ impl Scene for CarScene {
         self.keyboard.update();
         self.mouse.update();
 
+        /*
         {
             let mut car_scene_context = CarSceneContext{ 
                 keyboard: &mut self.keyboard, 
@@ -110,14 +117,14 @@ impl Scene for CarScene {
             // v2
             self.car_v2.update(&mut car_scene_context);
             self.solver.update(0.0167f32);
-        }
+        }*/
 
         // v3
         {
             // reset forces to just the gravity value
             // 9.8 = units are in metres per second
             // 980 = units are cm per second
-            let gravity = Vec2::new(0.0, 9.8);
+            let gravity = Vec2::new(0.0, 9.8 * 5.0); //9.8);
             let mut collider = ParticleCollider::new();
             collider.reset_forces(&mut self.particle_accelerator, gravity);
 
@@ -158,8 +165,10 @@ impl Scene for CarScene {
         context.sdl.canvas.set_draw_color(Color::RGB(128, 255, 255));
         context.sdl.canvas.clear();
 
+        /*
         // v2
         self.solver.draw(context.sdl);
+        */
 
         // v3
         let renderer = ParticleRenderer::new();
