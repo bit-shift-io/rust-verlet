@@ -1,12 +1,11 @@
-use cgmath::Vector2;
 use sdl2::{event::Event, mouse::MouseWheelDirection};
 
 use crate::v3::types::Vec2;
 
 
 pub struct Mouse {
-    pub position_current_old: Vector2<f32>,
-    pub position_old_old: Vector2<f32>,
+    pub position_current_old: Vec2,
+    pub position_old_old: Vec2,
 
     pub pos: Vec2,
     pub pos_prev: Vec2,
@@ -21,7 +20,7 @@ pub struct Mouse {
 
 impl Mouse {
     pub fn new() -> Self {
-        let pos = Vector2::new(0f32, 0f32);
+        let pos = Vec2::new(0f32, 0f32);
         Self { 
             position_current_old: pos, 
             position_old_old: pos, 

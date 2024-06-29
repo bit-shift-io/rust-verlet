@@ -1,17 +1,11 @@
-use std::{cell::RefCell, rc::Rc};
-
-use cgmath::{InnerSpace, Vector2};
-use sdl2::{event::Event, gfx::primitives::DrawRenderer, pixels::Color};
+use sdl2::{event::Event, pixels::Color};
 use rand::Rng;
 
-use crate::{application::{Context, Scene}, v2::{body::Body, particle::Particle, position::Position, solver::Solver, stick::Stick}, v3::{particle_collider::ParticleCollider, particle_renderer::ParticleRenderer}};
+use crate::{application::{Context, Scene}, v3::{particle_collider::ParticleCollider, particle_renderer::ParticleRenderer}};
 
 use crate::v3::{types::Vec2, particle_accelerator::ParticleAccelerator, shape_builder::ShapeBuilder};
 
 pub struct RandomBodiesScene {
-    // v2
-    pub solver: Solver,
-
     // v3
     pub particle_accelerator: ParticleAccelerator,
 }
@@ -26,27 +20,15 @@ impl RandomBodiesScene {
             .set_static(true)
             .add_line(Vec2::new(100.0f32, 800.0f32), Vec2::new(600.0f32, 800.0f32), 8.0f32)
             .create_in_particle_accelerator(&mut particle_accelerator, mask);
-        
-        // v2
-        let mut solver = Solver::new();
-        let ground_plane = Rc::new(RefCell::new(Body::create_line(Vector2::new(100.0f32, 800.0f32), Vector2::new(600.0f32, 800.0f32), 8.0f32)));
-        ground_plane.borrow_mut().set_static(true);
-        solver.add_body(&ground_plane);
-        
-        Self { solver, particle_accelerator }
+
+        Self {
+            particle_accelerator 
+        }
     }
 }
 
 impl Scene for RandomBodiesScene {
     fn update(&mut self, context: &mut Context) {
-        // v2
-        for body in self.solver.bodies.iter() {
-            body.borrow_mut().zero_forces();
-            body.borrow_mut().add_gravity();
-        }
-
-        self.solver.update(0.0167f32);
-
         // v3
         let gravity = Vec2::new(0f32, 1000f32);
         let mut collider = ParticleCollider::new();
@@ -65,9 +47,6 @@ impl Scene for RandomBodiesScene {
         context.sdl.canvas.set_draw_color(Color::RGB(128, 255, 255));
         context.sdl.canvas.clear();
 
-        // v2
-        self.solver.draw(context.sdl);
-
         // v3
         let renderer = ParticleRenderer::new();
         renderer.draw(&mut context.sdl, &self.particle_accelerator);
@@ -84,21 +63,9 @@ impl Scene for RandomBodiesScene {
 
                 let shape = 1;//rng.gen_range(0..=1);
 
-                //let wheel_1 = Rc::new(RefCell::new(Body::create_stick_spoke_wheel(Vector2::new(xf, yf))));
-                //self.solver.add_body(&wheel_1);
-
                 // single particle
                 if shape == 0 {
-                    // v2
-                    let mut body = Body::new();
                     let col = Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255));
-
-                    let particle = Particle::new(Vector2::new(xf + 10f32, yf), 10f32, 1f32, col);
-                    body.add_particle(&Rc::new(RefCell::new(particle)));
-
-                    let particle_body = Rc::new(RefCell::new(body));
-                    self.solver.add_body(&particle_body);
-
 
                     // v3
                     let mask = 0x1;
@@ -108,34 +75,6 @@ impl Scene for RandomBodiesScene {
                 // chain of 2 particles
                 if shape == 1 {
                     let radius = 10f32;
-
-                    // v2
-                    let mut body = Body::new();
-
-                    let col = Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255));
-
-                    //let particle_1 = 
-                    let particle_1_handle = Rc::new(RefCell::new(Particle::new(Vector2::new(xf, yf), radius, 1f32, col)));
-                    body.add_particle(&particle_1_handle);
-                    let particle_1_dyn: Rc<RefCell<dyn Position>> = particle_1_handle;
-
-                    //let particle_2: dyn Position = 
-                    let particle_2_handle = Rc::new(RefCell::new(Particle::new(Vector2::new(xf + radius * 2f32, yf), radius, 1f32, col)));
-                    body.add_particle(&particle_2_handle);
-                    let particle_2_dyn: Rc<RefCell<dyn Position>> = particle_2_handle.clone();
-                    
-                    //let ph_test: Rc<RefCell<dyn Position>> = particle_1_handle;
-                    let stick_handle = Rc::new(RefCell::new(Stick::new(&particle_1_dyn, &particle_2_dyn)));
-                    body.add_stick(&stick_handle);
-
-                    // now lets move particles to overlap
-                    let p2clone = Rc::clone(&particle_2_handle);
-                    p2clone.as_ref().borrow_mut().set_position(Vector2::new(xf + radius * 1f32, yf));
-                    p2clone.as_ref().borrow_mut().pos_prev = Vector2::new(xf + radius * 1f32, yf);
-
-                    let particle_body = Rc::new(RefCell::new(body));
-                    self.solver.add_body(&particle_body);
-
 
                     // v3
                     let mask = 0x1;

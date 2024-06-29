@@ -1,11 +1,10 @@
-use std::{cell::RefCell, rc::Rc, time::Instant};
+use std::time::Instant;
 
-use cgmath::Vector2;
 use sdl2::{event::Event, pixels::Color};
 
-use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v2::{body::Body, solver::Solver}, v3::{particle_accelerator::ParticleAccelerator, particle_collider::ParticleCollider, particle_renderer::ParticleRenderer, shape_builder::ShapeBuilder, types::Vec2}};
+use crate::{application::{Context, Scene}, keyboard::Keyboard, mouse::Mouse, v3::{particle_accelerator::ParticleAccelerator, particle_collider::ParticleCollider, particle_renderer::ParticleRenderer, shape_builder::ShapeBuilder, types::Vec2}};
 
-use super::{car::Car, car_v2::CarV2, cloth::Cloth};
+use super::{car::Car, cloth::Cloth};
 
 pub struct CarSceneContext<'a> {
     pub keyboard: &'a mut Keyboard,
@@ -14,13 +13,6 @@ pub struct CarSceneContext<'a> {
 }
 
 pub struct CarScene {
-    /*
-    // v2
-    pub solver: Solver,
-    pub car_v2: CarV2,
-
-    */
-
     pub keyboard: Keyboard,
     pub mouse: Mouse,
 
@@ -35,22 +27,6 @@ pub struct CarScene {
 
 impl CarScene {
     pub fn new() -> Self {
-        /*
-        // v2
-        let mut solver = Solver::new();
-
-        let ground_plane = Rc::new(RefCell::new(Body::create_line(Vector2::new(100.0f32, 800.0f32), Vector2::new(600.0f32, 800.0f32), 8.0f32)));
-        ground_plane.borrow_mut().set_static(true);
-        solver.add_body(&ground_plane);
-
-        let ground_plane_2 = Rc::new(RefCell::new(Body::create_line(Vector2::new(600.0f32, 800.0f32), Vector2::new(1000.0f32, 700.0f32), 8.0f32)));
-        ground_plane_2.borrow_mut().set_static(true);
-        solver.add_body(&ground_plane_2);
-
-        let car_v2 = CarV2::new();
-        car_v2.add_to_solver(&mut solver);
-        */
-
         // v3
         let mut particle_accelerator = ParticleAccelerator::new();
 
@@ -106,19 +82,6 @@ impl Scene for CarScene {
         self.keyboard.update();
         self.mouse.update();
 
-        /*
-        {
-            let mut car_scene_context = CarSceneContext{ 
-                keyboard: &mut self.keyboard, 
-                mouse: &mut self.mouse,
-                particle_accelerator: &mut self.particle_accelerator,
-            };
-            
-            // v2
-            self.car_v2.update(&mut car_scene_context);
-            self.solver.update(0.0167f32);
-        }*/
-
         // v3
         {
             // reset forces to just the gravity value
@@ -164,11 +127,6 @@ impl Scene for CarScene {
     fn draw(&mut self, context: &mut Context) {
         context.sdl.canvas.set_draw_color(Color::RGB(128, 255, 255));
         context.sdl.canvas.clear();
-
-        /*
-        // v2
-        self.solver.draw(context.sdl);
-        */
 
         // v3
         let renderer = ParticleRenderer::new();

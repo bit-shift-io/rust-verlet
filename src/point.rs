@@ -1,24 +1,3 @@
-/* 
-use cgmath::Vector2;
-use sdl2::rect::Point;
-
-use crate::v2::types::Vec2;
-
-
-pub trait PointExtension {
-    fn from(v: &Vec2) -> Self;
-}
-
-impl PointExtension for Point {
-    fn from(v: &Vec2) -> Self {
-        let x = v[0].round() as i32;
-        let y = v[1].round() as i32;
-        Self::new(x, y)
-    }
-}*/
-
-
-use cgmath::Vector2;
 // External struct
 use sdl2::rect::Point;
 
@@ -34,11 +13,6 @@ pub fn vec2_to_point(vec: Vec2) -> Point {
     return Point::new(x, y)
 }
 
-pub fn vec2_to_point_old(vec: Vector2<f32>) -> Point {
-    let x = vec[0].round() as i32;
-    let y = vec[1].round() as i32;
-    return Point::new(x, y)
-}
 /* 
 // Provide your own implementations
 impl PointWrapper {
