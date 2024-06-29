@@ -62,6 +62,7 @@ pub(crate) struct Particle {
 pub struct Stick {
     pub particle_indicies: [usize; 2], // rename to particle_ids ?
     pub length: f32,
+    pub stiffness_factor: f32, // stiffness_factor. 1.0 = fully stiff, 0.9 = 90% per second
     pub is_enabled: bool
 }
 
@@ -148,11 +149,12 @@ impl ParticleAccelerator {
         AttachmentConstraintHandle::new(id)
     }
 
-    pub fn create_stick(&mut self, particle_handles: [&ParticleHandle; 2], length: f32) -> StickHandle {
+    pub fn create_stick(&mut self, particle_handles: [&ParticleHandle; 2], length: f32, stiffness_factor: f32) -> StickHandle {
         let id = self.sticks.len();
         let stick = Stick {
             particle_indicies: [particle_handles[0].id, particle_handles[1].id],
             length,
+            stiffness_factor,
             is_enabled: true
         };
         self.sticks.push(stick);

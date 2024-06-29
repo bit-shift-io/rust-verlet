@@ -119,13 +119,13 @@ impl ParticleCollider {
         }
     }
 
-    pub fn update_constraints(&mut self, particle_accelerator: &mut ParticleAccelerator) {
-        self.update_attachment_constraints(particle_accelerator);
-        self.update_sticks(particle_accelerator);
-        self.update_springs(particle_accelerator);
+    pub fn update_constraints(&mut self, particle_accelerator: &mut ParticleAccelerator, dt: f32) {
+        self.update_attachment_constraints(particle_accelerator, dt);
+        self.update_sticks(particle_accelerator, dt);
+        self.update_springs(particle_accelerator, dt);
     }
 
-    pub fn update_attachment_constraints(&mut self, particle_accelerator: &mut ParticleAccelerator) {
+    pub fn update_attachment_constraints(&mut self, particle_accelerator: &mut ParticleAccelerator, _dt: f32) {
         for attachment_constraint in particle_accelerator.attachment_constraints.iter_mut() {
             let mut pos = Vec2::new(0f32, 0f32);
             for weighted_particle in attachment_constraint.incoming_weighted_particles.iter() {
@@ -149,7 +149,7 @@ impl ParticleCollider {
         }
     }
 
-    pub fn update_sticks(&mut self, particle_accelerator: &mut ParticleAccelerator) {
+    pub fn update_sticks(&mut self, particle_accelerator: &mut ParticleAccelerator, dt: f32) {
         for stick in particle_accelerator.sticks.iter_mut() {
             if !stick.is_enabled {
                 continue;
@@ -166,7 +166,13 @@ impl ParticleCollider {
             let difference = p1.pos - p2.pos;
             let diff_length = difference.magnitude();
             let diff_factor = (stick.length - diff_length) / diff_length * 0.5;
-            let offset = difference * diff_factor;
+            let mut offset = (difference * diff_factor);
+            
+            // this bit makes it more like a spring
+            if stick.stiffness_factor != 0.0 {
+                offset *= (dt * stick.stiffness_factor);
+            }
+
     
             {
                 let p1mut = &mut particle_accelerator.verlet_positions[stick.particle_indicies[0]];
@@ -181,7 +187,7 @@ impl ParticleCollider {
     }
 
 
-    pub fn update_springs(&mut self, particle_accelerator: &mut ParticleAccelerator) {
+    pub fn update_springs(&mut self, particle_accelerator: &mut ParticleAccelerator, dt: f32) {
         let mut i = 0;
         for spring in particle_accelerator.springs.iter_mut() {
             if !spring.is_enabled {
@@ -238,6 +244,7 @@ impl ParticleCollider {
                 println!("e: {},    sf: {}", extension, spring_force);
             }*/
 
+            
             {
                 let p1mut = &mut particle_accelerator.verlet_positions[spring.particle_indicies[0]];
                 p1mut.force -= damped_force * a_movement_weight;
@@ -247,6 +254,20 @@ impl ParticleCollider {
                 let p2mut = &mut particle_accelerator.verlet_positions[spring.particle_indicies[1]];
                 p2mut.force += damped_force * b_movement_weight;
             }
+
+            /* 
+            // lets test a stick spring hybrid that ignores mass, and moves based on extension
+            let offset = (dir * extension * 0.5) * (dt * 0.8);
+
+            {
+                let p1mut = &mut particle_accelerator.verlet_positions[spring.particle_indicies[0]];
+                p1mut.pos += offset * a_movement_weight;
+            }
+
+            {
+                let p2mut = &mut particle_accelerator.verlet_positions[spring.particle_indicies[1]];
+                p2mut.pos -= offset * b_movement_weight;
+            }*/
 
             i += 1;
         }

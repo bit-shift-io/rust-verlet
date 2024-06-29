@@ -70,11 +70,10 @@ impl CarScene {
 
         // add a jellow cube to the scene
         ShapeBuilder::new()
-            .set_spring_constant(20.0)
-            .set_damping(5.0)
+            .set_stiffness_factor(0.9)
             .set_mass(1.0)
             .set_radius(8.0)
-            .add_spring_grid(2, 2, 20.0, Vec2::new(500.0, 730.0))
+            .add_stick_grid(2, 2, 20.0, Vec2::new(500.0, 730.0))
             .create_in_particle_accelerator(&mut particle_accelerator, mask);
 
         Self { 
@@ -138,7 +137,7 @@ impl Scene for CarScene {
             //const SUB_STEPS: usize = 16; // higher substeps causes spring issues
             for sub_dt in collider.range_substeps_2(last_elapsed, desired_hertz).iter() {
                 collider.solve_collisions(&mut self.particle_accelerator);
-                collider.update_constraints(&mut self.particle_accelerator);
+                collider.update_constraints(&mut self.particle_accelerator, *sub_dt);
                 collider.update_positions(&mut self.particle_accelerator, *sub_dt);
             }
             //self.time += dt;

@@ -36,12 +36,13 @@ impl SpringPrim {
 struct StickPrim {
     particle_indicies: [usize; 2],
     length: f32,
+    stiffness_factor: f32,
 }
 
 impl StickPrim {
-    pub fn new(particle_indicies: [usize; 2], particle_positions: [Vec2; 2]) -> Self {
+    pub fn new(particle_indicies: [usize; 2], particle_positions: [Vec2; 2], stiffness_factor: f32) -> Self {
         let length = (particle_positions[1] - particle_positions[0]).magnitude();
-        Self { particle_indicies, length }
+        Self { particle_indicies, length, stiffness_factor }
     }
 }
 
@@ -55,6 +56,7 @@ pub struct ShapeBuilder {
     mass: f32,
     color: Color,
     radius: f32,
+    stiffness_factor: f32,
 
     // spring properties
     spring_constant: f32,
@@ -83,6 +85,7 @@ impl ShapeBuilder {
             is_static: false, 
             radius: 4.0,
             mass: 1.0,
+            stiffness_factor: 0.0,
             particle_handles: vec![],
             stick_handles: vec![],
             spring_handles: vec![],
@@ -119,6 +122,11 @@ impl ShapeBuilder {
         self
     }
 
+    pub fn set_stiffness_factor(&mut self, stiffness_factor: f32) -> &mut Self {
+        self.stiffness_factor = stiffness_factor;
+        self
+    }
+
     pub fn set_spring_constant(&mut self, spring_constant: f32) -> &mut Self {
         self.spring_constant = spring_constant;
         self
@@ -144,7 +152,7 @@ impl ShapeBuilder {
 
         let mut stick_handles = vec![];
         for stick in self.sticks.iter() {
-            let stick_handle = particle_accelerator.create_stick([&particle_handles[stick.particle_indicies[0]], &particle_handles[stick.particle_indicies[1]]], stick.length);
+            let stick_handle = particle_accelerator.create_stick([&particle_handles[stick.particle_indicies[0]], &particle_handles[stick.particle_indicies[1]]], stick.length, stick.stiffness_factor);
             stick_handles.push(stick_handle);
         }
 
@@ -172,7 +180,7 @@ impl ShapeBuilder {
             convert_to_real_index(particle_indicies[1], self.particles.len()),
         ];
         let particle_positions = [self.particles[real_particle_indicies[0]].pos, self.particles[real_particle_indicies[1]].pos];
-        self.sticks.push(StickPrim::new(real_particle_indicies, particle_positions));
+        self.sticks.push(StickPrim::new(real_particle_indicies, particle_positions, self.stiffness_factor));
 
         let combined_radius = self.particles[real_particle_indicies[0]].radius + self.particles[real_particle_indicies[1]].radius;
         let last_stick = self.sticks.last().unwrap();
@@ -275,7 +283,7 @@ impl ShapeBuilder {
           self
     }
 
-    pub fn add_spring_grid(&mut self, width: i32, height: i32, spacing: f32, origin: Vec2) -> &mut Self {
+    pub fn add_stick_grid(&mut self, width: i32, height: i32, spacing: f32, origin: Vec2) -> &mut Self {
         for y in 0..=height {
             for x in 0..=width {
                 let is_static = false; //if y == 0 && x % 2 == 0 { true } else { false };
@@ -289,7 +297,7 @@ impl ShapeBuilder {
                         -2,
                         -1
                     ];
-                    self.add_spring(particle_indicies);
+                    self.add_stick(particle_indicies);
                 }
               
                 if y != 0 {
@@ -299,27 +307,27 @@ impl ShapeBuilder {
                         up_point,
                         -1
                     ];
-                    self.add_spring(particle_indicies); 
+                    self.add_stick(particle_indicies); 
 
-                    /* 
+                    
                     // cross spring (bottom left to top right)
                     if x < width {
                         let particle_indicies: [i64; 2] = [
                             up_point + 1,
                             -1
                         ];
-                        self.add_spring(particle_indicies); 
-                    }*/
+                        self.add_stick(particle_indicies); 
+                    }
 
-                    /* 
+                    
                     // cross spring (bottom right to top left)
                     if x > 0 {
                         let particle_indicies: [i64; 2] = [
                             up_point - 1,
                             -1
                         ];
-                        self.add_spring(particle_indicies); 
-                    }*/
+                        self.add_stick(particle_indicies); 
+                    }
                 }
             }
         }
