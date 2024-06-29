@@ -108,6 +108,7 @@ pub(crate) struct AttachmentConstraint {
     pub(crate) incoming_weighted_particles: Vec<WeightedParticle>, // source particles
     pub(crate) outgoing_weighted_particles: Vec<WeightedParticle>, // target particles
     pub(crate) target_particle_id: usize, // target output particle
+    pub(crate) velocity_prev: Vec2
 }
 
 
@@ -144,6 +145,7 @@ impl ParticleAccelerator {
             incoming_weighted_particles,
             outgoing_weighted_particles,
             target_particle_id: target_particle_id.id,
+            velocity_prev: Vec2::new(0.0, 0.0)
         };
         self.attachment_constraints.push(constraint);
         AttachmentConstraintHandle::new(id)

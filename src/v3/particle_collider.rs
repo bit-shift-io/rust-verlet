@@ -107,7 +107,12 @@ impl ParticleCollider {
     }
 
     pub fn update_positions(&mut self, particle_accelerator: &mut ParticleAccelerator, dt: f32) {
+        let mut i = 0;
         for (particle, verlet_position) in particle_accelerator.particles.iter().zip(particle_accelerator.verlet_positions.iter_mut()) {
+            /*
+            if i == 65 {
+                println!("65!");
+            }*/
             if particle.is_static || !particle.is_enabled {
                 continue
             }
@@ -116,6 +121,8 @@ impl ParticleCollider {
             let acceleration: Vec2 = verlet_position.force / verlet_position.mass;
             verlet_position.pos_prev = verlet_position.pos;
             verlet_position.pos = verlet_position.pos + velocity + acceleration * dt * dt;
+
+            i += 1;
         }
     }
 
@@ -123,6 +130,10 @@ impl ParticleCollider {
         self.update_attachment_constraints(particle_accelerator, dt);
         self.update_sticks(particle_accelerator, dt);
         self.update_springs(particle_accelerator, dt);
+    }
+
+    pub fn post_update_constraints(&mut self, particle_accelerator: &mut ParticleAccelerator, dt: f32) {
+        self.post_update_attachment_constraints(particle_accelerator, dt);
     }
 
     pub fn update_attachment_constraints(&mut self, particle_accelerator: &mut ParticleAccelerator, _dt: f32) {
@@ -134,18 +145,64 @@ impl ParticleCollider {
             }
             pos /= attachment_constraint.incoming_weighted_particles.len() as f32;
 
-            let delta_pos;
+            //let mut delta_pos = Vec2::new(0.0, 0.0);
             {
                 let target_particle = &mut particle_accelerator.verlet_positions[attachment_constraint.target_particle_id];
                 target_particle.pos = pos;
+
+                // store the velocity of the target particle
+                attachment_constraint.velocity_prev = target_particle.pos - target_particle.pos_prev;
+                /* 
                 delta_pos = pos - target_particle.pos_prev;
+
+
+                if delta_pos.magnitude_squared() != 0.0 {
+                    println!("axle moved by {}", delta_pos.magnitude());
+                }
+                if delta_pos.magnitude_squared().is_nan() {
+                    println!("axle moved to infinity");
+                }*/
             }
-/* 
+        }
+    }
+
+    pub fn post_update_attachment_constraints(&mut self, particle_accelerator: &mut ParticleAccelerator, _dt: f32) {
+        for attachment_constraint in particle_accelerator.attachment_constraints.iter_mut() {
+
+            // the incoming particles (I) push the target particle (T) by X
+            // so T has a given velocity.
+            // now at the end of the frame, we see if there is any change in the velocity (i.e. acceleration)
+            // and only apply the acceleration to the outgoing particles.
+            //
+            // if we just appliy the velocity to the outgoing particles (O) then we end up in a compounding
+            // situation (at leaast for the case where incomming particles = outgoing particles)
+            // and they zoom off to infinity as 
+            // I push T, T push O, but I = O, so its a circular loop!
+            // Only applying acceleration fixes this.
+            //
+            let mut delta_velocity = Vec2::new(0.0, 0.0);
+            {
+                let target_particle = &mut particle_accelerator.verlet_positions[attachment_constraint.target_particle_id];
+
+                let current_velocity = target_particle.pos - target_particle.pos_prev;
+                let prev_velocity = attachment_constraint.velocity_prev;
+
+                delta_velocity = current_velocity - prev_velocity;
+
+                /*
+                if delta_velocity.magnitude_squared() != 0.0 {
+                    println!("axle accelerated by {}", delta_velocity.magnitude());
+                }
+                if delta_velocity.magnitude_squared().is_nan() {
+                    println!("axle moved to infinity");
+                }*/
+            }
+
             // push any outgoing particles based on their weight
             for weighted_particle in attachment_constraint.outgoing_weighted_particles.iter() {
                 let p = &mut particle_accelerator.verlet_positions[weighted_particle.particle_id];
-                p.pos += delta_pos * weighted_particle.weight;
-            }*/
+                p.pos += delta_velocity * weighted_particle.weight;
+            }
         }
     }
 

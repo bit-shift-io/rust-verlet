@@ -139,6 +139,7 @@ impl Scene for CarScene {
                 collider.solve_collisions(&mut self.particle_accelerator);
                 collider.update_constraints(&mut self.particle_accelerator, *sub_dt);
                 collider.update_positions(&mut self.particle_accelerator, *sub_dt);
+                collider.post_update_constraints(&mut self.particle_accelerator, *sub_dt);
             }
             //self.time += dt;
 

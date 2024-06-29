@@ -44,6 +44,8 @@ impl CarWheel {
             builder.add_circle(origin, circle_radius, particle_radius, divisions)
                 .create_in_particle_accelerator(particle_accelerator, mask);
             builder.particle_handles.clone()
+            
+            //vec![]
         };       
 
 
@@ -63,7 +65,7 @@ impl CarWheel {
         }
 
         // todo: reenable outgoing_particles
-        particle_accelerator.create_attachment_constraint(weighted_particles.clone(), vec![]/*weighted_particles.clone()*/, hub_particle_handle.clone());
+        particle_accelerator.create_attachment_constraint(weighted_particles.clone(), weighted_particles.clone(), hub_particle_handle.clone());
         
 
         Self {
@@ -94,12 +96,12 @@ impl Car {
         let wheel_1 = CarWheel::new(Vec2::new(300.0f32, 300.0f32), particle_accelerator);
         let wheel_2 = CarWheel::new(Vec2::new(400.0f32, 300.0f32), particle_accelerator);
 
-        /*  todo: reenable this
+        
         // axle stick to connect the two wheel hubs
         {
             let length = (particle_accelerator.get_particle_position(&wheel_1.hub_particle_handle) - particle_accelerator.get_particle_position(&wheel_2.hub_particle_handle)).magnitude(); 
-            particle_accelerator.create_stick([&wheel_1.hub_particle_handle, &wheel_2.hub_particle_handle], length);
-        }*/
+            particle_accelerator.create_stick([&wheel_1.hub_particle_handle, &wheel_2.hub_particle_handle], length, 0.0);
+        }
 
         Self {
             wheels: [wheel_1, wheel_2],
