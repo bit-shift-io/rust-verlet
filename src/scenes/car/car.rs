@@ -93,8 +93,8 @@ pub struct Car {
 
 impl Car {
     pub fn new(particle_accelerator: &mut ParticleAccelerator) -> Self {
-        let wheel_1 = CarWheel::new(Vec2::new(300.0f32, 300.0f32), particle_accelerator);
-        let wheel_2 = CarWheel::new(Vec2::new(400.0f32, 300.0f32), particle_accelerator);
+        let wheel_1 = CarWheel::new(Vec2::new(300.0f32, 700.0f32), particle_accelerator);
+        let wheel_2 = CarWheel::new(Vec2::new(400.0f32, 700.0f32), particle_accelerator);
 
         
         // axle stick to connect the two wheel hubs
