@@ -20,7 +20,10 @@
                 }
             },
             "args": [],
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "DYLD_FALLBACK_LIBRARY_PATH": "${userHome}/.rustup/toolchains/stable-x86_64-apple-darwin/lib"
+            }
         },
         {
             "type": "lldb",
