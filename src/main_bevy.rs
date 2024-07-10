@@ -128,6 +128,9 @@ pub fn setup_physics(
     // fmnote:
     // now how do I effeciently draw a huge amount of circles:
     //      https://github.com/bevyengine/bevy/discussions/7366
+    //
+    // which points to this:
+    //      https://github.com/bevyengine/bevy/blob/main/examples/shader/shader_instancing.rs
 
     /*
      * Create the cubes
