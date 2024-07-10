@@ -1,43 +1,32 @@
-
 use bevy::{
-    core_pipeline::bloom::BloomSettings, prelude::*, render::camera::ScalingMode, sprite::MaterialMesh2dBundle
+    prelude::*, render::camera::ScalingMode, sprite::MaterialMesh2dBundle
 };
-//use bevy_rapier2d::geometry::CollidingEntities;
-//use bevy_rapier2d::prelude::*;
 
 pub fn main_bevy() -> Result<(), String> {
     App::new()
         .insert_resource(ClearColor(
             Color::hex("010d13").unwrap(),
         ))
-        .add_plugins(DefaultPlugins)
-        /* 
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: WindowDescriptor {
-                title: "2d Bloom!".to_string(),
-                ..default()
-            },
-            ..default()
-        }))*/
-        //.add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
-        // .add_plugin(RapierDebugRenderPlugin::default())
 
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: format!(
+                    "{} {}",
+                    env!("CARGO_PKG_NAME"),
+                    env!("CARGO_PKG_VERSION")
+                ),
+                resolution: (1280.0, 720.0).into(),
+                ..Default::default()
+            }),
+            ..default()
+        }))
         .add_systems(Startup, setup_graphics)
         .add_systems(Startup, setup_physics)
         .add_systems(PostStartup, setup_text)
-            //.add_systems(Update, (update_people, greet_people).chain());
-        //.add_startup_system(setup_graphics)
-        //.add_startup_system(setup_physics)
-        //.add_system(control_color)
-        // .add_startup_system(setup_scene)
-        // .add_system(update_bloom_settings)
-        // .add_system(bounce_spheres)
         .run();
 
     Ok(())
 }
-
-
 
 fn setup_text(mut commands: Commands, cameras: Query<(Entity, &Camera)>) {
     let active_camera = cameras
@@ -91,17 +80,11 @@ pub fn setup_physics(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    /*
-     * Ground
-     */
-    let ground_size = 500.0;
-    let ground_height = 10.0;
-
     // https://bevyengine.org/examples/math/render-primitives/
     let circle = Circle { radius: 20.0 };
     let material: Handle<ColorMaterial> = materials.add(Color::WHITE);
 
-    const LEFT_RIGHT_OFFSET_2D: f32 = 200.0;
+    //const LEFT_RIGHT_OFFSET_2D: f32 = 200.0;
     const POSITION: Vec3 = Vec3::new(0.0, 0.0, 0.0);
 
     let line_width = 1.0;
@@ -142,35 +125,9 @@ pub fn setup_physics(
         },
     ));
 
-    /*
-    commands.spawn((
-        //Collider::cuboid(ground_size, ground_height),
-        MaterialMesh2dBundle {
-            mesh: meshes
-                .add(Mesh::from(shape::Quad::new(
-                    Vec2::new(
-                        2.0 * ground_size,
-                        2.0 * ground_height,
-                    ),
-                )))
-                .into(),
-            material: materials.add(ColorMaterial::from(
-                Color::Hsla {
-                    hue: 100.0,
-                    saturation: 0.7,
-                    lightness: 0.4,
-                    alpha: 1.0,
-                },
-            )),
-            transform: Transform::from_xyz(
-                0.0,
-                0.0 * -ground_height,
-                0.0,
-            ),
-            ..default()
-        },
-    ));
-    */
+    // fmnote:
+    // now how do I effeciently draw a huge amount of circles:
+    //      https://github.com/bevyengine/bevy/discussions/7366
 
     /*
      * Create the cubes
