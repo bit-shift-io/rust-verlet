@@ -137,6 +137,29 @@ pub fn setup_physics(
     let ground_size = 500.0;
     let ground_height = 10.0;
 
+    // https://bevyengine.org/examples/math/render-primitives/
+    let circle = Circle { radius: 20.0 };
+    let material: Handle<ColorMaterial> = materials.add(Color::WHITE);
+
+    const LEFT_RIGHT_OFFSET_2D: f32 = 200.0;
+    const POSITION: Vec3 = Vec3::new(LEFT_RIGHT_OFFSET_2D, 0.0, 0.0);
+
+    commands.spawn((
+        /*
+        MeshDim2,
+        PrimitiveData {
+            camera_mode,
+            primitive_state: state,
+        },*/
+        MaterialMesh2dBundle {
+            mesh: meshes.add(circle.mesh().build()).into(),
+            material: material.clone(),
+            transform: Transform::from_translation(POSITION),
+            ..Default::default()
+        },
+    ));
+
+
     commands.spawn((
         //Collider::cuboid(ground_size, ground_height),
         MaterialMesh2dBundle {
