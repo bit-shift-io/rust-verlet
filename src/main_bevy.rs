@@ -131,7 +131,10 @@ pub fn setup_physics(
     //
     // which points to this:
     //      https://github.com/bevyengine/bevy/blob/main/examples/shader/shader_instancing.rs
-
+    //
+    //  this might be better, I think it uses pointlist rendering:
+    //      https://www.youtube.com/watch?v=MWIO-jP6pVo
+    //      https://github.com/rust-adventure/bevy-examples/tree/829e01bf9eee5fb9af9780d759dadf4ea76e12ff/examples/pointcloud
     /*
      * Create the cubes
      */
