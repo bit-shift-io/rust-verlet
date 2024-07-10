@@ -42,62 +42,174 @@ fn main() -> Result<(), String> {
 }
 */
 
-use bevy::prelude::*;
 
-#[derive(Component)]
-struct Person;
-
-#[derive(Component)]
-struct Name(String);
-
-fn add_people(mut commands: Commands) {
-    commands.spawn((Person, Name("Elaina Proctor".to_string())));
-    commands.spawn((Person, Name("Renzo Hume".to_string())));
-    commands.spawn((Person, Name("Zayna Nieves".to_string())));
-}
-
-#[derive(Resource)]
-struct GreetTimer(Timer);
-
-fn greet_people(
-    time: Res<Time>,
-    mut timer: ResMut<GreetTimer>,
-    query: Query<&Name, With<Person>>
-) {
-    // update our timer with the time elapsed since the last update
-    // if that caused the timer to finish, we say hello to everyone
-    if timer.0.tick(time.delta()).just_finished() {
-        for name in &query {
-            println!("hello {}!", name.0);
-        }
-    }
-}
-
-
-fn update_people(mut query: Query<&mut Name, With<Person>>) {
-    for mut name in &mut query {
-        if name.0 == "Elaina Proctor" {
-            name.0 = "Elaina Hume".to_string();
-            break; // We don’t need to change any other names
-        }
-    }
-}
-
-pub struct HelloPlugin;
-
-impl Plugin for HelloPlugin {
-    fn build(&self, app: &mut App) {
-        app.insert_resource(GreetTimer(Timer::from_seconds(2.0, TimerMode::Repeating)))
-            .add_systems(Startup, add_people)
-            .add_systems(Update, (update_people, greet_people).chain());
-    }
-}
-
-
-// Bevy next steps: https://bevyengine.org/learn/quick-start/next-steps/
+use bevy::{
+    core_pipeline::bloom::BloomSettings, prelude::*,
+    sprite::MaterialMesh2dBundle,
+};
+//use bevy_rapier2d::geometry::CollidingEntities;
+//use bevy_rapier2d::prelude::*;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, HelloPlugin))
+        .insert_resource(ClearColor(
+            Color::hex("010d13").unwrap(),
+        ))
+        .add_plugins(DefaultPlugins)
+        /* 
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: WindowDescriptor {
+                title: "2d Bloom!".to_string(),
+                ..default()
+            },
+            ..default()
+        }))*/
+        //.add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
+        // .add_plugin(RapierDebugRenderPlugin::default())
+
+        .add_systems(Startup, setup_graphics)
+        .add_systems(Startup, setup_physics)
+            //.add_systems(Update, (update_people, greet_people).chain());
+        //.add_startup_system(setup_graphics)
+        //.add_startup_system(setup_physics)
+        //.add_system(control_color)
+        // .add_startup_system(setup_scene)
+        // .add_system(update_bloom_settings)
+        // .add_system(bounce_spheres)
         .run();
+}
+
+/* 
+fn control_color(
+    meshes: Query<(
+        &CollidingEntities,
+        &Handle<ColorMaterial>,
+    )>,
+    mut colors: ResMut<Assets<ColorMaterial>>,
+) {
+    for (entities, color_handle) in meshes.iter() {
+        let color = colors.get_mut(color_handle).unwrap();
+        let color_hsla = color.color.as_hsla();
+
+        if let Color::Hsla {
+            hue,
+            saturation,
+            lightness: _,
+            alpha,
+        } = color_hsla
+        {
+            color.color = Color::Hsla {
+                hue,
+                saturation,
+                lightness: 0.3
+                    + entities.len() as f32 / 5.0,
+                alpha,
+            };
+        };
+    }
+}*/
+
+fn setup_graphics(mut commands: Commands) {
+    commands.spawn((
+        Camera2dBundle {
+            camera: Camera {
+                hdr: true,
+                ..default()
+            },
+            transform: Transform::from_xyz(0.0, 20.0, 0.0),
+            ..default()
+        },/*
+        BloomSettings {
+            threshold: 0.5,
+            ..default()
+        },*/
+    ));
+}
+
+pub fn setup_physics(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    /*
+     * Ground
+     */
+    let ground_size = 500.0;
+    let ground_height = 10.0;
+
+    commands.spawn((
+        //Collider::cuboid(ground_size, ground_height),
+        MaterialMesh2dBundle {
+            mesh: meshes
+                .add(Mesh::from(shape::Quad::new(
+                    Vec2::new(
+                        2.0 * ground_size,
+                        2.0 * ground_height,
+                    ),
+                )))
+                .into(),
+            material: materials.add(ColorMaterial::from(
+                Color::Hsla {
+                    hue: 100.0,
+                    saturation: 0.7,
+                    lightness: 0.4,
+                    alpha: 1.0,
+                },
+            )),
+            transform: Transform::from_xyz(
+                0.0,
+                0.0 * -ground_height,
+                0.0,
+            ),
+            ..default()
+        },
+    ));
+
+    /*
+     * Create the cubes
+     */
+    let num = 8;
+    let rad = 10.0;
+
+    let shift = rad * 2.0 + rad;
+    let centerx = shift * (num / 2) as f32;
+    let centery = shift / 2.0;
+
+    let mut offset =
+        -(num as f32) * (rad * 2.0 + rad) * 0.5;
+
+    for j in 0usize..20 {
+        for i in 0..num {
+            let x = i as f32 * shift - centerx + offset;
+            let y = j as f32 * shift + centery + 30.0;
+
+            commands.spawn((
+                //CollidingEntities::default(),
+                //ActiveEvents::COLLISION_EVENTS,
+                //RigidBody::Dynamic,
+                //Collider::cuboid(rad, rad),
+                MaterialMesh2dBundle {
+                    mesh: meshes
+                        .add(Mesh::from(shape::Quad::new(
+                            Vec2::new(2.0 * rad, 2.0 * rad),
+                        )))
+                        .into(),
+                    material: materials.add(
+                        ColorMaterial::from(Color::Hsla {
+                            hue: 100.0,
+                            saturation: 0.7,
+                            lightness: 1.2,
+                            alpha: 1.0,
+                        }),
+                    ),
+                    transform: Transform::from_xyz(
+                        x, y, 0.0,
+                    ),
+                    ..default()
+                },
+            ));
+        }
+
+        offset -= 0.05 * rad * (num as f32 - 1.0);
+    }
 }
