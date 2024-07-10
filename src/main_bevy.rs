@@ -44,20 +44,13 @@ fn setup_text(mut commands: Commands, cameras: Query<(Entity, &Camera)>) {
         .iter()
         .find_map(|(entity, camera)| camera.is_active.then_some(entity))
         .expect("run condition ensures existence");
+
     let text = format!("{text}", text = "TEST");
     let style = TextStyle::default();
-    let instructions = "Press 'C' to switch between 2D and 3D mode\n\
-        Press 'Up' or 'Down' to switch to the next/previous primitive";
+
     let text = [
         TextSection::new("Primitive: ", style.clone()),
         TextSection::new(text, style.clone()),
-        TextSection::new("\n\n", style.clone()),
-        TextSection::new(instructions, style.clone()),
-        TextSection::new("\n\n", style.clone()),
-        TextSection::new(
-            "(If nothing is displayed, there's no rendering support yet)",
-            style.clone(),
-        ),
     ];
 
     commands
@@ -81,37 +74,6 @@ fn setup_text(mut commands: Commands, cameras: Query<(Entity, &Camera)>) {
         });
 }
 
-
-/* 
-fn control_color(
-    meshes: Query<(
-        &CollidingEntities,
-        &Handle<ColorMaterial>,
-    )>,
-    mut colors: ResMut<Assets<ColorMaterial>>,
-) {
-    for (entities, color_handle) in meshes.iter() {
-        let color = colors.get_mut(color_handle).unwrap();
-        let color_hsla = color.color.as_hsla();
-
-        if let Color::Hsla {
-            hue,
-            saturation,
-            lightness: _,
-            alpha,
-        } = color_hsla
-        {
-            color.color = Color::Hsla {
-                hue,
-                saturation,
-                lightness: 0.3
-                    + entities.len() as f32 / 5.0,
-                alpha,
-            };
-        };
-    }
-}*/
-
 fn setup_graphics(mut commands: Commands) {
     // https://bevy-cheatbook.github.io/2d/camera.html
 
@@ -122,21 +84,6 @@ fn setup_graphics(mut commands: Commands) {
     my_2d_camera_bundle.transform = Transform::from_xyz(100.0, 200.0, 0.0);
 
     commands.spawn(my_2d_camera_bundle);
-    /* 
-    commands.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                //hdr: true,
-                ..default()
-            },
-            transform: Transform::from_xyz(0.0, 20.0, 0.0),
-            ..default()
-        },/ *
-        BloomSettings {
-            threshold: 0.5,
-            ..default()
-        },
-    ));*/
 }
 
 pub fn setup_physics(
@@ -157,15 +104,38 @@ pub fn setup_physics(
     const LEFT_RIGHT_OFFSET_2D: f32 = 200.0;
     const POSITION: Vec3 = Vec3::new(0.0, 0.0, 0.0);
 
+    let line_width = 1.0;
+    let axis_length = 100.0;
+
+    let rec = Rectangle {
+        half_size: Vec2::new(line_width, axis_length),
+    };
+
+    // y-axis line
     commands.spawn((
-        /*
-        MeshDim2,
-        PrimitiveData {
-            camera_mode,
-            primitive_state: state,
-        },*/
         MaterialMesh2dBundle {
-            mesh: meshes.add(circle.mesh().build()).into(),
+            mesh: meshes.add(rec).into(),
+            material: materials.add(Color::RED),
+            transform: Transform::from_translation(Vec3::new(0.0, axis_length, 0.0)),
+            ..Default::default()
+        },
+    ));
+
+    // x-axis line
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: meshes.add(Rectangle {
+                half_size: Vec2::new(axis_length, line_width),
+            }).into(),
+            material: materials.add(Color::GREEN),
+            transform: Transform::from_translation(Vec3::new(axis_length, 0.0, 0.0)),
+            ..Default::default()
+        },
+    ));
+
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: meshes.add(circle/* .mesh().build()*/).into(),
             material: material.clone(),
             transform: Transform::from_translation(POSITION),
             ..Default::default()
