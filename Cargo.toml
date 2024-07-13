@@ -10,7 +10,9 @@ rand = "0.8.5"
 collision = "0.20.1"
 sdl2 = { version = "0.36.0", features = ["unsafe_textures", "gfx", "image"] }
 nalgebra = "0.32.5"
-bevy = { version = "0.13.2", features = ["dynamic_linking"] } # disable dynamic linking for releases
+bevy = { version = "0.14", features = ["dynamic_linking"] } # disable dynamic linking for releases
+log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
+bytemuck = "1.7"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
