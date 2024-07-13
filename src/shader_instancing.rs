@@ -33,8 +33,61 @@ pub fn b_main() {
     App::new()
         .add_plugins((DefaultPlugins, CustomMaterialPlugin))
         .add_systems(Startup, setup)
+        .add_systems(Update, sprite_movement)
         .run();
 }
+
+/* 
+fn update(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
+
+}
+*/
+
+/// The sprite is animated by changing its translation depending on the time that has passed since
+/// the last frame.
+fn sprite_movement(time: Res<Time>, mut instance_material_data_query: Query<(&mut InstanceMaterialData)>) {
+    for mut instance_material_data in &mut instance_material_data_query {
+
+        // https://www.reddit.com/r/bevy/comments/1e23o1z/animate_instance_data_in_update_loop/
+        for i in 0..instance_material_data.len() {
+            instance_material_data[i].scale += 0.1 * time.elapsed_seconds();
+        }
+
+        /*
+        *instance_material_data = InstanceMaterialData(
+            (1..=10)
+                .flat_map(|x| (1..=10).map(move |y| (x as f32 / 10.0, y as f32 / 10.0)))
+                .map(|(x, y)| InstanceData {
+                    position: Vec3::new(x * 10.0 - 5.0, y * 10.0 - 5.0, 0.0),
+                    scale: 1.0 * time.elapsed_seconds(),
+                    color: LinearRgba::from(Color::hsla(x * 360., y, 0.5, 1.0)).to_f32_array(),
+                })
+                .collect(),
+        )*/
+    }
+    /* 
+    for (mut logo, mut transform) in &mut sprite_position {
+        match *logo {
+            Direction::Up => transform.translation.y += 150. * time.delta_seconds(),
+            Direction::Down => transform.translation.y -= 150. * time.delta_seconds(),
+        }
+
+        if transform.translation.y > 200. {
+            *logo = Direction::Down;
+        } else if transform.translation.y < -200. {
+            *logo = Direction::Up;
+        }
+    }*/
+}
+
+/* 
+fn move_enemies_to_player(
+    mut enemies: Query<&mut Transform, With<Enemy>>,
+    player: Query<&Transform, With<Player>>,
+) {
+    // ...
+}
+*/
 
 fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     commands.spawn((
