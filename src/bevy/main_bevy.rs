@@ -1,69 +1,99 @@
+// Code initially from shader_instancing.rs bevy/examples
+
 use bevy::{
-    prelude::*, render::camera::ScalingMode, sprite::MaterialMesh2dBundle
+    core_pipeline::core_3d::Transparent3d,
+    ecs::{
+        query::QueryItem,
+        system::{lifetimeless::*, SystemParamItem},
+    },
+    pbr::{
+        MeshPipeline, MeshPipelineKey, RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
+    },
+    prelude::*,
+    render::{
+        camera::ScalingMode, extract_component::{ExtractComponent, ExtractComponentPlugin}, mesh::{GpuBufferInfo, GpuMesh, MeshVertexBufferLayoutRef}, render_asset::RenderAssets, render_phase::{
+            AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
+            RenderCommandResult, SetItemPipeline, TrackedRenderPass, ViewSortedRenderPhases,
+        }, render_resource::*, renderer::RenderDevice, view::{ExtractedView, NoFrustumCulling}, Render, RenderApp, RenderSet
+    },
 };
+use bytemuck::{Pod, Zeroable};
 
-pub fn main_bevy() -> Result<(), String> {
+use super::{car_scene::CarScenePlugin, instance_material_data::{InstanceData, InstanceMaterialData}};
+
+/// This example uses a shader source file from the assets subdirectory
+const SHADER_ASSET_PATH: &str = "shaders/instancing.wgsl";
+
+pub fn main_bevy() {
     App::new()
-        .insert_resource(ClearColor(
-            Color::hex("010d13").unwrap(),
-        ))
-
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: format!(
-                    "{} {}",
-                    env!("CARGO_PKG_NAME"),
-                    env!("CARGO_PKG_VERSION")
-                ),
-                resolution: (1280.0, 720.0).into(),
-                ..Default::default()
-            }),
-            ..default()
-        }))
-        .add_systems(Startup, setup_graphics)
-        .add_systems(Startup, setup_physics)
-        .add_systems(PostStartup, setup_text)
+        .add_plugins((DefaultPlugins, CustomMaterialPlugin, CarScenePlugin))
+        .add_systems(Startup, setup_camera)
+        .add_systems(Startup, setup_particle_instances)
+        .add_systems(Update, update_particle_instances)
         .run();
-
-    Ok(())
 }
 
-fn setup_text(mut commands: Commands, cameras: Query<(Entity, &Camera)>) {
-    let active_camera = cameras
-        .iter()
-        .find_map(|(entity, camera)| camera.is_active.then_some(entity))
-        .expect("run condition ensures existence");
-
-    let text = format!("{text}", text = "TEST");
-    let style = TextStyle::default();
-
-    let text = [
-        TextSection::new("Primitive: ", style.clone()),
-        TextSection::new(text, style.clone()),
-    ];
-
-    commands
-        .spawn((
-            //HeaderNode,
-            NodeBundle {
-                style: Style {
-                    justify_self: JustifySelf::Center,
-                    top: Val::Px(5.0),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-            TargetCamera(active_camera),
-        ))
-        .with_children(|parent| {
-            parent.spawn((
-                //HeaderText,
-                TextBundle::from_sections(text).with_text_justify(JustifyText::Center),
-            ));
-        });
+fn update_particle_instances(time: Res<Time>, mut instance_material_data_query: Query<(&mut InstanceMaterialData)>) {
+    for mut instance_material_data in &mut instance_material_data_query {
+        // https://www.reddit.com/r/bevy/comments/1e23o1z/animate_instance_data_in_update_loop/
+        for instance in instance_material_data.iter_mut() {
+            instance.scale += (time.elapsed_seconds()).sin() * 0.01;
+        } 
+    }
 }
 
-fn setup_graphics(mut commands: Commands) {
+fn setup_particle_instances(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
+    let circle = Circle { radius: 0.5 };
+
+    commands.spawn((
+        //meshes.add(Cuboid::new(0.5, 0.5, 0.5)),
+        meshes.add(circle),
+        SpatialBundle::INHERITED_IDENTITY,
+        InstanceMaterialData(
+            (1..=10)
+                .flat_map(|x| (1..=10).map(move |y| (x as f32 / 10.0, y as f32 / 10.0)))
+                .map(|(x, y)| InstanceData {
+                    position: Vec3::new(x * 10.0 - 5.0, y * 10.0 - 5.0, 0.0),
+                    scale: 1.0,
+                    color: LinearRgba::from(Color::hsla(x * 360., y, 0.5, 1.0)).to_f32_array(),
+                })
+                .collect(),
+        ),
+        // NOTE: Frustum culling is done based on the Aabb of the Mesh and the GlobalTransform.
+        // As the cube is at the origin, if its Aabb moves outside the view frustum, all the
+        // instanced cubes will be culled.
+        // The InstanceMaterialData contains the 'GlobalTransform' information for this custom
+        // instancing, and that is not taken into account with the built-in frustum culling.
+        // We must disable the built-in frustum culling by adding the `NoFrustumCulling` marker
+        // component to avoid incorrect culling.
+        NoFrustumCulling,
+    ));
+
+}
+
+fn setup_camera(mut commands: Commands) {
+
+    /* 
+    // camera
+    commands.spawn(Camera3dBundle {
+        transform: Transform::from_xyz(0.0, 0.0, 150.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ..default()
+    });*/
+
+    // camera
+    commands.spawn(Camera3dBundle {
+        projection: OrthographicProjection {
+            // n world units per window height.
+            scaling_mode: ScalingMode::FixedVertical(60.0),
+            ..default()
+        }
+        .into(),
+        transform: Transform::from_xyz(0.0, 0.0, 150.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ..default()
+    });
+    
+
+     /* 
     // https://bevy-cheatbook.github.io/2d/camera.html
 
     let mut my_2d_camera_bundle = Camera2dBundle::default();
@@ -73,113 +103,205 @@ fn setup_graphics(mut commands: Commands) {
     my_2d_camera_bundle.transform = Transform::from_xyz(100.0, 200.0, 0.0);
 
     commands.spawn(my_2d_camera_bundle);
+    */
 }
 
-pub fn setup_physics(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+
+
+struct CustomMaterialPlugin;
+
+impl Plugin for CustomMaterialPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugins(ExtractComponentPlugin::<InstanceMaterialData>::default());
+        app.sub_app_mut(RenderApp)
+            .add_render_command::<Transparent3d, DrawCustom>()
+            .init_resource::<SpecializedMeshPipelines<CustomPipeline>>()
+            .add_systems(
+                Render,
+                (
+                    queue_custom.in_set(RenderSet::QueueMeshes),
+                    prepare_instance_buffers.in_set(RenderSet::PrepareResources),
+                ),
+            );
+    }
+
+    fn finish(&self, app: &mut App) {
+        app.sub_app_mut(RenderApp).init_resource::<CustomPipeline>();
+    }
+}
+
+
+
+#[allow(clippy::too_many_arguments)]
+fn queue_custom(
+    transparent_3d_draw_functions: Res<DrawFunctions<Transparent3d>>,
+    custom_pipeline: Res<CustomPipeline>,
+    msaa: Res<Msaa>,
+    mut pipelines: ResMut<SpecializedMeshPipelines<CustomPipeline>>,
+    pipeline_cache: Res<PipelineCache>,
+    meshes: Res<RenderAssets<GpuMesh>>,
+    render_mesh_instances: Res<RenderMeshInstances>,
+    material_meshes: Query<Entity, With<InstanceMaterialData>>,
+    mut transparent_render_phases: ResMut<ViewSortedRenderPhases<Transparent3d>>,
+    mut views: Query<(Entity, &ExtractedView)>,
 ) {
-    // https://bevyengine.org/examples/math/render-primitives/
-    let circle = Circle { radius: 20.0 };
-    let material: Handle<ColorMaterial> = materials.add(Color::WHITE);
+    let draw_custom = transparent_3d_draw_functions.read().id::<DrawCustom>();
 
-    //const LEFT_RIGHT_OFFSET_2D: f32 = 200.0;
-    const POSITION: Vec3 = Vec3::new(0.0, 0.0, 0.0);
+    let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
 
-    let line_width = 1.0;
-    let axis_length = 100.0;
+    for (view_entity, view) in &mut views {
+        let Some(transparent_phase) = transparent_render_phases.get_mut(&view_entity) else {
+            continue;
+        };
 
-    let rec = Rectangle {
-        half_size: Vec2::new(line_width, axis_length),
-    };
-
-    // y-axis line
-    commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: meshes.add(rec).into(),
-            material: materials.add(Color::RED),
-            transform: Transform::from_translation(Vec3::new(0.0, axis_length, 0.0)),
-            ..Default::default()
-        },
-    ));
-
-    // x-axis line
-    commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: meshes.add(Rectangle {
-                half_size: Vec2::new(axis_length, line_width),
-            }).into(),
-            material: materials.add(Color::GREEN),
-            transform: Transform::from_translation(Vec3::new(axis_length, 0.0, 0.0)),
-            ..Default::default()
-        },
-    ));
-
-    commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: meshes.add(circle/* .mesh().build()*/).into(),
-            material: material.clone(),
-            transform: Transform::from_translation(POSITION),
-            ..Default::default()
-        },
-    ));
-
-    // fmnote:
-    // now how do I effeciently draw a huge amount of circles:
-    //      https://github.com/bevyengine/bevy/discussions/7366
-    //
-    // which points to this:
-    //      https://github.com/bevyengine/bevy/blob/main/examples/shader/shader_instancing.rs
-    //
-    //  this might be better, I think it uses pointlist rendering:
-    //      https://www.youtube.com/watch?v=MWIO-jP6pVo
-    //      https://github.com/rust-adventure/bevy-examples/tree/829e01bf9eee5fb9af9780d759dadf4ea76e12ff/examples/pointcloud
-    /*
-     * Create the cubes
-     */
-    let num = 8;
-    let rad = 10.0;
-
-    let shift = rad * 2.0 + rad;
-    let centerx = shift * (num / 2) as f32;
-    let centery = shift / 2.0;
-
-    let mut offset =
-        -(num as f32) * (rad * 2.0 + rad) * 0.5;
-
-    for j in 0usize..20 {
-        for i in 0..num {
-            let x = i as f32 * shift - centerx + offset;
-            let y = j as f32 * shift + centery + 30.0;
-
-            commands.spawn((
-                //CollidingEntities::default(),
-                //ActiveEvents::COLLISION_EVENTS,
-                //RigidBody::Dynamic,
-                //Collider::cuboid(rad, rad),
-                MaterialMesh2dBundle {
-                    mesh: meshes
-                        .add(Mesh::from(shape::Quad::new(
-                            Vec2::new(2.0 * rad, 2.0 * rad),
-                        )))
-                        .into(),
-                    material: materials.add(
-                        ColorMaterial::from(Color::Hsla {
-                            hue: 100.0,
-                            saturation: 0.7,
-                            lightness: 1.2,
-                            alpha: 1.0,
-                        }),
-                    ),
-                    transform: Transform::from_xyz(
-                        x, y, 0.0,
-                    ),
-                    ..default()
-                },
-            ));
+        let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
+        let rangefinder = view.rangefinder3d();
+        for entity in &material_meshes {
+            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(entity) else {
+                continue;
+            };
+            let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
+                continue;
+            };
+            let key =
+                view_key | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology());
+            let pipeline = pipelines
+                .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
+                .unwrap();
+            transparent_phase.add(Transparent3d {
+                entity,
+                pipeline,
+                draw_function: draw_custom,
+                distance: rangefinder.distance_translation(&mesh_instance.translation),
+                batch_range: 0..1,
+                extra_index: PhaseItemExtraIndex::NONE,
+            });
         }
+    }
+}
 
-        offset -= 0.05 * rad * (num as f32 - 1.0);
+#[derive(Component)]
+struct InstanceBuffer {
+    buffer: Buffer,
+    length: usize,
+}
+
+fn prepare_instance_buffers(
+    mut commands: Commands,
+    query: Query<(Entity, &InstanceMaterialData)>,
+    render_device: Res<RenderDevice>,
+) {
+    for (entity, instance_data) in &query {
+        let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+            label: Some("instance data buffer"),
+            contents: bytemuck::cast_slice(instance_data.as_slice()),
+            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
+        });
+        commands.entity(entity).insert(InstanceBuffer {
+            buffer,
+            length: instance_data.len(),
+        });
+    }
+}
+
+#[derive(Resource)]
+struct CustomPipeline {
+    shader: Handle<Shader>,
+    mesh_pipeline: MeshPipeline,
+}
+
+impl FromWorld for CustomPipeline {
+    fn from_world(world: &mut World) -> Self {
+        let mesh_pipeline = world.resource::<MeshPipeline>();
+
+        CustomPipeline {
+            shader: world.load_asset(SHADER_ASSET_PATH),
+            mesh_pipeline: mesh_pipeline.clone(),
+        }
+    }
+}
+
+impl SpecializedMeshPipeline for CustomPipeline {
+    type Key = MeshPipelineKey;
+
+    fn specialize(
+        &self,
+        key: Self::Key,
+        layout: &MeshVertexBufferLayoutRef,
+    ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
+        let mut descriptor = self.mesh_pipeline.specialize(key, layout)?;
+
+        descriptor.vertex.shader = self.shader.clone();
+        descriptor.vertex.buffers.push(VertexBufferLayout {
+            array_stride: std::mem::size_of::<InstanceData>() as u64,
+            step_mode: VertexStepMode::Instance,
+            attributes: vec![
+                VertexAttribute {
+                    format: VertexFormat::Float32x4,
+                    offset: 0,
+                    shader_location: 3, // shader locations 0-2 are taken up by Position, Normal and UV attributes
+                },
+                VertexAttribute {
+                    format: VertexFormat::Float32x4,
+                    offset: VertexFormat::Float32x4.size(),
+                    shader_location: 4,
+                },
+            ],
+        });
+        descriptor.fragment.as_mut().unwrap().shader = self.shader.clone();
+        Ok(descriptor)
+    }
+}
+
+type DrawCustom = (
+    SetItemPipeline,
+    SetMeshViewBindGroup<0>,
+    SetMeshBindGroup<1>,
+    DrawMeshInstanced,
+);
+
+struct DrawMeshInstanced;
+
+impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
+    type Param = (SRes<RenderAssets<GpuMesh>>, SRes<RenderMeshInstances>);
+    type ViewQuery = ();
+    type ItemQuery = Read<InstanceBuffer>;
+
+    #[inline]
+    fn render<'w>(
+        item: &P,
+        _view: (),
+        instance_buffer: Option<&'w InstanceBuffer>,
+        (meshes, render_mesh_instances): SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(item.entity())
+        else {
+            return RenderCommandResult::Failure;
+        };
+        let Some(gpu_mesh) = meshes.into_inner().get(mesh_instance.mesh_asset_id) else {
+            return RenderCommandResult::Failure;
+        };
+        let Some(instance_buffer) = instance_buffer else {
+            return RenderCommandResult::Failure;
+        };
+
+        pass.set_vertex_buffer(0, gpu_mesh.vertex_buffer.slice(..));
+        pass.set_vertex_buffer(1, instance_buffer.buffer.slice(..));
+
+        match &gpu_mesh.buffer_info {
+            GpuBufferInfo::Indexed {
+                buffer,
+                index_format,
+                count,
+            } => {
+                pass.set_index_buffer(buffer.slice(..), 0, *index_format);
+                pass.draw_indexed(0..*count, 0, 0..instance_buffer.length as u32);
+            }
+            GpuBufferInfo::NonIndexed => {
+                pass.draw(0..gpu_mesh.vertex_count, 0..instance_buffer.length as u32);
+            }
+        }
+        RenderCommandResult::Success
     }
 }

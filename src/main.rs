@@ -10,8 +10,9 @@ mod sdl {
 }
 
 mod bevy {
-    pub mod shader_instancing;
-    //mod main_bevy;
+    pub mod instance_material_data;
+    pub mod main_bevy;
+    pub mod car_scene;
 }
 
 mod scenes {
@@ -36,13 +37,13 @@ mod v3 {
 
 use crate::sdl::main_sdl::main_sdl;
 //use crate::main_bevy::main_bevy;
-use crate::bevy::shader_instancing::b_main;
+use crate::bevy::main_bevy::main_bevy;
 
 fn main() -> Result<(), String> {
     // this lets us switch between the old SDL renderer and the new Bevy renderer
     //return main_sdl();
     //return main_bevy();
-    b_main();
+    main_bevy();
     Ok({})
 }
 
