@@ -5,9 +5,14 @@ mod mouse;
 mod application;
 mod point;
 
-//mod main_bevy;
-mod main_sdl;
-mod shader_instancing;
+mod sdl {
+    pub mod main_sdl;
+}
+
+mod bevy {
+    pub mod shader_instancing;
+    //mod main_bevy;
+}
 
 mod scenes {
     pub mod car {
@@ -29,9 +34,9 @@ mod v3 {
     pub mod shape_builder;
 }
 
-use crate::main_sdl::main_sdl;
+use crate::sdl::main_sdl::main_sdl;
 //use crate::main_bevy::main_bevy;
-use crate::shader_instancing::b_main;
+use crate::bevy::shader_instancing::b_main;
 
 fn main() -> Result<(), String> {
     // this lets us switch between the old SDL renderer and the new Bevy renderer
