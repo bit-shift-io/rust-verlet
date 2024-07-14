@@ -11,17 +11,10 @@ use bevy::{
     },
     prelude::*,
     render::{
-        extract_component::{ExtractComponent, ExtractComponentPlugin},
-        mesh::{GpuBufferInfo, GpuMesh, MeshVertexBufferLayoutRef},
-        render_asset::RenderAssets,
-        render_phase::{
+        camera::ScalingMode, extract_component::{ExtractComponent, ExtractComponentPlugin}, mesh::{GpuBufferInfo, GpuMesh, MeshVertexBufferLayoutRef}, render_asset::RenderAssets, render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
             RenderCommandResult, SetItemPipeline, TrackedRenderPass, ViewSortedRenderPhases,
-        },
-        render_resource::*,
-        renderer::RenderDevice,
-        view::{ExtractedView, NoFrustumCulling},
-        Render, RenderApp, RenderSet,
+        }, render_resource::*, renderer::RenderDevice, view::{ExtractedView, NoFrustumCulling}, Render, RenderApp, RenderSet
     },
 };
 use bytemuck::{Pod, Zeroable};
@@ -32,66 +25,27 @@ const SHADER_ASSET_PATH: &str = "shaders/instancing.wgsl";
 pub fn b_main() {
     App::new()
         .add_plugins((DefaultPlugins, CustomMaterialPlugin))
-        .add_systems(Startup, setup)
-        .add_systems(Update, sprite_movement)
+        .add_systems(Startup, setup_camera)
+        .add_systems(Startup, setup_particle_instances)
+        .add_systems(Update, update_particle_instances)
         .run();
 }
 
-/* 
-fn update(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
-
-}
-*/
-
-/// The sprite is animated by changing its translation depending on the time that has passed since
-/// the last frame.
-fn sprite_movement(time: Res<Time>, mut instance_material_data_query: Query<(&mut InstanceMaterialData)>) {
+fn update_particle_instances(time: Res<Time>, mut instance_material_data_query: Query<(&mut InstanceMaterialData)>) {
     for mut instance_material_data in &mut instance_material_data_query {
-
         // https://www.reddit.com/r/bevy/comments/1e23o1z/animate_instance_data_in_update_loop/
-        for i in 0..instance_material_data.len() {
-            instance_material_data[i].scale += 0.1 * time.elapsed_seconds();
-        }
-
-        /*
-        *instance_material_data = InstanceMaterialData(
-            (1..=10)
-                .flat_map(|x| (1..=10).map(move |y| (x as f32 / 10.0, y as f32 / 10.0)))
-                .map(|(x, y)| InstanceData {
-                    position: Vec3::new(x * 10.0 - 5.0, y * 10.0 - 5.0, 0.0),
-                    scale: 1.0 * time.elapsed_seconds(),
-                    color: LinearRgba::from(Color::hsla(x * 360., y, 0.5, 1.0)).to_f32_array(),
-                })
-                .collect(),
-        )*/
+        for instance in instance_material_data.iter_mut() {
+            instance.scale += (time.elapsed_seconds()).sin() * 0.01;
+        } 
     }
-    /* 
-    for (mut logo, mut transform) in &mut sprite_position {
-        match *logo {
-            Direction::Up => transform.translation.y += 150. * time.delta_seconds(),
-            Direction::Down => transform.translation.y -= 150. * time.delta_seconds(),
-        }
-
-        if transform.translation.y > 200. {
-            *logo = Direction::Down;
-        } else if transform.translation.y < -200. {
-            *logo = Direction::Up;
-        }
-    }*/
 }
 
-/* 
-fn move_enemies_to_player(
-    mut enemies: Query<&mut Transform, With<Enemy>>,
-    player: Query<&Transform, With<Player>>,
-) {
-    // ...
-}
-*/
+fn setup_particle_instances(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
+    let circle = Circle { radius: 0.5 };
 
-fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     commands.spawn((
-        meshes.add(Cuboid::new(0.5, 0.5, 0.5)),
+        //meshes.add(Cuboid::new(0.5, 0.5, 0.5)),
+        meshes.add(circle),
         SpatialBundle::INHERITED_IDENTITY,
         InstanceMaterialData(
             (1..=10)
@@ -113,14 +67,44 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
         NoFrustumCulling,
     ));
 
-    // camera
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    });
 }
 
-#[derive(Component, Deref)]
+fn setup_camera(mut commands: Commands) {
+
+    /* 
+    // camera
+    commands.spawn(Camera3dBundle {
+        transform: Transform::from_xyz(0.0, 0.0, 150.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ..default()
+    });*/
+
+    // camera
+    commands.spawn(Camera3dBundle {
+        projection: OrthographicProjection {
+            // n world units per window height.
+            scaling_mode: ScalingMode::FixedVertical(60.0),
+            ..default()
+        }
+        .into(),
+        transform: Transform::from_xyz(0.0, 0.0, 150.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ..default()
+    });
+    
+
+     /* 
+    // https://bevy-cheatbook.github.io/2d/camera.html
+
+    let mut my_2d_camera_bundle = Camera2dBundle::default();
+    // For this example, let's make the screen/window height correspond to
+    // 1600.0 world units. The width will depend on the aspect ratio.
+    my_2d_camera_bundle.projection.scaling_mode = ScalingMode::FixedVertical(1600.0);
+    my_2d_camera_bundle.transform = Transform::from_xyz(100.0, 200.0, 0.0);
+
+    commands.spawn(my_2d_camera_bundle);
+    */
+}
+
+#[derive(Component, Deref, DerefMut)]
 struct InstanceMaterialData(Vec<InstanceData>);
 
 impl ExtractComponent for InstanceMaterialData {
