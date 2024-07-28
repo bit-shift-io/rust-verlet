@@ -22,9 +22,9 @@ impl ParticleCollider {
 
     // dt = last frame elapsed time
     // desired_hertz = times per second
-    pub fn range_substeps_2(&self, last_elapsed: Duration, desired_hertz: f32) -> Vec<f32> {
-        let last_elapsed_secs = last_elapsed.as_secs_f32();
-        let substeps: f32 = last_elapsed_secs * desired_hertz as f32;
+    pub fn range_substeps_2(&self, elapsed_seconds: f32, desired_hertz: f32) -> Vec<f32> {
+        //let last_elapsed_secs = last_elapsed.as_secs_f32();
+        let substeps: f32 = elapsed_seconds * desired_hertz as f32;
         let rounded_substeps = substeps.floor() as usize;
         let increment = 1.0 / desired_hertz;
         vec![increment; rounded_substeps]

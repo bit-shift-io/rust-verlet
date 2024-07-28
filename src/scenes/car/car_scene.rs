@@ -105,7 +105,7 @@ impl Scene for CarScene {
             //let dt = last_elapsed.as_millis();
             //let dt = 0.0167f32; // 1 / 60
             //const SUB_STEPS: usize = 16; // higher substeps causes spring issues
-            for sub_dt in collider.range_substeps_2(last_elapsed, desired_hertz).iter() {
+            for sub_dt in collider.range_substeps_2(last_elapsed.as_secs_f32(), desired_hertz).iter() {
                 collider.solve_collisions(&mut self.particle_accelerator);
                 collider.update_constraints(&mut self.particle_accelerator, *sub_dt);
                 collider.update_positions(&mut self.particle_accelerator, *sub_dt);

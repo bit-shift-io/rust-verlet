@@ -28,11 +28,12 @@ pub fn main_bevy() {
     App::new()
         .add_plugins((DefaultPlugins, CustomMaterialPlugin, CarScenePlugin))
         .add_systems(Startup, setup_camera)
-        .add_systems(Startup, setup_particle_instances)
-        .add_systems(Update, update_particle_instances)
+        //.add_systems(Startup, setup_particle_instances)
+        //.add_systems(Update, update_particle_instances)
         .run();
 }
 
+/* 
 fn update_particle_instances(time: Res<Time>, mut instance_material_data_query: Query<(&mut InstanceMaterialData)>) {
     for mut instance_material_data in &mut instance_material_data_query {
         // https://www.reddit.com/r/bevy/comments/1e23o1z/animate_instance_data_in_update_loop/
@@ -70,6 +71,8 @@ fn setup_particle_instances(mut commands: Commands, mut meshes: ResMut<Assets<Me
     ));
 
 }
+*/
+
 
 fn setup_camera(mut commands: Commands) {
 
@@ -83,12 +86,12 @@ fn setup_camera(mut commands: Commands) {
     // camera
     commands.spawn(Camera3dBundle {
         projection: OrthographicProjection {
-            // n world units per window height.
-            scaling_mode: ScalingMode::FixedVertical(60.0),
+            // n world units (metres) per window height.
+            scaling_mode: ScalingMode::FixedVertical(10.0),
             ..default()
         }
         .into(),
-        transform: Transform::from_xyz(0.0, 0.0, 150.0).looking_at(Vec3::ZERO, Vec3::Y),
+        transform: Transform::from_xyz(0.0, 0.0, 150.0).looking_at(Vec3::ZERO, Vec3::Y).with_translation(Vec3::new(0.0, 4.0, 0.0)),
         ..default()
     });
     
