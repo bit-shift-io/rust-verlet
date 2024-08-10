@@ -13,6 +13,7 @@ nalgebra = "0.32.5"
 bevy = { version = "0.14", features = ["dynamic_linking"] } # disable dynamic linking for releases
 log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
 bytemuck = "1.7"
+iyes_perf_ui = "0.3.0"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

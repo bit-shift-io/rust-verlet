@@ -47,7 +47,7 @@ struct CarComponent {
 
 impl CarComponent {
     pub fn new(particle_accelerator: &mut ParticleAccelerator) -> Self {
-        let car = Car::new(particle_accelerator, Vec2::new(0.0, 1.0));
+        let car = Car::new(particle_accelerator, Vec2::new(0.0, 0.3));
 
         Self {
             car
@@ -58,6 +58,7 @@ impl CarComponent {
 #[derive(Component)]
 struct CarScene {
     particle_accelerator: ParticleAccelerator,
+    paused: bool,
 }
 
 impl CarScene {
@@ -65,7 +66,7 @@ impl CarScene {
         let mut particle_accelerator = ParticleAccelerator::new();
 
         let particle_radius = cm_to_m(5.0);
-        let particle_mass = 1.0; // kgs. g_to_kg(100.0);
+        let particle_mass = 1.0; //g_to_kg(0.1);
 
         // line along the ground
         let mask = 0x1;
@@ -77,7 +78,7 @@ impl CarScene {
         
         // add a jellow cube to the scene
         ShapeBuilder::new()
-            .set_stiffness_factor(2.8) // this ignores mass
+            .set_stiffness_factor(20.0) // this ignores mass
             .set_mass(particle_mass)
             .set_radius(particle_radius)
             .add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
@@ -85,6 +86,7 @@ impl CarScene {
 
         Self {
             particle_accelerator,
+            paused: true,
         }
     }
 }
@@ -176,11 +178,20 @@ fn update_car_scene(
 ) {
     let mut car_scene = query_car_scenes.single_mut();
     let mut car_component = car_component_query.single_mut();
-    let elapsed_sec = time.elapsed_seconds();
+    let delta_seconds = time.delta_seconds();
+
+    // handle pause - could go in a different update system
+    if keys.just_pressed(KeyCode::KeyP) {
+        car_scene.paused = !car_scene.paused;
+    }
+
+    if car_scene.paused {
+        return;
+    }
 
     // reset forces to just the gravity value
     // 9.8 = units are in metres per second
-    let gravity = Vec2::new(0.0, -9.8 * 0.01); // * 5.0); //9.8);
+    let gravity = Vec2::new(0.0, -9.8); // * 5.0); //9.8);
     let mut collider = ParticleCollider::new();
     collider.reset_forces(&mut car_scene.particle_accelerator, gravity);
 
@@ -192,8 +203,8 @@ fn update_car_scene(
 
 
     // finally, solve everything for this frame
-    let desired_hertz = 60.0; // 100 times per second
-    for sub_dt in collider.range_substeps_2(elapsed_sec, desired_hertz).iter() {
+    let desired_hertz = 120.0; // times per second
+    for sub_dt in collider.range_substeps_2(delta_seconds, desired_hertz).iter() {
         collider.solve_collisions(&mut car_scene.particle_accelerator);
         collider.update_constraints(&mut car_scene.particle_accelerator, *sub_dt);
         collider.update_positions(&mut car_scene.particle_accelerator, *sub_dt);
