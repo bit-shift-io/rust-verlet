@@ -247,6 +247,17 @@ impl ShapeBuilder {
             self.add_stick(particle_indicies);    
         }
 
+        /* 
+        // try opposite sticks?
+        let half_divisions = divisions / 2;
+        for i in 0..half_divisions {
+            let particle_indicies = [
+                i,
+                if (i + 1) == half_divisions { 0 } else { i + half_divisions }
+            ];
+            self.add_stick(particle_indicies);    
+        }*/
+
         self
 
     }
