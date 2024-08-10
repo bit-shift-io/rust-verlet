@@ -19,7 +19,7 @@ use bytemuck::{Pod, Zeroable};
 
 use crate::v3::{particle_accelerator::{self, ParticleAccelerator}, particle_collider::ParticleCollider, shape_builder::ShapeBuilder, types::Vec2};
 
-use super::instance_material_data::{InstanceData, InstanceMaterialData};
+use super::{car::Car, instance_material_data::{InstanceData, InstanceMaterialData}};
 
 pub fn m_to_cm(m: f32) -> f32 {
     m * 100.0
@@ -31,6 +31,28 @@ pub fn cm_to_m(cm: f32) -> f32 {
 
 pub fn g_to_kg(g: f32) -> f32 {
     g * 0.001
+}
+
+pub struct CarSceneContext<'a> {
+    //pub keyboard: &'a mut Keyboard,
+    //pub mouse: &'a mut Mouse,
+    pub keys: Res<'a, ButtonInput<KeyCode>>,
+    pub particle_accelerator: &'a mut ParticleAccelerator,
+}
+
+#[derive(Component)]
+struct CarComponent {
+    car: Car
+}
+
+impl CarComponent {
+    pub fn new(particle_accelerator: &mut ParticleAccelerator) -> Self {
+        let car = Car::new(particle_accelerator, Vec2::new(0.0, 1.0));
+
+        Self {
+            car
+        }
+    }
 }
 
 #[derive(Component)]
@@ -58,7 +80,7 @@ impl CarScene {
             .set_stiffness_factor(2.8) // this ignores mass
             .set_mass(particle_mass)
             .set_radius(particle_radius)
-            .add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(0.0, cm_to_m(50.0)))
+            .add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
             .create_in_particle_accelerator(&mut particle_accelerator, mask);
 
         Self {
@@ -81,6 +103,8 @@ impl Plugin for CarScenePlugin {
 
 pub fn setup_car_scene(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     let mut car_scene = CarScene::new();
+
+    let car = CarComponent::new(&mut car_scene.particle_accelerator);
 
     // create the required particles
     let instance_data = InstanceMaterialData(car_scene.particle_accelerator.particles.iter().zip(car_scene.particle_accelerator.verlet_positions.iter()).map(|(particle, verlet_position)| InstanceData {
@@ -112,6 +136,11 @@ pub fn setup_car_scene(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
     commands.spawn((
         car_scene,
     ));
+
+    // add car to bevy ecs
+    commands.spawn((
+        car,
+    ));
 }
 
 fn update_particle_instances(
@@ -138,12 +167,15 @@ fn update_particle_instances(
 
 fn update_car_scene(
     time: Res<Time>, 
+    keys: Res<ButtonInput<KeyCode>>,
     mut commands: Commands, 
     mut meshes: ResMut<Assets<Mesh>>, 
     mut query_car_scenes: Query<(&mut CarScene)>,
+    mut car_component_query: Query<(&mut CarComponent)>,
     mut instance_material_data_query: Query<(&mut InstanceMaterialData)>
 ) {
     let mut car_scene = query_car_scenes.single_mut();
+    let mut car_component = car_component_query.single_mut();
     let elapsed_sec = time.elapsed_seconds();
 
     // reset forces to just the gravity value
@@ -152,10 +184,15 @@ fn update_car_scene(
     let mut collider = ParticleCollider::new();
     collider.reset_forces(&mut car_scene.particle_accelerator, gravity);
 
+
     // do other physics here...
+    // now update the car which will setup its forces on the particles
+    let particle_accelerator = &mut car_scene.particle_accelerator;
+    car_component.car.update(particle_accelerator, keys);
+
 
     // finally, solve everything for this frame
-    let desired_hertz = 100.0; // 100 times per second
+    let desired_hertz = 60.0; // 100 times per second
     for sub_dt in collider.range_substeps_2(elapsed_sec, desired_hertz).iter() {
         collider.solve_collisions(&mut car_scene.particle_accelerator);
         collider.update_constraints(&mut car_scene.particle_accelerator, *sub_dt);

@@ -13,6 +13,7 @@ mod bevy {
     pub mod instance_material_data;
     pub mod main_bevy;
     pub mod car_scene;
+    pub mod car;
 }
 
 mod scenes {
