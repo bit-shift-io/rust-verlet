@@ -70,6 +70,7 @@ impl CarScene {
 
         // line along the ground
         let mask = 0x1;
+
         ShapeBuilder::new()
             .set_static(true)
             .add_line(Vec2::new(-5.0, 0.0), Vec2::new(5.0, 0.0), particle_radius)
@@ -83,6 +84,20 @@ impl CarScene {
             .set_radius(particle_radius)
             .add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
             .create_in_particle_accelerator(&mut particle_accelerator, mask);
+
+        
+        // suspension bridge on the ground
+        let mut suspension_bridge = ShapeBuilder::new();
+        suspension_bridge
+            .add_line(Vec2::new(-5.0, 0.0), Vec2::new(-8.0, 0.0), particle_radius)
+            .remove_first_particle() // to avoid colliding with other statis particles
+            .connect_with_adjacent_sticks();
+
+        let particle_count = suspension_bridge.particles.len();
+        suspension_bridge.particles[0].is_static = true;
+        suspension_bridge.particles[particle_count - 1].is_static = true;
+
+        suspension_bridge.create_in_particle_accelerator(&mut particle_accelerator, mask);
 
         Self {
             particle_accelerator,

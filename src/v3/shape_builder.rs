@@ -4,12 +4,12 @@ use rand::Rng;
 use super::{particle_accelerator::{ParticleAccelerator, ParticleHandle, SpringHandle, StickHandle}, types::Vec2};
 
 
-struct ParticlePrim {
-    pos: Vec2,
-    radius: f32,
-    mass: f32,
-    is_static: bool,
-    color: Color,
+pub struct ParticlePrim {
+    pub pos: Vec2,
+    pub radius: f32,
+    pub mass: f32,
+    pub is_static: bool,
+    pub color: Color,
 }
 
 impl ParticlePrim {
@@ -47,7 +47,7 @@ impl StickPrim {
 }
 
 pub struct ShapeBuilder {
-    particles: Vec<ParticlePrim>,
+    pub particles: Vec<ParticlePrim>,
     sticks: Vec<StickPrim>,
     springs: Vec<SpringPrim>,
 
@@ -204,11 +204,16 @@ impl ShapeBuilder {
         self
     }
 
+    pub fn remove_first_particle(&mut self) -> &mut Self {
+        self.particles.remove(0);
+        self
+    }
+
     pub fn add_line(&mut self, p1: Vec2, p2: Vec2, radius: f32) -> &mut Self {
         let particle_mass = 1.0f32;
 
         let dist = (p2 - p1).magnitude();
-        let divisions = (dist / (radius * 2.0f32)) as usize;
+        let divisions = (dist / ((radius * 2.0) + f32::EPSILON)) as usize;
         let delta = (p2 - p1);
 
         //let col = Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255));
@@ -216,6 +221,20 @@ impl ShapeBuilder {
             let percent = i as f32 / divisions as f32;
             let pos = p1 + (delta * percent);
             self.particles.push(ParticlePrim::new(pos, radius, particle_mass, self.is_static, self.color));
+        }
+
+        self
+    }
+
+    pub fn connect_with_adjacent_sticks(&mut self) -> &mut Self {
+        let particle_count = self.particles.len() as i64;
+
+        for i in 0..(particle_count - 1) {
+            let particle_indicies = [
+                i,
+                i + 1
+            ];
+            self.add_stick(particle_indicies);    
         }
 
         self

@@ -109,7 +109,7 @@ fn setup_camera(mut commands: Commands) {
             ..default()
         }
         .into(),
-        transform: Transform::from_xyz(0.0, 0.0, 150.0).looking_at(Vec3::ZERO, Vec3::Y).with_translation(Vec3::new(0.0, 4.0, 0.0)),
+        transform: Transform::from_xyz(0.0, 0.0, 150.0).looking_at(Vec3::ZERO, Vec3::Y).with_translation(Vec3::new(0.0, 2.0, 0.0)),
         ..default()
     });
     
