@@ -218,7 +218,7 @@ fn update_car_scene(
 
 
     // finally, solve everything for this frame
-    let desired_hertz = 120.0; // times per second
+    let desired_hertz = 240.0; // times per second
     for sub_dt in collider.range_substeps_2(delta_seconds, desired_hertz).iter() {
         collider.solve_collisions(&mut car_scene.particle_accelerator);
         collider.update_constraints(&mut car_scene.particle_accelerator, *sub_dt);
