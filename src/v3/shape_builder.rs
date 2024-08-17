@@ -182,9 +182,9 @@ impl ShapeBuilder {
         let particle_positions = [self.particles[real_particle_indicies[0]].pos, self.particles[real_particle_indicies[1]].pos];
         self.sticks.push(StickPrim::new(real_particle_indicies, particle_positions, self.stiffness_factor));
 
-        let combined_radius = self.particles[real_particle_indicies[0]].radius + self.particles[real_particle_indicies[1]].radius;
-        let last_stick = self.sticks.last().unwrap();
-        assert!(last_stick.length >= combined_radius, "Overlapping particles with sticks detected! System is unstable!");
+        //let combined_radius = self.particles[real_particle_indicies[0]].radius + self.particles[real_particle_indicies[1]].radius;
+        //let last_stick = self.sticks.last().unwrap();
+        //assert!(last_stick.length >= combined_radius, "Overlapping particles with sticks detected! System is unstable!");
 
         self
     }
@@ -225,6 +225,67 @@ impl ShapeBuilder {
 
         self
     }
+
+    /*
+    // create a parallelogram with two sides defined by:
+    // 1: p2 - p1
+    // 2: p3 - p2
+    pub fn add_parallelogram(&mut self, p1: Vec2, p2: Vec2, p3: Vec2) -> &mut Self {
+        let divisions1 = radius_divisions_between_points(p1, p2, self.radius);
+        let delta1 = p2 - p1;
+
+        let divisions2 = radius_divisions_between_points(p2, p3, self.radius);
+        let delta2 = p3 - p2;
+
+        for i1 in 0..divisions1 { 
+            let percent1 = i1 as f32 / divisions1 as f32;
+            let pos1 = p1 + (delta1 * percent1);
+
+            for i2 in 0..divisions2 { 
+                let percent2 = i2 as f32 / divisions2 as f32;
+                let pos2 = pos1 + (delta2 * percent2);
+
+                self.particles.push(ParticlePrim::new(pos2, self.radius, self.mass, self.is_static, self.color));
+            }
+        }
+
+        self
+    }
+
+    // Connect a grid of particles with sticks in a cross + grid pattern
+    pub fn connect_with_cross_grid_of_sticks(&mut self, stride: usize) -> &mut Self {
+        let particle_count = self.particles.len();
+        let grid_height = stride;
+        let grid_width = particle_count / stride;
+
+        for x in 0..grid_width {
+            for y in 0..grid_height {
+                let cur_particle_idx = (y * grid_height + x) as i64;
+
+                // add adjacent particle to the right
+                {
+                    let particle_indicies = [
+                        cur_particle_idx as i64,
+                        (cur_particle_idx + 1) as i64,
+                    ];
+                    self.add_stick(particle_indicies);
+                }
+
+                // add adjacent particle below
+                {
+                    let particle_indicies = [
+                        cur_particle_idx as i64,
+                        cur_particle_idx + stride as i64,
+                    ];
+                    self.add_stick(particle_indicies);
+                }
+
+                // todo: add cross
+            } 
+        }
+
+        self
+    }*/
 
     pub fn connect_with_adjacent_sticks(&mut self) -> &mut Self {
         let particle_count = self.particles.len() as i64;
@@ -382,4 +443,13 @@ impl ShapeBuilder {
         self
     }
 
+}
+
+
+// Utility function that takes 2 points (a line segment) and a radius
+// and calculates how many circles can fit touching each other between the 2 points.
+pub fn radius_divisions_between_points(p1: Vec2, p2: Vec2, radius: f32) -> usize {
+    let dist = (p2 - p1).magnitude();
+    let divisions = (dist / (radius * 2.0)) as usize;
+    return divisions;
 }

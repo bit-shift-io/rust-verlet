@@ -17,7 +17,7 @@ use bevy::{
 };
 use bytemuck::{Pod, Zeroable};
 
-use crate::v3::{particle_accelerator::{self, ParticleAccelerator}, particle_collider::ParticleCollider, shape_builder::ShapeBuilder, types::Vec2};
+use crate::v3::{particle_accelerator::{self, ParticleAccelerator}, particle_collider::ParticleCollider, shape_builder::{radius_divisions_between_points, ShapeBuilder}, types::Vec2};
 
 use super::{car::Car, instance_material_data::{InstanceData, InstanceMaterialData}};
 
@@ -87,17 +87,37 @@ impl CarScene {
 
         
         // suspension bridge on the ground
-        let mut suspension_bridge = ShapeBuilder::new();
-        suspension_bridge
-            .add_line(Vec2::new(-5.0, 0.0), Vec2::new(-8.0, 0.0), particle_radius)
-            .remove_first_particle() // to avoid colliding with other statis particles
-            .connect_with_adjacent_sticks();
+        {
+            let width = radius_divisions_between_points(Vec2::new(-5.0, 0.0), Vec2::new(-8.0, 0.0), particle_radius);
+            let height = radius_divisions_between_points(Vec2::new(-8.0, 0.0), Vec2::new(-8.0, particle_radius * 6.0), particle_radius);
+            let mut suspension_bridge = ShapeBuilder::new();
+            suspension_bridge
+                .set_radius(particle_radius)
+                //.set_static(true)
+                //.add_parallelogram(Vec2::new(-5.0, 0.0), Vec2::new(-8.0, 0.0), Vec2::new(-8.0, particle_radius * 4.0))
+                //.connect_with_cross_grid_of_sticks(height);
+                .add_stick_grid((width - 1) as i32, (height - 1) as i32, particle_radius * 2.0, Vec2::new(-8.0, 0.0));
+                //.remove_first_particle() // to avoid colliding with other statis particles
+                //.connect_with_adjacent_sticks();
+                
+            // make the very left particles and very right particle static
+            //let particle_count = suspension_bridge.particles.len();
+            for y in 0..height {
+                let first_particle_idx = y * width;
+                let last_particle_idx = first_particle_idx + width - 1;
 
-        let particle_count = suspension_bridge.particles.len();
-        suspension_bridge.particles[0].is_static = true;
-        suspension_bridge.particles[particle_count - 1].is_static = true;
+                suspension_bridge.particles[first_particle_idx].is_static = true;
+                suspension_bridge.particles[last_particle_idx].is_static = true;
+            }
 
-        suspension_bridge.create_in_particle_accelerator(&mut particle_accelerator, mask);
+
+    /* 
+            let particle_count = suspension_bridge.particles.len();
+            suspension_bridge.particles[0].is_static = true;
+            suspension_bridge.particles[particle_count - 1].is_static = true;
+    */
+            suspension_bridge.create_in_particle_accelerator(&mut particle_accelerator, mask);
+        }
 
         Self {
             particle_accelerator,
