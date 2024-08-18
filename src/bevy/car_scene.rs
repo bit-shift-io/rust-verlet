@@ -74,7 +74,7 @@ impl CarScene {
         ShapeBuilder::new()
             .set_static(true)
             .add_line(Vec2::new(-5.0, 0.0), Vec2::new(5.0, 0.0), particle_radius)
-            .add_line(Vec2::new(5.0, 0.0), Vec2::new(8.0, 1.0), particle_radius)
+            .add_line(Vec2::new(5.0, 0.0), Vec2::new(8.0, 0.5), particle_radius)
             .create_in_particle_accelerator(&mut particle_accelerator, mask);
         
         // add a jellow cube to the scene
@@ -117,6 +117,54 @@ impl CarScene {
             suspension_bridge.particles[particle_count - 1].is_static = true;
     */
             suspension_bridge.create_in_particle_accelerator(&mut particle_accelerator, mask);
+        }
+
+        // particle liquid + bucket
+        {
+            let liquid_particle_radius = particle_radius * 0.65;
+            let liquid_particle_mass = g_to_kg(20.0);
+
+            let funnel_height = 2.0;
+            let funnel_particle_radius = liquid_particle_radius * 0.75;
+
+            let bucket_height = particle_radius * 6.0;
+            let bucket_width = 3.0;
+
+            let origin = Vec2::new(8.0, 0.5);
+            let width = 20;
+            let height = 15;
+            let mut liquid = ShapeBuilder::new();
+            liquid
+                .set_mass(liquid_particle_mass)
+                .set_radius(liquid_particle_radius)
+                .add_grid((width - 1) as i32, (height - 1) as i32, liquid_particle_radius * 2.0, origin + Vec2::new(0.0 + liquid_particle_radius * 2.0, funnel_height + 1.0))
+                .create_in_particle_accelerator(&mut particle_accelerator, mask);
+
+
+            let mut funnel = ShapeBuilder::new();
+            funnel
+                .set_radius(funnel_particle_radius)
+                .set_static(true)
+                .add_line(origin + Vec2::new(-3.0, funnel_height + 2.0), origin + Vec2::new(1.0, funnel_height), funnel_particle_radius)
+                .add_line(origin + Vec2::new(5.0, funnel_height + 2.0), origin + Vec2::new(1.0 + liquid_particle_radius * 4.0, funnel_height), funnel_particle_radius)
+                .create_in_particle_accelerator(&mut particle_accelerator, mask);
+
+            let mut bucket = ShapeBuilder::new();
+            bucket
+                .set_radius(particle_radius)
+                .set_static(true)
+                .add_line(origin, origin + Vec2::new(bucket_height, -bucket_height), particle_radius)
+                .add_line(origin + Vec2::new(bucket_height, -bucket_height), origin + Vec2::new(bucket_width - bucket_height, -bucket_height), particle_radius)
+                .add_line(origin + Vec2::new(bucket_width - bucket_height, -bucket_height), origin + Vec2::new(bucket_width, 0.0), particle_radius)
+                .create_in_particle_accelerator(&mut particle_accelerator, mask);
+        }
+
+        {
+            // ground line to the righ of the bucket
+            ShapeBuilder::new()
+                .set_static(true)
+                .add_line(Vec2::new(11.0, 0.3), Vec2::new(20.0, 1.0), particle_radius * 2.0)
+                .create_in_particle_accelerator(&mut particle_accelerator, mask);
         }
 
         Self {

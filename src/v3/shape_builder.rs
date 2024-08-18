@@ -374,6 +374,20 @@ impl ShapeBuilder {
           self
     }
 
+
+    pub fn add_grid(&mut self, width: i32, height: i32, spacing: f32, origin: Vec2) -> &mut Self {
+        for y in 0..=height {
+            for x in 0..=width {
+                let is_static = false; //if y == 0 && x % 2 == 0 { true } else { false };
+                let pos = Vec2::new((origin[0] + x as f32 * spacing) as f32, (origin[1] + y as f32 * spacing) as f32);
+              
+                self.particles.push(ParticlePrim::new(pos, self.radius, self.mass, is_static, self.color));
+            }
+        }
+
+        self
+    }
+
     pub fn add_stick_grid(&mut self, width: i32, height: i32, spacing: f32, origin: Vec2) -> &mut Self {
         for y in 0..=height {
             for x in 0..=width {
