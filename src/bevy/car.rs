@@ -129,4 +129,14 @@ impl Car {
             self.rotate_wheels(-1.0, particle_accelerator); // clockwise
         }
     }
+
+    pub fn get_camera_look_at_position(&self, particle_accelerator: &mut ParticleAccelerator, ) -> Vec2 {
+        let mut pos = Vec2::new(0.0, 0.0);
+        for wheel in self.wheels.iter() {
+            pos += particle_accelerator.get_particle_position(&wheel.hub_particle_handle);
+        }
+        pos /= NUM_WHEELS as f32;
+        //pos.extend(1.0); // homogeneous coordinate
+        pos
+    }
 }
