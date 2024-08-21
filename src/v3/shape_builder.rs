@@ -287,17 +287,23 @@ impl ShapeBuilder {
         self
     }*/
 
-    pub fn connect_with_adjacent_sticks(&mut self) -> &mut Self {
+    // think of spokes on a circle, to help gives wheels rigidity
+    pub fn connect_adjacent_sticks(&mut self, particle_stride: usize, stick_stride: i64) -> &mut Self {
         let particle_count = self.particles.len() as i64;
+        
+        for i in (0..particle_count).step_by(particle_stride) {
+            let k = if (i + stick_stride) >= particle_count { i + stick_stride - particle_count } else { i + stick_stride };
 
-        for i in 0..(particle_count - 1) {
+            //println!("i: {} -> {}", i, k);
+            
             let particle_indicies = [
                 i,
-                i + 1
+                k
             ];
             self.add_stick(particle_indicies);    
+            
         }
-
+        
         self
     }
 
@@ -382,6 +388,24 @@ impl ShapeBuilder {
                 let pos = Vec2::new((origin[0] + x as f32 * spacing) as f32, (origin[1] + y as f32 * spacing) as f32);
               
                 self.particles.push(ParticlePrim::new(pos, self.radius, self.mass, is_static, self.color));
+            }
+        }
+
+        self
+    }
+
+    // connect every 'particles_per_line' into a line to make more of a 
+    // 'thick' liquid
+    pub fn connect_with_stick_chain(&mut self, particles_per_line: usize) -> &mut Self {
+        let particle_count = self.particles.len() as i64;
+
+        for i in (0..particle_count).step_by(particles_per_line) {
+            for k in 0..(particles_per_line - 1) {
+                let particle_indicies = [
+                    i + k as i64,
+                    i + k as i64 + 1
+                ];
+                self.add_stick(particle_indicies);
             }
         }
 

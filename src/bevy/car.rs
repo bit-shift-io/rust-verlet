@@ -7,7 +7,7 @@ use super::car_scene::{cm_to_m, g_to_kg, CarSceneContext};
 pub struct CarWheel {
     hub_particle_handle: ParticleHandle,
     surface_particle_handles: Vec<ParticleHandle>,
-    interior_particle_handles: Vec<ParticleHandle>,
+    //interior_particle_handles: Vec<ParticleHandle>,
 }
 
 impl CarWheel {
@@ -28,30 +28,33 @@ impl CarWheel {
         // wheel surface
         let surface_particle_handles = {
             let mask = 0x1;
-            let divisions = 12;
-            let circle_radius = cm_to_m(20.0); // around a typical car tyre size - 17-18" (once you account for particle radius)
-            let particle_radius = cm_to_m(5.0);
+            let divisions = 20;
+            let circle_radius = cm_to_m(35.0); // around a typical car tyre size - 17-18" (once you account for particle radius)
+            let particle_radius = cm_to_m(4.0);
             let mut builder = ShapeBuilder::new();
             builder.set_mass(particle_mass);
             builder.add_adjacent_stick_circle(origin, circle_radius, particle_radius, divisions)
+                .connect_adjacent_sticks(1, 4) // todo: wrap around!
                 .create_in_particle_accelerator(particle_accelerator, mask);
             builder.particle_handles.clone()
         };
 
+        /*
         // wheel interior
         let interior_particle_handles = {
             let mask = 0x1;
-            let divisions = 7;
-            let circle_radius = cm_to_m(12.0);
-            let particle_radius = cm_to_m(6.0);
+            let divisions = 14;
+            let circle_radius = cm_to_m(14.0);
+            let particle_radius = cm_to_m(4.0);
             let mut builder = ShapeBuilder::new();
             builder.set_mass(particle_mass);
             builder.add_circle(origin, circle_radius, particle_radius, divisions)
+                //.connect_with_stick_chain(2) // stop the air escaping so easily
                 .create_in_particle_accelerator(particle_accelerator, mask);
             builder.particle_handles.clone()
             
             //vec![]
-        };       
+        };       */
 
 
         // notes:
@@ -76,17 +79,17 @@ impl CarWheel {
         Self {
             hub_particle_handle,
             surface_particle_handles,
-            interior_particle_handles
+            //interior_particle_handles
         }
     }
 
     fn rotate(&mut self, direction: f32, particle_accelerator: &mut ParticleAccelerator) {
         let centre = particle_accelerator.get_particle_position(&self.hub_particle_handle);
-        let force_magnitude = 50.0;
+        let force_magnitude = 60.0;
 
         let particle_manipulator = ParticleManipulator::new();
         particle_manipulator.add_rotational_force_around_point(particle_accelerator, &self.surface_particle_handles, centre, force_magnitude * direction);
-        particle_manipulator.add_rotational_force_around_point(particle_accelerator, &self.interior_particle_handles, centre, force_magnitude * direction);
+        //particle_manipulator.add_rotational_force_around_point(particle_accelerator, &self.interior_particle_handles, centre, force_magnitude * direction);
     }
 }
 

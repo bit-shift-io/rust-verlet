@@ -47,7 +47,7 @@ struct CarComponent {
 
 impl CarComponent {
     pub fn new(particle_accelerator: &mut ParticleAccelerator) -> Self {
-        let car = Car::new(particle_accelerator, Vec2::new(0.0, 0.3));
+        let car = Car::new(particle_accelerator, Vec2::new(0.0, 0.5));
 
         Self {
             car
@@ -65,7 +65,7 @@ impl CarScene {
     pub fn new() -> Self {
         let mut particle_accelerator = ParticleAccelerator::new();
 
-        let particle_radius = cm_to_m(5.0);
+        let particle_radius = cm_to_m(4.0);
         let particle_mass = 1.0; //g_to_kg(0.1);
 
         // line along the ground
@@ -121,7 +121,7 @@ impl CarScene {
 
         // particle liquid + bucket
         {
-            let liquid_particle_radius = particle_radius * 0.65;
+            let liquid_particle_radius = particle_radius * 0.85;
             let liquid_particle_mass = g_to_kg(20.0);
 
             let funnel_height = 2.0;
@@ -138,6 +138,7 @@ impl CarScene {
                 .set_mass(liquid_particle_mass)
                 .set_radius(liquid_particle_radius)
                 .add_grid((width - 1) as i32, (height - 1) as i32, liquid_particle_radius * 2.0, origin + Vec2::new(0.0 + liquid_particle_radius * 2.0, funnel_height + 1.0))
+                //.connect_with_stick_chain(2)
                 .create_in_particle_accelerator(&mut particle_accelerator, mask);
 
 
@@ -146,7 +147,7 @@ impl CarScene {
                 .set_radius(funnel_particle_radius)
                 .set_static(true)
                 .add_line(origin + Vec2::new(-3.0, funnel_height + 2.0), origin + Vec2::new(1.0, funnel_height), funnel_particle_radius)
-                .add_line(origin + Vec2::new(5.0, funnel_height + 2.0), origin + Vec2::new(1.0 + liquid_particle_radius * 4.0, funnel_height), funnel_particle_radius)
+                .add_line(origin + Vec2::new(5.0, funnel_height + 2.0), origin + Vec2::new(1.0 + liquid_particle_radius * 8.0, funnel_height), funnel_particle_radius)
                 .create_in_particle_accelerator(&mut particle_accelerator, mask);
 
             let mut bucket = ShapeBuilder::new();
