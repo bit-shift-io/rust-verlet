@@ -14,6 +14,7 @@ mod bevy {
     pub mod main_bevy;
     pub mod car_scene;
     pub mod car;
+    pub mod shape_test;
 }
 
 mod scenes {

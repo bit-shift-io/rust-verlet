@@ -19,7 +19,7 @@ use bytemuck::{Pod, Zeroable};
 
 use crate::v3::{particle_accelerator::{self, ParticleAccelerator}, particle_collider::ParticleCollider, shape_builder::{radius_divisions_between_points, ShapeBuilder}, types::Vec2};
 
-use super::{car::Car, instance_material_data::{InstanceData, InstanceMaterialData}};
+use super::{car::Car, instance_material_data::{InstanceData, InstanceMaterialData}, shape_test::shape_test};
 
 pub fn m_to_cm(m: f32) -> f32 {
     m * 100.0
@@ -167,6 +167,8 @@ impl CarScene {
                 .add_line(Vec2::new(11.0, 0.3), Vec2::new(20.0, 1.0), particle_radius * 2.0)
                 .create_in_particle_accelerator(&mut particle_accelerator, mask);
         }
+
+        shape_test(&mut particle_accelerator);
 
         Self {
             particle_accelerator,

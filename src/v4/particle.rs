@@ -23,6 +23,11 @@ impl Particle {
         self.pos = pos;
         self
     }
+
+    pub fn set_static(&mut self, is_static: bool) -> &mut Self {
+        self.is_static = is_static;
+        self
+    }
 }
 
 impl Default for Particle {
