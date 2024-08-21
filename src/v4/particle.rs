@@ -29,7 +29,7 @@ impl Default for Particle {
     fn default() -> Self {
         Self {
             pos: Vec2::new(0.0, 0.0),
-            radius: 1.0,
+            radius: 0.5,
             mass: 1.0,
             is_static: false,
             color: Color::WHITE,
