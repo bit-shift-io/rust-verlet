@@ -49,6 +49,7 @@ mod v4 {
     pub mod particle_solvers {
         pub mod particle_solver;
         pub mod naive_particle_solver;
+        pub mod spatial_hash_particle_solver;
     }
     pub mod particle_sim;
 }

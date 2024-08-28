@@ -54,16 +54,32 @@ impl ParticleSim {
 mod tests {
     use bevy::math::{vec2, Vec2};
 
-    use crate::v4::{particle::Particle, particle_solvers::naive_particle_solver::NaiveParticleSolver};
+    use crate::v4::{particle::Particle, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}};
 
     use super::*;
 
     #[test]
-    fn particle_sim() {
+    fn naive_particle_solver_particle_sim() {
         // create a particle sim
         let particle_container = Rc::new(RefCell::new(ParticleContainer::new()));
-        let naive_particle_solver = Box::new(NaiveParticleSolver::new());
-        let mut sim = ParticleSim::new(&particle_container, naive_particle_solver);
+        let particle_solver = Box::new(NaiveParticleSolver::new());
+        let mut sim = ParticleSim::new(&particle_container, particle_solver);
+
+        // add 2 particles so collision code can run
+        particle_container.as_ref().borrow_mut().add(Particle::default());
+        particle_container.as_ref().borrow_mut().add(*Particle::default().set_position(vec2(0.01, 0.0)));
+
+        // step the simulation 1 second forward in time
+        sim.update(1.0);
+    }
+
+
+    #[test]
+    fn spatial_hash_particle_solver_particle_sim() {
+        // create a particle sim
+        let particle_container = Rc::new(RefCell::new(ParticleContainer::new()));
+        let particle_solver = Box::new(SpatialHashParticleSolver::new());
+        let mut sim = ParticleSim::new(&particle_container, particle_solver);
 
         // add 2 particles so collision code can run
         particle_container.as_ref().borrow_mut().add(Particle::default());
