@@ -2,9 +2,9 @@ use bevy::math::Vec2;
 use nalgebra::Vector2;
 use sdl2::pixels::Color;
 
-use crate::v3::particle_accelerator::{ParticleAccelerator, ParticleHandle, SpringHandle, StickHandle};
+use crate::{v3::particle_accelerator::{ParticleAccelerator, SpringHandle, StickHandle}, v4::{particle_container::ParticleContainer, particle_handle::ParticleHandle}};
 
-use super::particle::{Particle};
+use super::super::particle::{Particle};
 
 // Utility function that takes 2 points (a line segment) and a radius
 // and calculates how many circles can fit touching each other between the 2 points.
@@ -146,6 +146,15 @@ impl ShapeBuilder {
         self.particle_template.clone()
     }
 
+    pub fn create_in_particle_container(&mut self, particle_container: &mut ParticleContainer) -> &mut Self {
+        for particle in self.particles.iter() {
+            let particle_handle = particle_container.add(*particle);
+            self.particle_handles.push(particle_handle);
+        }
+        self
+    }
+
+    /* 
     pub fn create_in_particle_accelerator(&mut self, particle_accelerator: &mut ParticleAccelerator, mask: u32) -> &mut Self {
         let mut particle_handles = vec![];
         for particle in self.particles.iter() {
@@ -179,6 +188,7 @@ impl ShapeBuilder {
 
         self
     }
+    */
 
     pub fn add_particles(&mut self, position_provider: &dyn PositionProvider) -> &mut Self {
         let points = position_provider.get_points_for_radius(self.particle_template.radius);
@@ -192,8 +202,6 @@ impl ShapeBuilder {
 #[cfg(test)]
 mod tests {
     use bevy::math::Vec2;
-
-    use crate::v4::{particle::{Particle}, shape_builder::ShapeBuilder};
 
     use super::*;
 
@@ -216,6 +224,19 @@ mod tests {
         let mut b = ShapeBuilder::new();
         b.add_particles(&LineSegment::new(Vec2::new(0.0, 0.0), Vec2::new(10.0, 0.0)));
         assert_eq!(b.particles.len(), 10);
+    }
+
+    #[test]
+    fn create_in_particle_container() {
+        let mut b = ShapeBuilder::new();
+        b.set_particle_template(Particle::default().set_static(true).clone());
+        b.add_particles(&Circle::new(Vec2::new(0.0, 0.0), 10.0));
+
+        let mut pc = ParticleContainer::new();
+        b.create_in_particle_container(&mut pc);
+
+        assert_eq!(pc.particles.len(), b.particle_handles.len());
+        assert_eq!(pc.particles.len(),  b.particles.len());
     }
 }
 

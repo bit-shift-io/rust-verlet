@@ -39,8 +39,18 @@ mod v3 {
 
 mod v4 {
     pub mod particle;
-    pub mod shape_builder;
+    pub mod particle_handle;
+    pub mod shape_builder {
+        pub mod shape_builder;
+    }
     pub mod spatial_hash;
+    pub mod particle_container;
+    pub mod constraint_container;
+    pub mod particle_solvers {
+        pub mod particle_solver;
+        pub mod naive_particle_solver;
+    }
+    pub mod particle_sim;
 }
 
 use crate::sdl::main_sdl::main_sdl;
