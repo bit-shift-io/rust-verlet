@@ -40,6 +40,7 @@ mod v3 {
 mod v4 {
     pub mod particle;
     pub mod shape_builder;
+    pub mod spatial_hash;
 }
 
 use crate::sdl::main_sdl::main_sdl;

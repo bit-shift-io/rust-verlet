@@ -14,6 +14,7 @@ bevy = { version = "0.14", features = ["dynamic_linking"] } # disable dynamic li
 log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
 bytemuck = "1.7"
 iyes_perf_ui = "0.3.0"
+smallvec = { version = "1.11", features = ["union", "const_generics"] }
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
