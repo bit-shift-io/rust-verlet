@@ -1,93 +1,124 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use bevy::math::Vec2;
-
+use crate::v4::particle;
 use crate::v4::spatial_hash::SpatialHash;
 
 use super::super::particle_container::ParticleContainer;
 
-use super::particle_solver::ParticleSolver;
+use super::particle_solver::{compute_movement_weight, ParticleSolver, ParticleSolverMetrics};
 
 pub struct SpatialHashParticleSolver {
     particle_container: Rc<RefCell<ParticleContainer>>,
-    spatial_hash: SpatialHash
+    particle_solver_metrics: ParticleSolverMetrics,
+    static_spatial_hash: SpatialHash<usize>
 }
 
 impl SpatialHashParticleSolver {
     pub fn new() -> Self {
         Self { 
             particle_container: Rc::new(RefCell::new(ParticleContainer::new())),
-            spatial_hash: SpatialHash::new(),
+            particle_solver_metrics: ParticleSolverMetrics::default(),
+            static_spatial_hash: SpatialHash::<usize>::new(),
         }
-    }
-
-    fn compute_movement_weight(a_is_static: bool, b_is_static: bool) -> (f32, f32) {
-        // movement weight is used to stop static objects being moved
-        let a_movement_weight = if a_is_static { 0.0f32 } else if b_is_static { 1.0f32 } else { 0.5f32 };
-        let b_movement_weight = 1.0f32 - a_movement_weight;
-        (a_movement_weight, b_movement_weight)
     }
 }
 
 impl ParticleSolver for SpatialHashParticleSolver {
     fn attach_to_particle_container(&mut self, particle_container: &Rc<RefCell<ParticleContainer>>) {
         self.particle_container = particle_container.clone();
+        self.notify_particle_container_changed();
+    }
+
+    fn reset_metrics(&mut self) {
+        self.particle_solver_metrics = ParticleSolverMetrics::default()
+    }
+
+    fn get_metrics(&self) -> &ParticleSolverMetrics {
+        &self.particle_solver_metrics
+    }
+
+    fn notify_particle_container_changed(&mut self/* , particle_container: &Rc<RefCell<ParticleContainer>>, particle_index: usize*/) {
+        // rebuild the static spatial hash if a static particle was changed
+        self.static_spatial_hash = SpatialHash::new();
+        for (idx, particle) in self.particle_container.as_ref().borrow().particles.iter().enumerate() {
+            if particle.is_static && particle.is_enabled {
+                self.static_spatial_hash.insert_aabb(particle.get_aabb(), idx);
+            }
+        }
     }
 
     fn solve_collisions(&mut self) {
-        // todo: use the spatial has to solve collisions
         let mut particle_container = self.particle_container.as_ref().borrow_mut();
-
-        // for each layer, we need to collide with each particle
         let particle_count: usize = particle_container.particles.len();
+
+        let mut dynamic_spatial_hash = SpatialHash::<usize>::new();
         for ai in 0..particle_count {
-            for bi in (&ai+1)..particle_count {
-                let particle_a = particle_container.particles[ai];
-                let particle_b = particle_container.particles[bi];
+            let particle_a = particle_container.particles[ai];
+            if !particle_a.is_static && particle_a.is_enabled {
+                dynamic_spatial_hash.insert_aabb(particle_a.get_aabb(), ai);
+            }
+        }
 
-                // ignore static - static collisions
-                if particle_a.is_static && particle_b.is_static {
-                    continue;
+        // todo: consider that there might be duplicate checks as an entity can be in multiple cells
+
+        // perform dynamic-static collision detection
+        for ai in 0..particle_count {
+            let particle_a = particle_container.particles[ai];
+            if !particle_a.is_static && particle_a.is_enabled {
+                for bi in self.static_spatial_hash.aabb_iter(particle_a.get_aabb()) {
+                    self.particle_solver_metrics.num_collision_checks += 1;
+
+                    let particle_b = particle_container.particles[bi];
+
+                    // particle_a is dynamic while particle_b is static
+                    let collision_axis = particle_a.pos - particle_b.pos;
+                    let dist_squared = collision_axis.length_squared();
+                    let min_dist = particle_a.radius + particle_b.radius;
+
+                    if dist_squared < (min_dist * min_dist) {
+                        let dist = f32::sqrt(dist_squared);
+                        let n = collision_axis / dist;
+                        let delta = min_dist - dist;
+                        let movement = delta * n;
+
+                        let mut_particle_a = &mut particle_container.particles[ai];
+                        mut_particle_a.pos += movement;
+                    }
                 }
+            }
+        }
 
-                // ignore disabled particles
-                if !particle_a.is_enabled || !particle_b.is_enabled {
-                    continue;
-                }
+        // perform dynamic-dynamic collision detection
+        for ai in 0..particle_count {
+            let particle_a = particle_container.particles[ai];
+            if !particle_a.is_static && particle_a.is_enabled {
+                for bi in dynamic_spatial_hash.aabb_iter(particle_a.get_aabb()) {
+                    self.particle_solver_metrics.num_collision_checks += 1;
 
-                let (a_movement_weight, b_movement_weight) = Self::compute_movement_weight(particle_a.is_static, particle_b.is_static);
-                
-                let collision_axis: Vec2;
-                let dist: f32;
-                let min_dist: f32;
+                    let particle_b = particle_container.particles[bi];
 
-                // in a code block so ap and bp borrows are released as we need to borrow mut later if
-                // there is a collision
-                {
-                    //let ap = a_particle.as_ref().borrow();
-                    //let bp = b_particle.as_ref().borrow();
-                    let verlet_position_a = particle_a; //&particle_accelerator.verlet_positions[particle_id_a];
-                    let verlet_position_b = particle_b; //&particle_accelerator.verlet_positions[particle_id_b];
-                
-                    collision_axis = verlet_position_a.pos - verlet_position_b.pos;
-                    dist = (collision_axis[0].powf(2f32) + collision_axis[1].powf(2f32)).sqrt();
-                    min_dist = particle_a.radius + particle_b.radius;
-                }
+                    // particle_a and particle_b are both dynamic particles
+                    let collision_axis = particle_a.pos - particle_b.pos;
+                    let dist_squared = collision_axis.length_squared();
+                    let min_dist = particle_a.radius + particle_b.radius;
 
-                if dist < min_dist as f32 {
-                    let n: Vec2 = collision_axis / dist;
-                    let delta: f32 = min_dist as f32 - dist;
+                    if dist_squared < (min_dist * min_dist) {
+                        let dist = f32::sqrt(dist_squared);
+                        let n = collision_axis / dist;
+                        let delta = min_dist - dist;
+                        let movement = delta * 0.5 * n;
 
-                    // is it better to have no if statement to make the loop tight at the cost
-                    // of wasted vector computations?
-                    //let mut ap_mut = a_particle.as_ref().borrow_mut();
-                    let verlet_position_a = &mut particle_container.particles[ai]; //&mut particle_accelerator.verlet_positions[particle_id_a];
-                    verlet_position_a.pos += a_movement_weight * delta * n;
+                        {
+                            let mut_particle_a = &mut particle_container.particles[ai];
+                            mut_particle_a.pos += movement;
+                        }
 
-                    //let mut bp_mut = b_particle.as_ref().borrow_mut();
-                    let verlet_position_b = &mut particle_container.particles[bi]; //particle_b; //&mut particle_accelerator.verlet_positions[particle_id_b];
-                    verlet_position_b.pos -= b_movement_weight * delta * n;
+                        {
+                            let mut_particle_b = &mut particle_container.particles[bi];
+                            mut_particle_b.pos += movement;
+                        }
+                    }
                 }
             }
         }

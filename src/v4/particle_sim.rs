@@ -7,8 +7,8 @@ use super::{particle_container::ParticleContainer, particle_solvers::particle_so
 
 
 pub struct ParticleSim {
-    particle_container: Rc<RefCell<ParticleContainer>>,
-    particle_solver: Box<dyn ParticleSolver>,
+    pub particle_container: Rc<RefCell<ParticleContainer>>,
+    pub particle_solver: Box<dyn ParticleSolver>,
     desired_hertz: f32,
     gravity: Vec2
 }
@@ -24,6 +24,10 @@ impl ParticleSim {
         }
     }
 
+
+    fn notify_particle_container_changed(&mut self) {
+        self.particle_solver.notify_particle_container_changed();
+    }
 
     // dt = last frame elapsed time
     // desired_hertz = times per second
@@ -54,38 +58,63 @@ impl ParticleSim {
 mod tests {
     use bevy::math::{vec2, Vec2};
 
-    use crate::v4::{particle::Particle, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}};
+    use crate::v4::{particle::Particle, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::shape_builder::{Circle, LineSegment, ShapeBuilder}};
 
     use super::*;
 
-    #[test]
-    fn naive_particle_solver_particle_sim() {
-        // create a particle sim
-        let particle_container = Rc::new(RefCell::new(ParticleContainer::new()));
-        let particle_solver = Box::new(NaiveParticleSolver::new());
-        let mut sim = ParticleSim::new(&particle_container, particle_solver);
+    extern crate test;
+    use test::Bencher;
 
-        // add 2 particles so collision code can run
-        particle_container.as_ref().borrow_mut().add(Particle::default());
-        particle_container.as_ref().borrow_mut().add(*Particle::default().set_position(vec2(0.01, 0.0)));
+    // This lets us do some standard test on a solver to get some comparison
+    fn run_sim_solver_test(sim: &mut ParticleSim) {
+        // create some static shapes
+        {
+            let mut particle_container_mutref = sim.particle_container.as_ref().borrow_mut();
+            let particle_container = &mut *particle_container_mutref;
+
+            // static perimiter
+            let mut b = ShapeBuilder::new();
+            b.set_particle_template(Particle::default().set_static(true).clone());
+            b.add_particles(&Circle::new(vec2(0.0, 0.0), 10.0));
+            b.create_in_particle_container(particle_container);
+
+            // some dynamic particles on the inside
+            let mut b2 = ShapeBuilder::new();
+            b2.add_particles(&LineSegment::new(vec2(-3.0, 0.0), vec2(3.0, 0.0)));
+            b2.create_in_particle_container(particle_container);
+        }
 
         // step the simulation 1 second forward in time
         sim.update(1.0);
+
+        // print out the metrics to help us determine performance
+        println!("num_collision_checks: {}", sim.particle_solver.as_ref().get_metrics().num_collision_checks);
+    }
+
+    #[test]
+    fn naive_particle_solver_particle_sim() {
+        let particle_container = Rc::new(RefCell::new(ParticleContainer::new()));
+        let particle_solver = Box::new(NaiveParticleSolver::new());
+        let mut sim = ParticleSim::new(&particle_container, particle_solver);
+        run_sim_solver_test(&mut sim);
     }
 
 
     #[test]
     fn spatial_hash_particle_solver_particle_sim() {
-        // create a particle sim
         let particle_container = Rc::new(RefCell::new(ParticleContainer::new()));
         let particle_solver = Box::new(SpatialHashParticleSolver::new());
         let mut sim = ParticleSim::new(&particle_container, particle_solver);
+        run_sim_solver_test(&mut sim);
+    }
 
-        // add 2 particles so collision code can run
-        particle_container.as_ref().borrow_mut().add(Particle::default());
-        particle_container.as_ref().borrow_mut().add(*Particle::default().set_position(vec2(0.01, 0.0)));
+    #[bench]
+    fn naive_particle_solver_particle_sim_bench(b: &mut Bencher) {
+        b.iter(|| naive_particle_solver_particle_sim());
+    }
 
-        // step the simulation 1 second forward in time
-        sim.update(1.0);
+    #[bench]
+    fn spatial_hash_particle_solver_particle_sim_bench(b: &mut Bencher) {
+        b.iter(|| spatial_hash_particle_solver_particle_sim());
     }
 }

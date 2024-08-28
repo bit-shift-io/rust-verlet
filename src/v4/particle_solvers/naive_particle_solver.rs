@@ -5,30 +5,36 @@ use bevy::math::Vec2;
 
 use super::super::particle_container::ParticleContainer;
 
-use super::particle_solver::ParticleSolver;
+use super::particle_solver::{compute_movement_weight, ParticleSolver, ParticleSolverMetrics};
 
 pub struct NaiveParticleSolver {
-    particle_container: Rc<RefCell<ParticleContainer>>
+    particle_container: Rc<RefCell<ParticleContainer>>,
+    particle_solver_metrics: ParticleSolverMetrics,
 }
 
 impl NaiveParticleSolver {
     pub fn new() -> Self {
         Self { 
-            particle_container: Rc::new(RefCell::new(ParticleContainer::new()))
+            particle_container: Rc::new(RefCell::new(ParticleContainer::new())),
+            particle_solver_metrics: ParticleSolverMetrics::default(),
         }
-    }
-
-    fn compute_movement_weight(a_is_static: bool, b_is_static: bool) -> (f32, f32) {
-        // movement weight is used to stop static objects being moved
-        let a_movement_weight = if a_is_static { 0.0f32 } else if b_is_static { 1.0f32 } else { 0.5f32 };
-        let b_movement_weight = 1.0f32 - a_movement_weight;
-        (a_movement_weight, b_movement_weight)
     }
 }
 
 impl ParticleSolver for NaiveParticleSolver {
     fn attach_to_particle_container(&mut self, particle_container: &Rc<RefCell<ParticleContainer>>) {
         self.particle_container = particle_container.clone();
+    }
+
+    fn reset_metrics(&mut self) {
+        self.particle_solver_metrics = ParticleSolverMetrics::default()
+    }
+
+    fn get_metrics(&self) -> &ParticleSolverMetrics {
+        &self.particle_solver_metrics
+    }
+
+    fn notify_particle_container_changed(&mut self/* , particle_container: &Rc<RefCell<ParticleContainer>>, particle_index: usize*/) {
     }
 
     fn solve_collisions(&mut self) {
@@ -38,6 +44,8 @@ impl ParticleSolver for NaiveParticleSolver {
         let particle_count: usize = particle_container.particles.len();
         for ai in 0..particle_count {
             for bi in (&ai+1)..particle_count {
+                self.particle_solver_metrics.num_collision_checks += 1;
+
                 let particle_a = particle_container.particles[ai];
                 let particle_b = particle_container.particles[bi];
 
@@ -51,7 +59,7 @@ impl ParticleSolver for NaiveParticleSolver {
                     continue;
                 }
 
-                let (a_movement_weight, b_movement_weight) = Self::compute_movement_weight(particle_a.is_static, particle_b.is_static);
+                let (a_movement_weight, b_movement_weight) = compute_movement_weight(particle_a.is_static, particle_b.is_static);
                 
                 let collision_axis: Vec2;
                 let dist: f32;

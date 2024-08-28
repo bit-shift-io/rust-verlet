@@ -1,3 +1,4 @@
+#![feature(test)]
 
 mod sdl_system;
 mod keyboard;
