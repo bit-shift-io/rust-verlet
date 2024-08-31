@@ -46,6 +46,9 @@ mod v4 {
     pub mod particle_handle;
     pub mod shape_builder {
         pub mod shape_builder;
+        pub mod line_segment;
+        pub mod rectangle;
+        pub mod circle;
     }
     pub mod spatial_hash;
     pub mod particle_container;
@@ -54,6 +57,10 @@ mod v4 {
         pub mod particle_solver;
         pub mod naive_particle_solver;
         pub mod spatial_hash_particle_solver;
+    }
+    pub mod constraints {
+        pub mod constraint;
+        pub mod stick_constraint;
     }
     pub mod particle_sim;
 }

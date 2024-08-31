@@ -15,7 +15,7 @@ use bevy::{
 };
 use bytemuck::{Pod, Zeroable};
 
-use crate::v4::{particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::naive_particle_solver::NaiveParticleSolver, shape_builder::shape_builder::{radius_divisions_between_points, LineSegment, ShapeBuilder}};
+use crate::v4::{constraints::stick_constraint::StickConstraint, particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{line_segment::LineSegment, rectangle::Rectangle, shape_builder::{radius_divisions_between_points, ShapeBuilder}}};
 
 use super::{instance_material_data::{InstanceData, InstanceMaterialData}};
 
@@ -64,7 +64,7 @@ struct CarScene {
 impl CarScene {
     pub fn new() -> Self {
         let particle_container = Arc::new(RwLock::new(ParticleContainer::new()));
-        let particle_solver = Box::new(NaiveParticleSolver::new());
+        let particle_solver = Box::new(SpatialHashParticleSolver::new()); //NaiveParticleSolver::new());
         let mut particle_sim = ParticleSim::new(&particle_container, particle_solver);
 
         {
@@ -83,15 +83,13 @@ impl CarScene {
                 .add_particles(&LineSegment::new(vec2(5.0, 0.0), vec2(8.0, 0.5)))
                 .create_in_particle_container(&mut particle_container);
         
-            /* 
+
             // add a jellow cube to the scene
             ShapeBuilder::new()
-                .set_stiffness_factor(20.0) // this ignores mass
-                .set_mass(particle_mass)
-                .set_radius(particle_radius)
-                .add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
-                .create_in_particle_container(particle_container);
-    */
+                .set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).clone())
+                .set_constraint_template(StickConstraint::default().set_stiffness_factor(20.0).clone())// this ignores mass
+                .add_particles(&Rectangle::from_center_size(vec2(-3.0, 1.0), vec2(1.0, 1.0)))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
+                .create_in_particle_container(&mut particle_container);
             
             /* 
             // suspension bridge on the ground

@@ -1,6 +1,6 @@
 use bevy::math::Vec2;
 
-use crate::v4::{particle::Particle, particle_container::ParticleContainer, particle_handle::{ParticleHandle, SpringHandle, StickHandle}};
+use crate::v4::{constraints::{constraint::Constraint, stick_constraint::StickConstraint}, particle::Particle, particle_container::ParticleContainer, particle_handle::{ParticleHandle, SpringHandle, StickHandle}};
 
 // Utility function that takes 2 points (a line segment) and a radius
 // and calculates how many circles can fit touching each other between the 2 points.
@@ -10,79 +10,17 @@ pub fn radius_divisions_between_points(p1: Vec2, p2: Vec2, radius: f32) -> usize
     return divisions;
 }
 
+
 pub trait PositionProvider {
     fn get_points_for_radius(&self, radius: f32) -> Vec::<Vec2>;
-}
-
-pub struct LineSegment {
-    p1: Vec2,
-    p2: Vec2,
-}
-
-impl LineSegment {
-    pub fn new(p1: Vec2, p2: Vec2) -> Self {
-        Self { p1, p2 }
-    }
-}
-
-impl PositionProvider for LineSegment {
-    fn get_points_for_radius(&self, radius: f32) -> Vec::<Vec2> {
-        let mut points = vec![];
-
-        let divisions = radius_divisions_between_points(self.p1, self.p2, radius);
-        let delta = self.p2 - self.p1;
-
-        for i in 0..divisions { 
-            let percent = i as f32 / divisions as f32;
-            let pos = self.p1 + (delta * percent);
-            points.push(pos);
-        }
-
-        points
-    }
-}
-
-pub struct Circle {
-    centre: Vec2,
-    radius: f32,
-}
-
-impl Circle {
-    pub fn new(centre: Vec2, radius: f32) -> Self {
-        Self { centre, radius }
-    }
-}
-
-impl PositionProvider for Circle {
-    fn get_points_for_radius(&self, radius: f32) -> Vec::<Vec2> {
-        let mut points = vec![];
-
-        // putting a smaller circle on the bigger circle, creates 2x isosceles triangles where they intersect
-        // so solve to find the half angle
-        // https://www.quora.com/How-do-you-find-the-angles-of-an-isosceles-triangle-given-three-sides
-        let top = radius * radius; // particle radius ^ 2
-        let bottom = 2.0 * self.radius * self.radius; // circle_radius ^ 2
-        let c_angle = f32::acos(1.0 - (top / bottom)); // this is the half angle made by the isosceles trangle from the 2 intersecting circles
-        let theta = c_angle * 2.0;
-        
-        let divisions = (2.0 * std::f32::consts::PI) / theta;
-        let integer_divisions = divisions as usize;
-        for i in 0..integer_divisions {
-            let radians = i as f32 * theta;
-            let x = f32::sin(radians);
-            let y = f32::cos(radians);
-            let pos = self.centre + Vec2::new(x * self.radius, y * self.radius);
-            points.push(pos);
-        }
-
-        points
-    }
 }
 
 pub struct ShapeBuilder {
     pub particles: Vec<Particle>,
 
     pub particle_template: Particle,
+
+    pub constraint_template: Box<dyn Constraint>,
 
     pub cursor: Vec2,
     /* 
@@ -111,12 +49,19 @@ impl ShapeBuilder {
         Self { 
             particles: vec![], 
             particle_template: Particle::default(),
+
+            constraint_template: Box::new(StickConstraint::default()),
             cursor: Vec2::new(0.0, 0.0),
 
             particle_handles: vec![],
             stick_handles: vec![],
             spring_handles: vec![],
         }    
+    }
+
+    pub fn set_constraint_template<T: Constraint + 'static>(&mut self, constraint_template: T) -> &mut Self {
+        self.constraint_template = Box::new(constraint_template);
+        self
     }
 
     pub fn set_particle_template(&mut self, particle_template: Particle) -> &mut Self {
@@ -198,6 +143,8 @@ impl ShapeBuilder {
 #[cfg(test)]
 mod tests {
     use bevy::math::Vec2;
+
+    use crate::v4::shape_builder::{circle::Circle, line_segment::LineSegment};
 
     use super::*;
 

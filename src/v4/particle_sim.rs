@@ -58,7 +58,7 @@ impl ParticleSim {
 mod tests {
     use bevy::math::{vec2, Vec2};
 
-    use crate::v4::{particle::Particle, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::shape_builder::{Circle, LineSegment, ShapeBuilder}};
+    use crate::v4::{particle::Particle, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{circle::Circle, line_segment::LineSegment, shape_builder::ShapeBuilder}};
 
     use super::*;
 

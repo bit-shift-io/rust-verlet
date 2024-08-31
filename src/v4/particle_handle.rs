@@ -1,4 +1,6 @@
-#[derive(Clone)]
+use std::usize;
+
+#[derive(Debug, Clone, Copy)]
 pub struct ParticleHandle {
     id: usize,
 }
@@ -10,6 +12,14 @@ impl ParticleHandle {
 
    pub fn id(&self) -> usize {
         self.id
+    }
+}
+
+impl Default for ParticleHandle {
+    fn default() -> Self {
+        Self {
+            id: usize::MAX
+        }
     }
 }
 
