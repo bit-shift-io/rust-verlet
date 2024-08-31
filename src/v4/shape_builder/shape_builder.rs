@@ -10,7 +10,6 @@ pub fn radius_divisions_between_points(p1: Vec2, p2: Vec2, radius: f32) -> usize
     return divisions;
 }
 
-
 pub trait PositionProvider {
     fn get_points_for_radius(&self, radius: f32) -> Vec::<Vec2>;
 }

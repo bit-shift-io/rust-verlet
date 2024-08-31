@@ -6,7 +6,7 @@ use bevy::math::Vec2;
 
 use super::super::particle_container::ParticleContainer;
 
-use super::particle_solver::{compute_movement_weight, ParticleSolver, ParticleSolverMetrics};
+use super::particle_solver::{compute_movement_weight, update_particle_positions, ParticleSolver, ParticleSolverMetrics};
 
 pub struct NaiveParticleSolver {
     particle_container: Arc<RwLock<ParticleContainer>>,
@@ -35,6 +35,10 @@ impl ParticleSolver for NaiveParticleSolver {
         &self.particle_solver_metrics
     }
 
+    fn update_particle_positions(&mut self, delta_seconds: f32) {
+        update_particle_positions(&mut self.particle_container.as_ref().write().unwrap(), delta_seconds);
+    }
+    
     fn notify_particle_container_changed(&mut self/* , particle_container: &Rc<RefCell<ParticleContainer>>, particle_index: usize*/) {
     }
 

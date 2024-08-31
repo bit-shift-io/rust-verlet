@@ -64,7 +64,7 @@ struct CarScene {
 impl CarScene {
     pub fn new() -> Self {
         let particle_container = Arc::new(RwLock::new(ParticleContainer::new()));
-        let particle_solver = Box::new(SpatialHashParticleSolver::new()); //NaiveParticleSolver::new());
+        let particle_solver = Box::new(NaiveParticleSolver::new()); // SpatialHashParticleSolver::new()); // NaiveParticleSolver::new()); 
         let mut particle_sim = ParticleSim::new(&particle_container, particle_solver);
 
         {
@@ -75,7 +75,7 @@ impl CarScene {
             let particle_mass = 1.0; //g_to_kg(0.1);
 
             // line along the ground
-            let mask = 0x1;
+            //let mask = 0x1;
 
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone()) 
@@ -90,7 +90,16 @@ impl CarScene {
                 .set_constraint_template(StickConstraint::default().set_stiffness_factor(20.0).clone())// this ignores mass
                 .add_particles(&Rectangle::from_center_size(vec2(-3.0, 1.0), vec2(1.0, 1.0)))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
                 .create_in_particle_container(&mut particle_container);
-            
+ 
+/*          // single particle for easier testing
+            ShapeBuilder::new()
+                .set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).clone())
+                .set_constraint_template(StickConstraint::default().set_stiffness_factor(20.0).clone())// this ignores mass
+                .add_particles(&LineSegment::new(vec2(-particle_radius * 2.0, 1.0), vec2(0.0, 1.0)))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
+                .create_in_particle_container(&mut particle_container);
+
+            */
+
             /* 
             // suspension bridge on the ground
             {
@@ -124,7 +133,8 @@ impl CarScene {
         */
                 suspension_bridge.create_in_particle_container(&mut particle_container);
             }
-
+*/
+/* 
             // particle liquid + bucket
             {
                 let liquid_particle_radius = particle_radius * 0.85;
@@ -144,7 +154,7 @@ impl CarScene {
                     .set_particle_template(Particle::default().set_mass(liquid_particle_mass).set_radius(liquid_particle_radius).clone())
                     .add_grid((width - 1) as i32, (height - 1) as i32, liquid_particle_radius * 2.0, origin + Vec2::new(0.0 + liquid_particle_radius * 2.0, funnel_height + 1.0))
                     //.connect_with_stick_chain(2)
-                    .create_in_particle_accelerator(&mut particle_accelerator, mask);
+                    .create_in_particle_container(&mut particle_container);
 
 
                 let mut funnel = ShapeBuilder::new();
@@ -152,7 +162,7 @@ impl CarScene {
                     .set_particle_template(Particle::default().set_static(true).set_radius(funnel_particle_radius).clone())
                     .add_line(origin + Vec2::new(-3.0, funnel_height + 2.0), origin + Vec2::new(1.0, funnel_height), funnel_particle_radius)
                     .add_line(origin + Vec2::new(5.0, funnel_height + 2.0), origin + Vec2::new(1.0 + liquid_particle_radius * 8.0, funnel_height), funnel_particle_radius)
-                    .create_in_particle_accelerator(&mut particle_accelerator, mask);
+                    .create_in_particle_container(&mut particle_container);
 
                 let mut bucket = ShapeBuilder::new();
                 bucket
@@ -160,17 +170,16 @@ impl CarScene {
                     .add_line(origin, origin + Vec2::new(bucket_height, -bucket_height), particle_radius)
                     .add_line(origin + Vec2::new(bucket_height, -bucket_height), origin + Vec2::new(bucket_width - bucket_height, -bucket_height), particle_radius)
                     .add_line(origin + Vec2::new(bucket_width - bucket_height, -bucket_height), origin + Vec2::new(bucket_width, 0.0), particle_radius)
-                    .create_in_particle_accelerator(&mut particle_accelerator, mask);
+                    .create_in_particle_container(&mut particle_container);
             }
-
+*/
             {
                 // ground line to the righ of the bucket
                 ShapeBuilder::new()
-                    .set_particle_template(Particle::default().set_static(true).clone())
-                    .add_line(Vec2::new(11.0, 0.3), Vec2::new(20.0, 1.0), particle_radius * 2.0)
-                    .create_in_particle_accelerator(&mut particle_accelerator, mask);
+                    .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius * 2.0).clone())
+                    .add_particles(&LineSegment::new(vec2(11.0, 0.3), vec2(20.0, 1.0))) //.add_line(Vec2::new(11.0, 0.3), Vec2::new(20.0, 1.0), particle_radius * 2.0)
+                    .create_in_particle_container(&mut particle_container);
             }
-    */
         }
 
         Self {
@@ -187,7 +196,7 @@ impl Plugin for CarScenePlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Startup, setup_car_scene)
-            //.add_systems(Update, update_car_scene)
+            .add_systems(Update, update_car_scene)
             .add_systems(Update, update_particle_instances)
             //.add_systems(Update, update_camera);
             ;
@@ -263,18 +272,18 @@ fn update_particle_instances(
         } 
     }
 }
-/* 
+
 fn update_car_scene(
     time: Res<Time>, 
     keys: Res<ButtonInput<KeyCode>>,
     mut commands: Commands, 
     mut meshes: ResMut<Assets<Mesh>>, 
     mut query_car_scenes: Query<(&mut CarScene)>,
-    mut car_component_query: Query<(&mut CarComponent)>,
+    //mut car_component_query: Query<(&mut CarComponent)>,
     mut instance_material_data_query: Query<(&mut InstanceMaterialData)>
 ) {
     let mut car_scene = query_car_scenes.single_mut();
-    let mut car_component = car_component_query.single_mut();
+    //let mut car_component = car_component_query.single_mut();
     let delta_seconds = time.delta_seconds();
 
     // handle pause - could go in a different update system
@@ -285,6 +294,10 @@ fn update_car_scene(
     if car_scene.paused {
         return;
     }
+
+    car_scene.particle_sim.pre_update();
+
+    car_scene.particle_sim.update(delta_seconds);
 /* 
     // reset forces to just the gravity value
     // 9.8 = units are in metres per second
@@ -310,6 +323,7 @@ fn update_car_scene(
     */
 }
 
+/*
 fn update_camera(
     time: Res<Time>, 
     mut commands: Commands,

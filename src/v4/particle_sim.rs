@@ -1,10 +1,15 @@
 use std::{cell::RefCell, rc::Rc, sync::{Arc, RwLock}};
 
-use bevy::math::Vec2;
+use bevy::math::{vec2, Vec2};
 
 use super::{particle_container::ParticleContainer, particle_solvers::particle_solver::ParticleSolver};
 
 
+pub fn reset_forces(particle_container: &mut ParticleContainer, gravity: Vec2) {
+    for particle in particle_container.particles.iter_mut() {
+        particle.set_force_based_on_acceleration(gravity);
+    }
+}
 
 pub struct ParticleSim {
     pub particle_container: Arc<RwLock<ParticleContainer>>,
@@ -20,7 +25,7 @@ impl ParticleSim {
             particle_container: particle_container.clone(),
             particle_solver,
             desired_hertz: 240.0,
-            gravity: Vec2::new(0.0, -9.8),
+            gravity: vec2(0.0, -9.8),
         }
     }
 
@@ -41,12 +46,18 @@ impl ParticleSim {
         vec![increment; rounded_substeps]
     }
 
+    pub fn pre_update(&mut self) {
+        reset_forces(&mut self.particle_container.as_ref().write().unwrap(), self.gravity);
+    }
+
     pub fn update(&mut self, delta_seconds: f32) {
         for sub_dt in Self::range_substeps(delta_seconds, self.desired_hertz).iter() {
             self.particle_solver.solve_collisions();
             /*
             collider.update_constraints(&mut car_scene.particle_accelerator, *sub_dt);
-            collider.update_positions(&mut car_scene.particle_accelerator, *sub_dt);
+            */
+            self.particle_solver.update_particle_positions(*sub_dt); //collider.update_positions(&mut car_scene.particle_accelerator, *sub_dt);
+            /* 
             collider.post_update_constraints(&mut car_scene.particle_accelerator, *sub_dt);
             */
         }

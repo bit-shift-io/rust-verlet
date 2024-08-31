@@ -7,7 +7,7 @@ use crate::v4::spatial_hash::SpatialHash;
 
 use super::super::particle_container::ParticleContainer;
 
-use super::particle_solver::{compute_movement_weight, ParticleSolver, ParticleSolverMetrics};
+use super::particle_solver::{compute_movement_weight, update_particle_positions, ParticleSolver, ParticleSolverMetrics};
 
 pub struct SpatialHashParticleSolver {
     particle_container: Arc<RwLock<ParticleContainer>>,
@@ -37,6 +37,10 @@ impl ParticleSolver for SpatialHashParticleSolver {
 
     fn get_metrics(&self) -> &ParticleSolverMetrics {
         &self.particle_solver_metrics
+    }
+
+    fn update_particle_positions(&mut self, delta_seconds: f32) {
+        update_particle_positions(&mut self.particle_container.as_ref().write().unwrap(), delta_seconds);
     }
 
     fn notify_particle_container_changed(&mut self/* , particle_container: &Rc<RefCell<ParticleContainer>>, particle_index: usize*/) {
@@ -95,6 +99,10 @@ impl ParticleSolver for SpatialHashParticleSolver {
             let particle_a = particle_container.particles[ai];
             if !particle_a.is_static && particle_a.is_enabled {
                 for bi in dynamic_spatial_hash.aabb_iter(particle_a.get_aabb()) {
+                    if ai == bi {
+                        continue; // skip self-collision
+                    }
+                    
                     self.particle_solver_metrics.num_collision_checks += 1;
 
                     let particle_b = particle_container.particles[bi];
