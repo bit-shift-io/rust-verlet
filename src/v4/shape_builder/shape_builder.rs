@@ -1,10 +1,6 @@
 use bevy::math::Vec2;
-use nalgebra::Vector2;
-use sdl2::pixels::Color;
 
-use crate::{v3::particle_accelerator::{ParticleAccelerator, SpringHandle, StickHandle}, v4::{particle_container::ParticleContainer, particle_handle::ParticleHandle}};
-
-use super::super::particle::{Particle};
+use crate::v4::{particle::Particle, particle_container::ParticleContainer, particle_handle::{ParticleHandle, SpringHandle, StickHandle}};
 
 // Utility function that takes 2 points (a line segment) and a radius
 // and calculates how many circles can fit touching each other between the 2 points.

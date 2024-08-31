@@ -1,5 +1,6 @@
 #![feature(test)]
 
+/*
 mod sdl_system;
 mod keyboard;
 mod mouse;
@@ -9,15 +10,16 @@ mod point;
 mod sdl {
     pub mod main_sdl;
 }
+*/
 
 mod bevy {
     pub mod instance_material_data;
     pub mod main_bevy;
     pub mod car_scene;
-    pub mod car;
-    pub mod shape_test;
+    //pub mod car;
 }
 
+/*
 mod scenes {
     pub mod car {
         pub mod car_scene;
@@ -37,6 +39,7 @@ mod v3 {
     pub mod particle_collider;
     pub mod shape_builder;
 }
+*/
 
 mod v4 {
     pub mod particle;
@@ -55,7 +58,7 @@ mod v4 {
     pub mod particle_sim;
 }
 
-use crate::sdl::main_sdl::main_sdl;
+//use crate::sdl::main_sdl::main_sdl;
 //use crate::main_bevy::main_bevy;
 use crate::bevy::main_bevy::main_bevy;
 

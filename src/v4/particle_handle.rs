@@ -12,3 +12,7 @@ impl ParticleHandle {
         self.id
     }
 }
+
+pub type StickHandle = ParticleHandle;
+pub type SpringHandle = ParticleHandle;
+pub type AttachmentConstraintHandle = ParticleHandle;

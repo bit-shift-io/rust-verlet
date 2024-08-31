@@ -20,6 +20,11 @@ impl Particle {
         self
     }
 
+    pub fn set_mass(&mut self, mass: f32) -> &mut Self {
+        self.mass = mass;
+        self
+    }
+
     pub fn set_position(&mut self, pos: Vec2) -> &mut Self {
         self.pos = pos;
         self

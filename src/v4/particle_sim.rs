@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, sync::{Arc, RwLock}};
 
 use bevy::math::Vec2;
 
@@ -7,14 +7,14 @@ use super::{particle_container::ParticleContainer, particle_solvers::particle_so
 
 
 pub struct ParticleSim {
-    pub particle_container: Rc<RefCell<ParticleContainer>>,
-    pub particle_solver: Box<dyn ParticleSolver>,
+    pub particle_container: Arc<RwLock<ParticleContainer>>,
+    pub particle_solver: Box<dyn ParticleSolver + Send + Sync>,
     desired_hertz: f32,
     gravity: Vec2
 }
 
 impl ParticleSim {
-    pub fn new(particle_container: &Rc<RefCell<ParticleContainer>>, mut particle_solver: Box<dyn ParticleSolver>) -> Self {
+    pub fn new(particle_container: &Arc<RwLock<ParticleContainer>>, mut particle_solver: Box<dyn ParticleSolver + Send + Sync>) -> Self {
         particle_solver.as_mut().attach_to_particle_container(particle_container);
         Self {
             particle_container: particle_container.clone(),
@@ -69,7 +69,7 @@ mod tests {
     fn run_sim_solver_test(sim: &mut ParticleSim) {
         // create some static shapes
         {
-            let mut particle_container_mutref = sim.particle_container.as_ref().borrow_mut();
+            let mut particle_container_mutref = sim.particle_container.as_ref().write().unwrap();
             let particle_container = &mut *particle_container_mutref;
 
             // static perimiter
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn naive_particle_solver_particle_sim() {
-        let particle_container = Rc::new(RefCell::new(ParticleContainer::new()));
+        let particle_container = Arc::new(RwLock::new(ParticleContainer::new()));
         let particle_solver = Box::new(NaiveParticleSolver::new());
         let mut sim = ParticleSim::new(&particle_container, particle_solver);
         run_sim_solver_test(&mut sim);
@@ -102,7 +102,7 @@ mod tests {
 
     #[test]
     fn spatial_hash_particle_solver_particle_sim() {
-        let particle_container = Rc::new(RefCell::new(ParticleContainer::new()));
+        let particle_container = Arc::new(RwLock::new(ParticleContainer::new()));
         let particle_solver = Box::new(SpatialHashParticleSolver::new());
         let mut sim = ParticleSim::new(&particle_container, particle_solver);
         run_sim_solver_test(&mut sim);

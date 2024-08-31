@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::{Arc, RwLock};
 
 use crate::v4::particle;
 use crate::v4::spatial_hash::SpatialHash;
@@ -9,7 +10,7 @@ use super::super::particle_container::ParticleContainer;
 use super::particle_solver::{compute_movement_weight, ParticleSolver, ParticleSolverMetrics};
 
 pub struct SpatialHashParticleSolver {
-    particle_container: Rc<RefCell<ParticleContainer>>,
+    particle_container: Arc<RwLock<ParticleContainer>>,
     particle_solver_metrics: ParticleSolverMetrics,
     static_spatial_hash: SpatialHash<usize>
 }
@@ -17,7 +18,7 @@ pub struct SpatialHashParticleSolver {
 impl SpatialHashParticleSolver {
     pub fn new() -> Self {
         Self { 
-            particle_container: Rc::new(RefCell::new(ParticleContainer::new())),
+            particle_container: Arc::new(RwLock::new(ParticleContainer::new())),
             particle_solver_metrics: ParticleSolverMetrics::default(),
             static_spatial_hash: SpatialHash::<usize>::new(),
         }
@@ -25,7 +26,7 @@ impl SpatialHashParticleSolver {
 }
 
 impl ParticleSolver for SpatialHashParticleSolver {
-    fn attach_to_particle_container(&mut self, particle_container: &Rc<RefCell<ParticleContainer>>) {
+    fn attach_to_particle_container(&mut self, particle_container: &Arc<RwLock<ParticleContainer>>) {
         self.particle_container = particle_container.clone();
         self.notify_particle_container_changed();
     }
@@ -41,7 +42,7 @@ impl ParticleSolver for SpatialHashParticleSolver {
     fn notify_particle_container_changed(&mut self/* , particle_container: &Rc<RefCell<ParticleContainer>>, particle_index: usize*/) {
         // rebuild the static spatial hash if a static particle was changed
         self.static_spatial_hash = SpatialHash::new();
-        for (idx, particle) in self.particle_container.as_ref().borrow().particles.iter().enumerate() {
+        for (idx, particle) in self.particle_container.as_ref().read().unwrap().particles.iter().enumerate() {
             if particle.is_static && particle.is_enabled {
                 self.static_spatial_hash.insert_aabb(particle.get_aabb(), idx);
             }
@@ -49,7 +50,7 @@ impl ParticleSolver for SpatialHashParticleSolver {
     }
 
     fn solve_collisions(&mut self) {
-        let mut particle_container = self.particle_container.as_ref().borrow_mut();
+        let mut particle_container = self.particle_container.as_ref().write().unwrap();
         let particle_count: usize = particle_container.particles.len();
 
         let mut dynamic_spatial_hash = SpatialHash::<usize>::new();

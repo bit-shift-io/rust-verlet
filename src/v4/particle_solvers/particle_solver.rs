@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, sync::{Arc, RwLock}};
 
 use bevy::math::Vec2;
 
@@ -14,7 +14,7 @@ pub fn compute_movement_weight(a_is_static: bool, b_is_static: bool) -> (f32, f3
 }
 
 pub trait ParticleSolver {
-    fn attach_to_particle_container(&mut self, particle_container: &Rc<RefCell<ParticleContainer>>);
+    fn attach_to_particle_container(&mut self, particle_container: &Arc<RwLock<ParticleContainer>>);
 
     fn notify_particle_container_changed(&mut self);
 

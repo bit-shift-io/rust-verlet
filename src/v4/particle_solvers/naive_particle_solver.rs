@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::{Arc, RwLock};
 
 use bevy::math::Vec2;
 
@@ -8,21 +9,21 @@ use super::super::particle_container::ParticleContainer;
 use super::particle_solver::{compute_movement_weight, ParticleSolver, ParticleSolverMetrics};
 
 pub struct NaiveParticleSolver {
-    particle_container: Rc<RefCell<ParticleContainer>>,
+    particle_container: Arc<RwLock<ParticleContainer>>,
     particle_solver_metrics: ParticleSolverMetrics,
 }
 
 impl NaiveParticleSolver {
     pub fn new() -> Self {
         Self { 
-            particle_container: Rc::new(RefCell::new(ParticleContainer::new())),
+            particle_container: Arc::new(RwLock::new(ParticleContainer::new())),
             particle_solver_metrics: ParticleSolverMetrics::default(),
         }
     }
 }
 
 impl ParticleSolver for NaiveParticleSolver {
-    fn attach_to_particle_container(&mut self, particle_container: &Rc<RefCell<ParticleContainer>>) {
+    fn attach_to_particle_container(&mut self, particle_container: &Arc<RwLock<ParticleContainer>>) {
         self.particle_container = particle_container.clone();
     }
 
@@ -38,7 +39,7 @@ impl ParticleSolver for NaiveParticleSolver {
     }
 
     fn solve_collisions(&mut self) {
-        let mut particle_container = self.particle_container.as_ref().borrow_mut();
+        let mut particle_container = self.particle_container.as_ref().write().unwrap();
 
         // for each layer, we need to collide with each particle
         let particle_count: usize = particle_container.particles.len();
