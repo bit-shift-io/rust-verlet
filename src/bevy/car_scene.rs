@@ -107,21 +107,18 @@ impl CarScene {
                 .create_in_particle_container(&mut particle_container);
 */
 
-            /* 
+             
             // suspension bridge on the ground
             {
-                let width = radius_divisions_between_points(Vec2::new(-5.0, 0.0), Vec2::new(-8.0, 0.0), particle_radius);
-                let height = radius_divisions_between_points(Vec2::new(-8.0, 0.0), Vec2::new(-8.0, particle_radius * 6.0), particle_radius);
+                //let width = radius_divisions_between_points(Vec2::new(-5.0, 0.0), Vec2::new(-8.0, 0.0), particle_radius);
+                //let height = radius_divisions_between_points(Vec2::new(-8.0, 0.0), Vec2::new(-8.0, particle_radius * 6.0), particle_radius);
+                
                 let mut suspension_bridge = ShapeBuilder::new();
                 suspension_bridge.set_particle_template(Particle::default().set_radius(particle_radius).clone());
-                suspension_bridge
-                    //.set_static(true)
-                    //.add_parallelogram(Vec2::new(-5.0, 0.0), Vec2::new(-8.0, 0.0), Vec2::new(-8.0, particle_radius * 4.0))
-                    //.connect_with_cross_grid_of_sticks(height);
-                    .add_stick_grid((width - 1) as i32, (height - 1) as i32, particle_radius * 2.0, Vec2::new(-8.0, 0.0));
-                    //.remove_first_particle() // to avoid colliding with other statis particles
-                    //.connect_with_adjacent_sticks();
-                    
+
+                suspension_bridge.add_particles(&Rectangle::from_corners(vec2(-8.0, 0.0), vec2(-5.0, -particle_radius * 6.0)));
+                
+                /* 
                 // make the very left particles and very right particle static
                 //let particle_count = suspension_bridge.particles.len();
                 for y in 0..height {
@@ -132,15 +129,19 @@ impl CarScene {
                     suspension_bridge.particles[last_particle_idx].is_static = true;
                 }
 
-
-        /* 
                 let particle_count = suspension_bridge.particles.len();
                 suspension_bridge.particles[0].is_static = true;
                 suspension_bridge.particles[particle_count - 1].is_static = true;
         */
+                {
+                    // extract left particles and make them static
+                    let mut left = suspension_bridge.extract_left_most_particles();
+                    left.create_in_particle_container(&mut particle_container);
+                }
+
                 suspension_bridge.create_in_particle_container(&mut particle_container);
             }
-*/
+
  
             // particle liquid + bucket
             {

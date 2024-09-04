@@ -1,5 +1,5 @@
 #![feature(test)]
-
+#![feature(extract_if)]
 /*
 mod sdl_system;
 mod keyboard;

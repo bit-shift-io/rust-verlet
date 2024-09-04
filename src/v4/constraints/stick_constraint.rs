@@ -21,6 +21,9 @@ impl StickConstraint {
 }
 
 impl Constraint for StickConstraint {
+    fn box_clone(&self) -> Box<dyn Constraint> {
+        Box::new((*self).clone())
+    }
 }
 
 impl Default for StickConstraint {

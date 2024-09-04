@@ -1,6 +1,7 @@
-use bevy::math::Vec2;
+use bevy::math::{bounding::Aabb2d, vec2, Rot2, Vec2};
+use collision::Aabb3;
 
-use crate::v4::{constraints::{constraint::Constraint, stick_constraint::StickConstraint}, particle::Particle, particle_container::ParticleContainer, particle_handle::{ParticleHandle, SpringHandle, StickHandle}};
+use crate::v4::{constraints::{constraint::Constraint, stick_constraint::StickConstraint}, particle::{self, Particle}, particle_container::ParticleContainer, particle_handle::{ParticleHandle, SpringHandle, StickHandle}};
 
 // Utility function that takes 2 points (a line segment) and a radius
 // and calculates how many circles can fit touching each other between the 2 points.
@@ -56,6 +57,16 @@ impl ShapeBuilder {
             stick_handles: vec![],
             spring_handles: vec![],
         }    
+    }
+
+    pub fn from_shape_builder_templates(sb: &ShapeBuilder) -> Self {
+        let mut new_sb = ShapeBuilder::new();
+        new_sb.set_particle_template(sb.particle_template);
+
+        //new_sb.set_constraint_template(sb.constraint_template.as_ref().clone());
+        new_sb.constraint_template = sb.constraint_template.box_clone(); //Box::new(*sb.constraint_template.as_ref());
+        
+        new_sb
     }
 
     pub fn set_constraint_template<T: Constraint + 'static>(&mut self, constraint_template: T) -> &mut Self {
@@ -130,12 +141,51 @@ impl ShapeBuilder {
     }
     */
 
+    /* 
+    pub fn add_particles(&mut self, particles: Vec<Particle>) -> &mut Self {
+        for p in particles {
+            self.particles.push(p);
+        }
+        self
+    }*/
+
     pub fn add_particles(&mut self, position_provider: &dyn PositionProvider) -> &mut Self {
         let points = position_provider.get_points_for_radius(self.particle_template.radius);
         for p in points {
             self.add_particle_at_position(p);
         }
         self
+    }
+
+    pub fn get_aabb(&self) -> Aabb2d {
+        // extracted from Aabb2d::from_point_cloud
+        let mut points_iter = self.particles.iter().map(|particle| particle.pos);//.collect::<Vec<Vec2>>();//.try_into().unwrap();
+        
+        let first = points_iter
+            .next()
+            .expect("point cloud must contain at least one point for Aabb2d construction");
+
+        let (min, max) = points_iter.fold((first, first), |(prev_min, prev_max), point| {
+            (point.min(prev_min), point.max(prev_max))
+        });
+
+        Aabb2d {
+            min,
+            max
+        }
+    }
+
+    pub fn extract_left_most_particles(&mut self) -> ShapeBuilder {
+        let aabb = self.get_aabb();
+
+        let mut s = ShapeBuilder::from_shape_builder_templates(&self);
+
+        let r = self.particles.extract_if(|particle| particle.pos.x == aabb.min.x).collect::<Vec<_>>();
+        //s.add_particles(r); // todo: add a fn for this
+        for particle in r {
+            s.add_particle(particle);
+        }
+        s
     }
 }
 

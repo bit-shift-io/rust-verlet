@@ -11,6 +11,10 @@ impl Rectangle {
     pub fn from_center_size(centre: Vec2, size: Vec2) -> Self {
         Self { rect: Rect::from_center_size(centre, size) }
     }
+
+    pub fn from_corners(p0: Vec2, p1: Vec2) -> Self {
+        Self { rect: Rect::from_corners(p0, p1) }
+    }
 }
 
 impl PositionProvider for Rectangle {

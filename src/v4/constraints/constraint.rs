@@ -1,5 +1,6 @@
 
 
-pub trait Constraint {
 
+pub trait Constraint {
+    fn box_clone(&self) -> Box<dyn Constraint>;
 }
