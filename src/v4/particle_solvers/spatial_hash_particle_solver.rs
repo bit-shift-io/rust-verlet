@@ -12,6 +12,9 @@ use super::super::particle_container::ParticleContainer;
 
 use super::particle_solver::{compute_movement_weight, update_particle_positions, ParticleSolver, ParticleSolverMetrics};
 
+/// This seems to be around 2x better than naive implementation
+/// based on real world testing.
+/// We should try Octree's in future also.
 pub struct SpatialHashParticleSolver {
     particle_container: Arc<RwLock<ParticleContainer>>,
     particle_solver_metrics: ParticleSolverMetrics,

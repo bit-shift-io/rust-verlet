@@ -56,8 +56,8 @@ impl CarComponent {
     */
 
 #[derive(Component)]
-struct CarScene {
-    particle_sim: ParticleSim,
+pub struct CarScene {
+    pub particle_sim: ParticleSim,
     paused: bool,
 }
 
@@ -88,7 +88,7 @@ impl CarScene {
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).clone())
                 .set_constraint_template(StickConstraint::default().set_stiffness_factor(20.0).clone())// this ignores mass
-                .add_particles(&Rectangle::from_center_size(vec2(-3.0, 5.5), vec2(2.0, 10.0)))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
+                .add_particles(&Rectangle::from_center_size(vec2(-3.0, 1.5), vec2(1.0, 1.0)))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
                 .create_in_particle_container(&mut particle_container);
             
  
@@ -141,7 +141,7 @@ impl CarScene {
                 suspension_bridge.create_in_particle_container(&mut particle_container);
             }
 */
-/* 
+ 
             // particle liquid + bucket
             {
                 let liquid_particle_radius = particle_radius * 0.85;
@@ -154,40 +154,38 @@ impl CarScene {
                 let bucket_width = 3.0;
 
                 let origin = Vec2::new(8.0, 0.5);
-                let width = 20;
-                let height = 15;
+                let width = liquid_particle_radius * 2.0 * 20.0;
+                let height = liquid_particle_radius * 2.0 * 15.0;
                 let mut liquid = ShapeBuilder::new();
                 liquid
                     .set_particle_template(Particle::default().set_mass(liquid_particle_mass).set_radius(liquid_particle_radius).clone())
-                    .add_grid((width - 1) as i32, (height - 1) as i32, liquid_particle_radius * 2.0, origin + Vec2::new(0.0 + liquid_particle_radius * 2.0, funnel_height + 1.0))
-                    //.connect_with_stick_chain(2)
+                    .add_particles(&Rectangle::from_center_size(origin + vec2(0.0 + liquid_particle_radius * 2.0, funnel_height + 1.0), vec2(width, height)))
                     .create_in_particle_container(&mut particle_container);
-
-
+ 
                 let mut funnel = ShapeBuilder::new();
                 funnel
                     .set_particle_template(Particle::default().set_static(true).set_radius(funnel_particle_radius).clone())
-                    .add_line(origin + Vec2::new(-3.0, funnel_height + 2.0), origin + Vec2::new(1.0, funnel_height), funnel_particle_radius)
-                    .add_line(origin + Vec2::new(5.0, funnel_height + 2.0), origin + Vec2::new(1.0 + liquid_particle_radius * 8.0, funnel_height), funnel_particle_radius)
+                    .add_particles(&LineSegment::new(origin + vec2(-3.0, funnel_height + 2.0), origin + vec2(1.0, funnel_height))) //.add_line(origin + Vec2::new(-3.0, funnel_height + 2.0), origin + Vec2::new(1.0, funnel_height), funnel_particle_radius)
+                    .add_particles(&LineSegment::new(origin + vec2(5.0, funnel_height + 2.0), origin + vec2(1.0 + liquid_particle_radius * 8.0, funnel_height))) //.add_line(origin + Vec2::new(5.0, funnel_height + 2.0), origin + Vec2::new(1.0 + liquid_particle_radius * 8.0, funnel_height), funnel_particle_radius)
                     .create_in_particle_container(&mut particle_container);
-
+ 
                 let mut bucket = ShapeBuilder::new();
                 bucket
                     .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone())
-                    .add_line(origin, origin + Vec2::new(bucket_height, -bucket_height), particle_radius)
-                    .add_line(origin + Vec2::new(bucket_height, -bucket_height), origin + Vec2::new(bucket_width - bucket_height, -bucket_height), particle_radius)
-                    .add_line(origin + Vec2::new(bucket_width - bucket_height, -bucket_height), origin + Vec2::new(bucket_width, 0.0), particle_radius)
+                    .add_particles(&LineSegment::new(origin, origin + vec2(bucket_height, -bucket_height))) 
+                    .add_particles(&LineSegment::new(origin + vec2(bucket_height, -bucket_height), origin + vec2(bucket_width - bucket_height, -bucket_height)))
+                    .add_particles(&LineSegment::new(origin + vec2(bucket_width - bucket_height, -bucket_height), origin + vec2(bucket_width, 0.0)))
                     .create_in_particle_container(&mut particle_container);
             }
-*/
-/* 
+
+ 
             {
                 // ground line to the righ of the bucket
                 ShapeBuilder::new()
                     .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius * 2.0).clone())
                     .add_particles(&LineSegment::new(vec2(11.0, 0.3), vec2(20.0, 1.0))) //.add_line(Vec2::new(11.0, 0.3), Vec2::new(20.0, 1.0), particle_radius * 2.0)
                     .create_in_particle_container(&mut particle_container);
-            }*/
+            }
         }
 
         // let particle system know all static particles have been built
