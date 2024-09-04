@@ -32,16 +32,6 @@ pub fn main_bevy() {
         //.add_systems(Startup, setup_particle_instances)
         //.add_systems(Update, update_particle_instances)
 
-
-        // start of perf ui/metrics. we want Bevy to measure these values for us:
-        .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
-        .add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin)
-        .add_plugins(bevy::diagnostic::SystemInformationDiagnosticsPlugin)
-
-        .add_plugins(PerfUiPlugin)
-        .add_systems(Startup, setup_perf_ui)
-        // end of perf ui/metrics
-
         .run();
 }
 
@@ -85,12 +75,7 @@ fn setup_particle_instances(mut commands: Commands, mut meshes: ResMut<Assets<Me
 }
 */
 
-fn setup_perf_ui(mut commands: Commands) {
 
-    // create a simple Perf UI with default settings
-    // and all entries provided by the crate:
-    commands.spawn(PerfUiCompleteBundle::default());
-}
 
 fn setup_camera(mut commands: Commands) {
 

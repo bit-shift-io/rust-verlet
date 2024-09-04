@@ -17,7 +17,7 @@ use bytemuck::{Pod, Zeroable};
 
 use crate::v4::{constraints::stick_constraint::StickConstraint, particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{line_segment::LineSegment, rectangle::Rectangle, shape_builder::{radius_divisions_between_points, ShapeBuilder}}};
 
-use super::{instance_material_data::{InstanceData, InstanceMaterialData}};
+use super::{instance_material_data::{InstanceData, InstanceMaterialData}, performance_ui::performance_ui_build};
 
 pub fn m_to_cm(m: f32) -> f32 {
     m * 100.0
@@ -64,7 +64,7 @@ struct CarScene {
 impl CarScene {
     pub fn new() -> Self {
         let particle_container = Arc::new(RwLock::new(ParticleContainer::new()));
-        let particle_solver = Box::new(NaiveParticleSolver::new()); // SpatialHashParticleSolver::new()); // NaiveParticleSolver::new()); 
+        let particle_solver = Box::new(SpatialHashParticleSolver::new()); // SpatialHashParticleSolver::new()); // NaiveParticleSolver::new()); 
         let mut particle_sim = ParticleSim::new(&particle_container, particle_solver);
 
         {
@@ -77,28 +77,35 @@ impl CarScene {
             // line along the ground
             //let mask = 0x1;
 
+            
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone()) 
                 .add_particles(&LineSegment::new(vec2(-5.0, 0.0), vec2(5.0, 0.0)))
                 .add_particles(&LineSegment::new(vec2(5.0, 0.0), vec2(8.0, 0.5)))
                 .create_in_particle_container(&mut particle_container);
         
-
             // add a jellow cube to the scene
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).clone())
                 .set_constraint_template(StickConstraint::default().set_stiffness_factor(20.0).clone())// this ignores mass
-                .add_particles(&Rectangle::from_center_size(vec2(-3.0, 1.0), vec2(1.0, 1.0)))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
+                .add_particles(&Rectangle::from_center_size(vec2(-3.0, 5.5), vec2(2.0, 10.0)))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
                 .create_in_particle_container(&mut particle_container);
+            
  
-/*          // single particle for easier testing
+ 
+          /* 
+            ShapeBuilder::new()
+                .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone()) 
+                .add_particles(&LineSegment::new(vec2(-1.0, 0.0), vec2(1.0, 0.0)))
+                .create_in_particle_container(&mut particle_container);
+
+            // single particle for easier testing
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).clone())
                 .set_constraint_template(StickConstraint::default().set_stiffness_factor(20.0).clone())// this ignores mass
-                .add_particles(&LineSegment::new(vec2(-particle_radius * 2.0, 1.0), vec2(0.0, 1.0)))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
+                .add_particles(&LineSegment::new(vec2(0.0, 0.4 - particle_radius * 2.0), vec2(0.0, 0.4 + particle_radius * 2.0)))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
                 .create_in_particle_container(&mut particle_container);
-
-            */
+*/
 
             /* 
             // suspension bridge on the ground
@@ -173,14 +180,18 @@ impl CarScene {
                     .create_in_particle_container(&mut particle_container);
             }
 */
+/* 
             {
                 // ground line to the righ of the bucket
                 ShapeBuilder::new()
                     .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius * 2.0).clone())
                     .add_particles(&LineSegment::new(vec2(11.0, 0.3), vec2(20.0, 1.0))) //.add_line(Vec2::new(11.0, 0.3), Vec2::new(20.0, 1.0), particle_radius * 2.0)
                     .create_in_particle_container(&mut particle_container);
-            }
+            }*/
         }
+
+        // let particle system know all static particles have been built
+        particle_sim.notify_particle_container_changed();
 
         Self {
             particle_sim,
@@ -200,6 +211,8 @@ impl Plugin for CarScenePlugin {
             .add_systems(Update, update_particle_instances)
             //.add_systems(Update, update_camera);
             ;
+
+        performance_ui_build(app);
     }
 }
 

@@ -30,7 +30,7 @@ impl ParticleSim {
     }
 
 
-    fn notify_particle_container_changed(&mut self) {
+    pub fn notify_particle_container_changed(&mut self) {
         self.particle_solver.notify_particle_container_changed();
     }
 
