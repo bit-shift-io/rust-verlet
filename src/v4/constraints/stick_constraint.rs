@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use crate::v4::particle_handle::ParticleHandle;
 
 use super::constraint::Constraint;
@@ -21,8 +23,12 @@ impl StickConstraint {
 }
 
 impl Constraint for StickConstraint {
-    fn box_clone(&self) -> Box<dyn Constraint> {
+    fn box_clone(&self) -> Box<dyn Constraint + Send + Sync> {
         Box::new((*self).clone())
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 

@@ -59,6 +59,9 @@ mod v4 {
         pub mod naive_particle_solver;
         pub mod spatial_hash_particle_solver;
     }
+    pub mod constraint_solvers {
+        pub mod constraint_solver;
+    }
     pub mod constraints {
         pub mod constraint;
         pub mod stick_constraint;

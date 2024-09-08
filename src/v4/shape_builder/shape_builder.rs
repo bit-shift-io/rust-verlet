@@ -1,7 +1,7 @@
 use bevy::math::{bounding::Aabb2d, vec2, Rot2, Vec2};
 use collision::Aabb3;
 
-use crate::v4::{constraints::{constraint::Constraint, stick_constraint::StickConstraint}, particle::{self, Particle}, particle_container::ParticleContainer, particle_handle::{ParticleHandle, SpringHandle, StickHandle}};
+use crate::v4::{constraint_container::ConstraintContainer, constraints::{constraint::Constraint, stick_constraint::StickConstraint}, particle::{self, Particle}, particle_container::ParticleContainer, particle_handle::{ConstraintHandle, ParticleHandle}};
 
 // Utility function that takes 2 points (a line segment) and a radius
 // and calculates how many circles can fit touching each other between the 2 points.
@@ -17,10 +17,11 @@ pub trait PositionProvider {
 
 pub struct ShapeBuilder {
     pub particles: Vec<Particle>,
-
     pub particle_template: Particle,
 
+    pub constraints: Vec<Box<dyn Constraint + Send + Sync>>,
     pub constraint_template: Box<dyn Constraint>,
+    
 
     pub cursor: Vec2,
     /* 
@@ -40,8 +41,8 @@ pub struct ShapeBuilder {
     damping: f32,
 */
     pub particle_handles: Vec<ParticleHandle>,
-    pub stick_handles: Vec<StickHandle>,
-    pub spring_handles: Vec<SpringHandle>,
+    //pub stick_handles: Vec<StickHandle>,
+    pub constraint_handles: Vec<ConstraintHandle>,
 }
 
 impl ShapeBuilder {
@@ -50,12 +51,16 @@ impl ShapeBuilder {
             particles: vec![], 
             particle_template: Particle::default(),
 
+            constraints: vec![],
             constraint_template: Box::new(StickConstraint::default()),
+
             cursor: Vec2::new(0.0, 0.0),
 
             particle_handles: vec![],
-            stick_handles: vec![],
-            spring_handles: vec![],
+            constraint_handles: vec![],
+
+            //stick_handles: vec![],
+            //spring_handles: vec![],
         }    
     }
 
@@ -101,6 +106,14 @@ impl ShapeBuilder {
         for particle in self.particles.iter() {
             let particle_handle = particle_container.add(*particle);
             self.particle_handles.push(particle_handle);
+        }
+        self
+    }
+
+    pub fn create_in_constraint_container(&mut self, constraint_container: &mut ConstraintContainer) -> &mut Self {
+        for constraint in self.constraints.iter() {
+            let constraint_handle = constraint_container.add(constraint.box_clone());
+            self.constraint_handles.push(constraint_handle);
         }
         self
     }

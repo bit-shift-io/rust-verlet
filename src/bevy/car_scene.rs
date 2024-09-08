@@ -15,7 +15,7 @@ use bevy::{
 };
 use bytemuck::{Pod, Zeroable};
 
-use crate::v4::{constraints::stick_constraint::StickConstraint, particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{line_segment::LineSegment, rectangle::Rectangle, shape_builder::{radius_divisions_between_points, ShapeBuilder}}};
+use crate::v4::{constraint_container::ConstraintContainer, constraints::stick_constraint::StickConstraint, particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{line_segment::LineSegment, rectangle::Rectangle, shape_builder::{radius_divisions_between_points, ShapeBuilder}}};
 
 use super::{instance_material_data::{InstanceData, InstanceMaterialData}, performance_ui::performance_ui_build};
 
@@ -63,12 +63,12 @@ pub struct CarScene {
 
 impl CarScene {
     pub fn new() -> Self {
-        let particle_container = Arc::new(RwLock::new(ParticleContainer::new()));
         let particle_solver = Box::new(SpatialHashParticleSolver::new()); // SpatialHashParticleSolver::new()); // NaiveParticleSolver::new()); 
-        let mut particle_sim = ParticleSim::new(&particle_container, particle_solver);
+        let mut particle_sim = ParticleSim::new(particle_solver);
 
         {
             let mut particle_container = particle_sim.particle_container.as_ref().write().unwrap();
+            let mut constraint_container = particle_sim.constraint_container.as_ref().write().unwrap();
 
 
             let particle_radius = cm_to_m(4.0);
@@ -140,6 +140,7 @@ impl CarScene {
                 }
 
                 suspension_bridge.create_in_particle_container(&mut particle_container);
+                suspension_bridge.create_in_constraint_container(&mut constraint_container);
             }
 
  

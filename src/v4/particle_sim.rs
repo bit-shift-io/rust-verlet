@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc, sync::{Arc, RwLock}};
 
 use bevy::math::{vec2, Vec2};
 
-use super::{particle_container::ParticleContainer, particle_solvers::particle_solver::ParticleSolver};
+use super::{constraint_container::ConstraintContainer, constraint_solvers::constraint_solver::ConstraintSolver, particle_container::ParticleContainer, particle_solvers::{particle_solver::ParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}};
 
 
 pub fn reset_forces(particle_container: &mut ParticleContainer, gravity: Vec2) {
@@ -14,24 +14,40 @@ pub fn reset_forces(particle_container: &mut ParticleContainer, gravity: Vec2) {
 pub struct ParticleSim {
     pub particle_container: Arc<RwLock<ParticleContainer>>,
     pub particle_solver: Box<dyn ParticleSolver + Send + Sync>,
+
+    pub constraint_container: Arc<RwLock<ConstraintContainer>>,
+    pub constraint_solver: Box<ConstraintSolver>,
+
     desired_hertz: f32,
     gravity: Vec2
 }
 
 impl ParticleSim {
-    pub fn new(particle_container: &Arc<RwLock<ParticleContainer>>, mut particle_solver: Box<dyn ParticleSolver + Send + Sync>) -> Self {
-        particle_solver.as_mut().attach_to_particle_container(particle_container);
+    pub fn new(mut particle_solver: Box<dyn ParticleSolver + Send + Sync>) -> Self {
+        let particle_container = Arc::new(RwLock::new(ParticleContainer::new()));
+        let constraint_container = Arc::new(RwLock::new(ConstraintContainer::new()));
+        let constraint_solver = Box::new(ConstraintSolver::new());
+        
+        particle_solver.as_mut().attach_to_particle_container(&particle_container);
+
         Self {
             particle_container: particle_container.clone(),
+            constraint_container: constraint_container.clone(),
             particle_solver,
+            constraint_solver,
             desired_hertz: 240.0,
             gravity: vec2(0.0, -9.8),
         }
     }
 
-
+    // todo: replace this with some sort of event system so we can send various messages and don't need specialised function handling
     pub fn notify_particle_container_changed(&mut self) {
         self.particle_solver.notify_particle_container_changed();
+        self.constraint_solver.notify_particle_container_changed();
+    }
+
+    pub fn notify_constraint_container_changed(&mut self) {
+        self.constraint_solver.notify_constraint_container_changed();
     }
 
     // dt = last frame elapsed time
@@ -53,13 +69,12 @@ impl ParticleSim {
     pub fn update(&mut self, delta_seconds: f32) {
         for sub_dt in Self::range_substeps(delta_seconds, self.desired_hertz).iter() {
             self.particle_solver.solve_collisions();
-            /*
-            collider.update_constraints(&mut car_scene.particle_accelerator, *sub_dt);
-            */
-            self.particle_solver.update_particle_positions(*sub_dt); //collider.update_positions(&mut car_scene.particle_accelerator, *sub_dt);
-            /* 
-            collider.post_update_constraints(&mut car_scene.particle_accelerator, *sub_dt);
-            */
+
+            self.constraint_solver.update_constraints(*sub_dt);
+
+            self.particle_solver.update_particle_positions(*sub_dt);
+
+            self.constraint_solver.post_update_constraints(*sub_dt);
         }
     }
 }
@@ -104,18 +119,16 @@ mod tests {
 
     #[test]
     fn naive_particle_solver_particle_sim() {
-        let particle_container = Arc::new(RwLock::new(ParticleContainer::new()));
         let particle_solver = Box::new(NaiveParticleSolver::new());
-        let mut sim = ParticleSim::new(&particle_container, particle_solver);
+        let mut sim = ParticleSim::new(particle_solver);
         run_sim_solver_test(&mut sim);
     }
 
 
     #[test]
     fn spatial_hash_particle_solver_particle_sim() {
-        let particle_container = Arc::new(RwLock::new(ParticleContainer::new()));
         let particle_solver = Box::new(SpatialHashParticleSolver::new());
-        let mut sim = ParticleSim::new(&particle_container, particle_solver);
+        let mut sim = ParticleSim::new(particle_solver);
         run_sim_solver_test(&mut sim);
     }
 
