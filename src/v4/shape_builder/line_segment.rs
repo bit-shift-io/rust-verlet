@@ -1,6 +1,6 @@
 use bevy::math::Vec2;
 
-use super::shape_builder::{radius_divisions_between_points, PositionProvider};
+use super::shape_builder::{radius_divisions_between_points, PositionProvider, ShapeBuilder, ShapeBuilderOperation};
 
 
 pub struct LineSegment {
@@ -28,5 +28,13 @@ impl PositionProvider for LineSegment {
         }
 
         points
+    }
+}
+
+impl ShapeBuilderOperation for LineSegment {
+    fn apply_to_shape_builder(&self, shape_builder: &mut ShapeBuilder) {
+        let radius = shape_builder.particle_radius();
+        let points = self.get_points_for_radius(radius);
+        shape_builder.add_particles_from_points(&points);
     }
 }

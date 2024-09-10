@@ -1,6 +1,6 @@
 use bevy::math::Vec2;
 
-use super::shape_builder::PositionProvider;
+use super::shape_builder::{PositionProvider, ShapeBuilder, ShapeBuilderOperation};
 
 pub struct Circle {
     centre: Vec2,
@@ -36,5 +36,13 @@ impl PositionProvider for Circle {
         }
 
         points
+    }
+}
+
+impl ShapeBuilderOperation for Circle {
+    fn apply_to_shape_builder(&self, shape_builder: &mut ShapeBuilder) {
+        let radius = shape_builder.particle_radius();
+        let points = self.get_points_for_radius(radius);
+        shape_builder.add_particles_from_points(&points);
     }
 }

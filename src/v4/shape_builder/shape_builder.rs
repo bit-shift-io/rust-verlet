@@ -15,6 +15,10 @@ pub trait PositionProvider {
     fn get_points_for_radius(&self, radius: f32) -> Vec::<Vec2>;
 }
 
+pub trait ShapeBuilderOperation {
+    fn apply_to_shape_builder(&self, shape_builder: &mut ShapeBuilder);
+}
+
 pub struct ShapeBuilder {
     pub particles: Vec<Particle>,
     pub particle_template: Particle,
@@ -162,13 +166,30 @@ impl ShapeBuilder {
         self
     }*/
 
+    pub fn particle_radius(&self) -> f32 {
+        self.particle_template.radius
+    }
+
+    pub fn apply_operation(&mut self, operation: &dyn ShapeBuilderOperation) -> &mut Self {
+        operation.apply_to_shape_builder(self);
+        self
+    }
+
+    pub fn add_particles_from_points(&mut self, points: &Vec<Vec2>) -> &mut Self {
+        for p in points {
+            self.add_particle_at_position(p.clone());
+        }
+        self
+    }
+
+    /*
     pub fn add_particles(&mut self, position_provider: &dyn PositionProvider) -> &mut Self {
         let points = position_provider.get_points_for_radius(self.particle_template.radius);
         for p in points {
             self.add_particle_at_position(p);
         }
         self
-    }
+    }*/
 
     pub fn get_aabb(&self) -> Aabb2d {
         // extracted from Aabb2d::from_point_cloud
@@ -227,7 +248,7 @@ mod tests {
     #[test]
     fn line() {
         let mut b = ShapeBuilder::new();
-        b.add_particles(&LineSegment::new(Vec2::new(0.0, 0.0), Vec2::new(10.0, 0.0)));
+        b.apply_operation(&LineSegment::new(Vec2::new(0.0, 0.0), Vec2::new(10.0, 0.0)));
         assert_eq!(b.particles.len(), 10);
     }
 
@@ -235,7 +256,7 @@ mod tests {
     fn create_in_particle_container() {
         let mut b = ShapeBuilder::new();
         b.set_particle_template(Particle::default().set_static(true).clone());
-        b.add_particles(&Circle::new(Vec2::new(0.0, 0.0), 10.0));
+        b.apply_operation(&Circle::new(Vec2::new(0.0, 0.0), 10.0));
 
         let mut pc = ParticleContainer::new();
         b.create_in_particle_container(&mut pc);

@@ -1,6 +1,6 @@
 use bevy::math::{vec2, Rect, Vec2};
 
-use super::shape_builder::{radius_divisions_between_points, PositionProvider};
+use super::shape_builder::{radius_divisions_between_points, PositionProvider, ShapeBuilder, ShapeBuilderOperation};
 
 
 pub struct Rectangle {
@@ -45,5 +45,13 @@ impl PositionProvider for Rectangle {
         }
 
         points
+    }
+}
+
+impl ShapeBuilderOperation for Rectangle {
+    fn apply_to_shape_builder(&self, shape_builder: &mut ShapeBuilder) {
+        let radius = shape_builder.particle_radius();
+        let points = self.get_points_for_radius(radius);
+        shape_builder.add_particles_from_points(&points);
     }
 }
