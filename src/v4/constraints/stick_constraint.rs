@@ -40,6 +40,12 @@ impl Constraint for StickConstraint {
     fn as_any(&self) -> &dyn Any {
         self
     }
+
+    fn offset_particle_handles(&mut self, offset: u64) {
+        for particle_handle in self.particle_handles.iter_mut() {
+            particle_handle.offset(offset);
+        }
+    }
 }
 
 impl Default for StickConstraint {

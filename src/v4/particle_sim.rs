@@ -26,9 +26,10 @@ impl ParticleSim {
     pub fn new(mut particle_solver: Box<dyn ParticleSolver + Send + Sync>) -> Self {
         let particle_container = Arc::new(RwLock::new(ParticleContainer::new()));
         let constraint_container = Arc::new(RwLock::new(ConstraintContainer::new()));
-        let constraint_solver = Box::new(ConstraintSolver::new());
+        let mut constraint_solver = Box::new(ConstraintSolver::new());
         
         particle_solver.as_mut().attach_to_particle_container(&particle_container);
+        constraint_solver.as_mut().attach_to_containers(&particle_container, &constraint_container);
 
         Self {
             particle_container: particle_container.clone(),
@@ -69,11 +70,8 @@ impl ParticleSim {
     pub fn update(&mut self, delta_seconds: f32) {
         for sub_dt in Self::range_substeps(delta_seconds, self.desired_hertz).iter() {
             self.particle_solver.solve_collisions();
-
             self.constraint_solver.update_constraints(*sub_dt);
-
             self.particle_solver.update_particle_positions(*sub_dt);
-
             self.constraint_solver.post_update_constraints(*sub_dt);
         }
     }
@@ -94,21 +92,18 @@ mod tests {
     // This lets us do some standard test on a solver to get some comparison
     fn run_sim_solver_test(sim: &mut ParticleSim) {
         // create some static shapes
-        {
-            let mut particle_container_mutref = sim.particle_container.as_ref().write().unwrap();
-            let particle_container = &mut *particle_container_mutref;
-
+        //{
             // static perimiter
             let mut b = ShapeBuilder::new();
             b.set_particle_template(Particle::default().set_static(true).clone());
             b.apply_operation(Circle::new(vec2(0.0, 0.0), 10.0));
-            b.create_in_particle_container(particle_container);
+            b.create_in_particle_sim(sim);
 
             // some dynamic particles on the inside
             let mut b2 = ShapeBuilder::new();
             b2.apply_operation(LineSegment::new(vec2(-3.0, 0.0), vec2(3.0, 0.0)));
-            b2.create_in_particle_container(particle_container);
-        }
+            b2.create_in_particle_sim(sim);
+        //}
 
         // step the simulation 1 second forward in time
         sim.update(1.0);

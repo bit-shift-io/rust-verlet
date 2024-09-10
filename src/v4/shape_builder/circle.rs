@@ -1,6 +1,6 @@
 use bevy::math::Vec2;
 
-use super::shape_builder::{PositionProvider, ShapeBuilder, ShapeBuilderOperation};
+use super::shape_builder::{ShapeBuilder, ShapeBuilderOperation};
 
 pub struct Circle {
     centre: Vec2,
@@ -11,9 +11,7 @@ impl Circle {
     pub fn new(centre: Vec2, radius: f32) -> Self {
         Self { centre, radius }
     }
-}
 
-impl PositionProvider for Circle {
     fn get_points_for_radius(&self, radius: f32) -> Vec::<Vec2> {
         let mut points = vec![];
 

@@ -1,6 +1,6 @@
 use bevy::math::Vec2;
 
-use super::shape_builder::{radius_divisions_between_points, PositionProvider, ShapeBuilder, ShapeBuilderOperation};
+use super::shape_builder::{radius_divisions_between_points, ShapeBuilder, ShapeBuilderOperation};
 
 
 pub struct LineSegment {
@@ -12,9 +12,7 @@ impl LineSegment {
     pub fn new(p1: Vec2, p2: Vec2) -> Self {
         Self { p1, p2 }
     }
-}
 
-impl PositionProvider for LineSegment {
     fn get_points_for_radius(&self, radius: f32) -> Vec::<Vec2> {
         let mut points = vec![];
 

@@ -1,7 +1,9 @@
+use std::borrow::BorrowMut;
+
 use bevy::math::{bounding::Aabb2d, vec2, Rot2, Vec2};
 use collision::Aabb3;
 
-use crate::v4::{constraint_container::ConstraintContainer, constraints::{constraint::Constraint, stick_constraint::StickConstraint}, particle::{self, Particle}, particle_container::ParticleContainer, particle_handle::{ConstraintHandle, ParticleHandle}};
+use crate::v4::{constraint_container::ConstraintContainer, constraints::{constraint::Constraint, stick_constraint::StickConstraint}, particle::{self, Particle}, particle_container::ParticleContainer, particle_handle::{ConstraintHandle, ParticleHandle}, particle_sim::ParticleSim};
 
 // Utility function that takes 2 points (a line segment) and a radius
 // and calculates how many circles can fit touching each other between the 2 points.
@@ -9,15 +11,6 @@ pub fn radius_divisions_between_points(p1: Vec2, p2: Vec2, radius: f32) -> usize
     let dist = (p2 - p1).length();
     let divisions = (dist / (radius * 2.0)) as usize;
     return divisions;
-}
-
-/* 
-fn convert_to_real_index(idx: i64, len: usize) -> usize {
-    if idx >= 0 { idx as usize } else { (len as i64 + idx) as usize }
-}*/
-
-pub trait PositionProvider {
-    fn get_points_for_radius(&self, radius: f32) -> Vec::<Vec2>;
 }
 
 pub trait ShapeBuilderOperation {
@@ -29,7 +22,6 @@ pub struct ShapeBuilder {
     pub particle_template: Particle,
 
     pub constraints: Vec<Box<dyn Constraint + Send + Sync>>,
-    //pub constraint_template: Box<dyn Constraint>,
     
 
     pub cursor: Vec2,
@@ -83,12 +75,6 @@ impl ShapeBuilder {
         new_sb
     }
 
-    /*
-    pub fn set_constraint_template<T: Constraint + 'static>(&mut self, constraint_template: T) -> &mut Self {
-        self.constraint_template = Box::new(constraint_template);
-        self
-    }
-    */
     pub fn add_constraint(&mut self, constraint: Box<dyn Constraint + Send + Sync>) -> &mut Self {
         self.constraints.push(constraint);
         self
@@ -117,12 +103,7 @@ impl ShapeBuilder {
         self.particle_template.clone()
     }
 
-    /* 
-    pub fn create_constraint(&self) -> Box<dyn Constraint + Send + Sync> {
-        self.constraint_template.box_clone()
-    }*/
-
-    pub fn create_in_particle_container(&mut self, particle_container: &mut ParticleContainer) -> &mut Self {
+    fn create_in_particle_container(&mut self, particle_container: &mut ParticleContainer) -> &mut Self {
         for particle in self.particles.iter() {
             let particle_handle = particle_container.add(*particle);
             self.particle_handles.push(particle_handle);
@@ -130,62 +111,31 @@ impl ShapeBuilder {
         self
     }
 
-    pub fn create_in_constraint_container(&mut self, constraint_container: &mut ConstraintContainer) -> &mut Self {
+    fn create_in_constraint_container(&mut self, constraint_container: &mut ConstraintContainer, particle_handle_offset: u64) -> &mut Self {
         for constraint in self.constraints.iter() {
-            let constraint_handle = constraint_container.add(constraint.box_clone());
+            let mut constraint = constraint.box_clone();
+            constraint.offset_particle_handles(particle_handle_offset);
+            let constraint_handle = constraint_container.add(constraint);
             self.constraint_handles.push(constraint_handle);
         }
         self
     }
 
-    /* 
-    pub fn create_in_particle_accelerator(&mut self, particle_accelerator: &mut ParticleAccelerator, mask: u32) -> &mut Self {
-        let mut particle_handles = vec![];
-        for particle in self.particles.iter() {
+    pub fn create_in_particle_sim(&mut self, particle_sim: &mut ParticleSim) -> &mut Self {
+        let mut particle_container = particle_sim.particle_container.as_ref().write().unwrap();
+        let mut constraint_container = particle_sim.constraint_container.as_ref().write().unwrap();
 
-            // todo: shitty conversions, fix me!
-            let math_pos = Vector2::<f32>::new(particle.pos.x, particle.pos.y);
+        let particle_handle_offset = particle_container.particles.len() as u64;
 
-            let linear = particle.color.to_linear();
-            let sdl_color = Color::RGBA((linear.red * 255.0) as u8, (linear.green * 255.0) as u8, (linear.blue * 255.0) as u8, (linear.alpha * 255.0) as u8);
-
-            let particle_handle = particle_accelerator.create_particle(math_pos, particle.radius, particle.mass, mask, sdl_color);
-            particle_accelerator.set_particle_static(&particle_handle, particle.is_static);
-            particle_handles.push(particle_handle);
-        }
-        self.particle_handles = particle_handles;
-
-        /*
-        let mut stick_handles = vec![];
-        for stick in self.sticks.iter() {
-            let stick_handle = particle_accelerator.create_stick([&particle_handles[stick.particle_indicies[0]], &particle_handles[stick.particle_indicies[1]]], stick.length, stick.stiffness_factor);
-            stick_handles.push(stick_handle);
-        }
-        //self.stick_handles = stick_handles;
-
-        let mut spring_handles = vec![];
-        for spring in self.springs.iter() {
-            let spring_handle = particle_accelerator.create_spring([&particle_handles[spring.particle_indicies[0]], &particle_handles[spring.particle_indicies[1]]], spring.length, spring.spring_constant, spring.damping, spring.elastic_limit);
-            spring_handles.push(spring_handle);
-        }*/
-        //self.spring_handles = spring_handles;
+        self.create_in_particle_container(&mut particle_container);
+        self.create_in_constraint_container(&mut constraint_container, particle_handle_offset);
 
         self
     }
-    */
-
-    /* 
-    pub fn add_particles(&mut self, particles: Vec<Particle>) -> &mut Self {
-        for p in particles {
-            self.particles.push(p);
-        }
-        self
-    }*/
 
     pub fn particle_radius(&self) -> f32 {
         self.particle_template.radius
     }
-
 
     pub fn apply_operation<T: ShapeBuilderOperation>(&mut self, operation: T) -> &mut Self {
         operation.apply_to_shape_builder(self);
@@ -198,15 +148,6 @@ impl ShapeBuilder {
         }
         self
     }
-
-    /*
-    pub fn add_particles(&mut self, position_provider: &dyn PositionProvider) -> &mut Self {
-        let points = position_provider.get_points_for_radius(self.particle_template.radius);
-        for p in points {
-            self.add_particle_at_position(p);
-        }
-        self
-    }*/
 
     pub fn get_aabb(&self) -> Aabb2d {
         // extracted from Aabb2d::from_point_cloud
@@ -238,16 +179,6 @@ impl ShapeBuilder {
         }
         s
     }
-
-    /*
-    pub fn convert_to_real_indicies(&mut self, particle_indicies: [i64; 2]) -> [usize; 2] {
-        let real_particle_indicies: [usize; 2] = [
-            convert_to_real_index(particle_indicies[0], self.particles.len()),
-            convert_to_real_index(particle_indicies[1], self.particles.len()),
-        ];
-        //let particle_positions = [self.particles[real_particle_indicies[0]].pos, self.particles[real_particle_indicies[1]].pos];
-        real_particle_indicies
-    }*/
 }
 
 #[cfg(test)]

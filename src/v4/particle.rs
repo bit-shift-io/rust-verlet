@@ -39,13 +39,17 @@ impl Particle {
         self
     }
 
+    pub fn set_color(&mut self, color: Color) -> &mut Self {
+        self.color = color;
+        self
+    }
+
     pub fn get_aabb(&self) -> Aabb2d {
         Aabb2d {
             min: self.pos - vec2(self.radius, self.radius),
             max: self.pos + vec2(self.radius, self.radius),
         }
     }
-
 
     pub fn acceleration_to_force(acc: Vec2, mass: f32) -> Vec2 {
         acc * mass

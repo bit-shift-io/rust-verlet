@@ -135,9 +135,6 @@ impl ConstraintSolver {
     
                 let (a_movement_weight, b_movement_weight) = compute_movement_weight(particle_a.is_static, particle_b.is_static);
                         
-                //let p1 = &particle_container.verlet_positions[stick.particle_handles[0]];
-                //let p2 = &particle_container.verlet_positions[stick.particle_handles[1]];
-    
                 let difference = particle_a.pos - particle_b.pos;
                 let diff_length = difference.length(); //.magnitude();
                 let diff_factor = (stick.length - diff_length) / diff_length * 0.5;
@@ -160,42 +157,6 @@ impl ConstraintSolver {
                 }
             }
         }
-
-/* 
-        for stick in particle_accelerator.sticks.iter_mut() {
-            if !stick.is_enabled {
-                continue;
-            }
-
-            let particle_a = &particle_accelerator.particles[stick.particle_indicies[0]];
-            let particle_b = &particle_accelerator.particles[stick.particle_indicies[1]];
-
-            let (a_movement_weight, b_movement_weight) = self.compute_movement_weight(particle_a.is_static, particle_b.is_static);
-                    
-            let p1 = &particle_accelerator.verlet_positions[stick.particle_indicies[0]];
-            let p2 = &particle_accelerator.verlet_positions[stick.particle_indicies[1]];
-
-            let difference = p1.pos - p2.pos;
-            let diff_length = difference.magnitude();
-            let diff_factor = (stick.length - diff_length) / diff_length * 0.5;
-            let mut offset = (difference * diff_factor);
-            
-            // this bit makes it more like a spring
-            if stick.stiffness_factor != 0.0 {
-                offset *= (dt * stick.stiffness_factor);
-            }
-
-    
-            {
-                let p1mut = &mut particle_accelerator.verlet_positions[stick.particle_indicies[0]];
-                p1mut.pos += offset * a_movement_weight;
-            }
-
-            {
-                let p2mut = &mut particle_accelerator.verlet_positions[stick.particle_indicies[1]];
-                p2mut.pos -= offset * b_movement_weight;
-            }
-        }*/
     }
 /* 
 

@@ -67,10 +67,6 @@ impl CarScene {
         let mut particle_sim = ParticleSim::new(particle_solver);
 
         {
-            let mut particle_container = particle_sim.particle_container.as_ref().write().unwrap();
-            let mut constraint_container = particle_sim.constraint_container.as_ref().write().unwrap();
-
-
             let particle_radius = cm_to_m(4.0);
             let particle_mass = 1.0; //g_to_kg(0.1);
 
@@ -82,14 +78,14 @@ impl CarScene {
                 .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone()) 
                 .apply_operation(LineSegment::new(vec2(-5.0, 0.0), vec2(5.0, 0.0)))
                 .apply_operation(LineSegment::new(vec2(5.0, 0.0), vec2(8.0, 0.5)))
-                .create_in_particle_container(&mut particle_container);
+                .create_in_particle_sim(&mut particle_sim);
         
             // add a jellow cube to the scene
             ShapeBuilder::new()
-                .set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).clone())
+                .set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).set_color(Color::from(LinearRgba::RED)).clone())
                 //.set_constraint_template(StickConstraint::default().set_stiffness_factor(20.0).clone())// this ignores mass
                 .apply_operation(RectangleStickGrid::from_rectangle(StickConstraint::default().set_stiffness_factor(20.0).clone(), Rectangle::from_center_size(vec2(-3.0, 1.5), vec2(1.0, 1.0))))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
-                .create_in_particle_container(&mut particle_container);
+                .create_in_particle_sim(&mut particle_sim);
             
  
  
@@ -97,14 +93,14 @@ impl CarScene {
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone()) 
                 .apply_operation(LineSegment::new(vec2(-1.0, 0.0), vec2(1.0, 0.0)))
-                .create_in_particle_container(&mut particle_container);
+                .create_in_particle_sim(&mut particle_sim);
 
             // single particle for easier testing
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).clone())
                 .set_constraint_template(StickConstraint::default().set_stiffness_factor(20.0).clone())// this ignores mass
                 .apply_operation(LineSegment::new(vec2(0.0, 0.4 - particle_radius * 2.0), vec2(0.0, 0.4 + particle_radius * 2.0)))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
-                .create_in_particle_container(&mut particle_container);
+                .create_in_particle_sim(&mut particle_sim);
 */
 
              
@@ -136,11 +132,10 @@ impl CarScene {
                 {
                     // extract left particles and make them static
                     let mut left = suspension_bridge.extract_left_most_particles();
-                    left.create_in_particle_container(&mut particle_container);
+                    left.create_in_particle_sim(&mut particle_sim);
                 }
 
-                suspension_bridge.create_in_particle_container(&mut particle_container);
-                suspension_bridge.create_in_constraint_container(&mut constraint_container);
+                suspension_bridge.create_in_particle_sim(&mut particle_sim);
             }
 
  
@@ -162,14 +157,14 @@ impl CarScene {
                 liquid
                     .set_particle_template(Particle::default().set_mass(liquid_particle_mass).set_radius(liquid_particle_radius).clone())
                     .apply_operation(Rectangle::from_center_size(origin + vec2(0.0 + liquid_particle_radius * 2.0, funnel_height + 1.0), vec2(width, height)))
-                    .create_in_particle_container(&mut particle_container);
+                    .create_in_particle_sim(&mut particle_sim);
  
                 let mut funnel = ShapeBuilder::new();
                 funnel
                     .set_particle_template(Particle::default().set_static(true).set_radius(funnel_particle_radius).clone())
                     .apply_operation(LineSegment::new(origin + vec2(-3.0, funnel_height + 2.0), origin + vec2(1.0, funnel_height))) //.add_line(origin + Vec2::new(-3.0, funnel_height + 2.0), origin + Vec2::new(1.0, funnel_height), funnel_particle_radius)
                     .apply_operation(LineSegment::new(origin + vec2(5.0, funnel_height + 2.0), origin + vec2(1.0 + liquid_particle_radius * 8.0, funnel_height))) //.add_line(origin + Vec2::new(5.0, funnel_height + 2.0), origin + Vec2::new(1.0 + liquid_particle_radius * 8.0, funnel_height), funnel_particle_radius)
-                    .create_in_particle_container(&mut particle_container);
+                    .create_in_particle_sim(&mut particle_sim);
  
                 let mut bucket = ShapeBuilder::new();
                 bucket
@@ -177,7 +172,7 @@ impl CarScene {
                     .apply_operation(LineSegment::new(origin, origin + vec2(bucket_height, -bucket_height))) 
                     .apply_operation(LineSegment::new(origin + vec2(bucket_height, -bucket_height), origin + vec2(bucket_width - bucket_height, -bucket_height)))
                     .apply_operation(LineSegment::new(origin + vec2(bucket_width - bucket_height, -bucket_height), origin + vec2(bucket_width, 0.0)))
-                    .create_in_particle_container(&mut particle_container);
+                    .create_in_particle_sim(&mut particle_sim);
             }
 
  
@@ -186,7 +181,7 @@ impl CarScene {
                 ShapeBuilder::new()
                     .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius * 2.0).clone())
                     .apply_operation(LineSegment::new(vec2(11.0, 0.3), vec2(20.0, 1.0))) //.add_line(Vec2::new(11.0, 0.3), Vec2::new(20.0, 1.0), particle_radius * 2.0)
-                    .create_in_particle_container(&mut particle_container);
+                    .create_in_particle_sim(&mut particle_sim);
             }
         }
 

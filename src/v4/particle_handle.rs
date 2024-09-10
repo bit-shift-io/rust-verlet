@@ -10,8 +10,12 @@ impl ParticleHandle {
         Self { id }
     }
 
-   pub fn id(&self) -> usize {
+    pub fn id(&self) -> usize {
         self.id
+    }
+
+    pub fn offset(&mut self, offset: u64) {
+        self.id = (self.id as u64 + offset) as usize;
     }
 }
 
