@@ -11,6 +11,11 @@ pub fn radius_divisions_between_points(p1: Vec2, p2: Vec2, radius: f32) -> usize
     return divisions;
 }
 
+/* 
+fn convert_to_real_index(idx: i64, len: usize) -> usize {
+    if idx >= 0 { idx as usize } else { (len as i64 + idx) as usize }
+}*/
+
 pub trait PositionProvider {
     fn get_points_for_radius(&self, radius: f32) -> Vec::<Vec2>;
 }
@@ -24,7 +29,7 @@ pub struct ShapeBuilder {
     pub particle_template: Particle,
 
     pub constraints: Vec<Box<dyn Constraint + Send + Sync>>,
-    pub constraint_template: Box<dyn Constraint>,
+    //pub constraint_template: Box<dyn Constraint>,
     
 
     pub cursor: Vec2,
@@ -56,7 +61,7 @@ impl ShapeBuilder {
             particle_template: Particle::default(),
 
             constraints: vec![],
-            constraint_template: Box::new(StickConstraint::default()),
+            //constraint_template: Box::new(StickConstraint::default()),
 
             cursor: Vec2::new(0.0, 0.0),
 
@@ -73,13 +78,19 @@ impl ShapeBuilder {
         new_sb.set_particle_template(sb.particle_template);
 
         //new_sb.set_constraint_template(sb.constraint_template.as_ref().clone());
-        new_sb.constraint_template = sb.constraint_template.box_clone(); //Box::new(*sb.constraint_template.as_ref());
+        //new_sb.constraint_template = sb.constraint_template.box_clone(); //Box::new(*sb.constraint_template.as_ref());
         
         new_sb
     }
 
+    /*
     pub fn set_constraint_template<T: Constraint + 'static>(&mut self, constraint_template: T) -> &mut Self {
         self.constraint_template = Box::new(constraint_template);
+        self
+    }
+    */
+    pub fn add_constraint(&mut self, constraint: Box<dyn Constraint + Send + Sync>) -> &mut Self {
+        self.constraints.push(constraint);
         self
     }
 
@@ -102,9 +113,14 @@ impl ShapeBuilder {
     }
 
     // create a particle from the particle_template
-    pub fn create_particle(&mut self) -> Particle {
+    pub fn create_particle(&self) -> Particle {
         self.particle_template.clone()
     }
+
+    /* 
+    pub fn create_constraint(&self) -> Box<dyn Constraint + Send + Sync> {
+        self.constraint_template.box_clone()
+    }*/
 
     pub fn create_in_particle_container(&mut self, particle_container: &mut ParticleContainer) -> &mut Self {
         for particle in self.particles.iter() {
@@ -170,7 +186,8 @@ impl ShapeBuilder {
         self.particle_template.radius
     }
 
-    pub fn apply_operation(&mut self, operation: &dyn ShapeBuilderOperation) -> &mut Self {
+
+    pub fn apply_operation<T: ShapeBuilderOperation>(&mut self, operation: T) -> &mut Self {
         operation.apply_to_shape_builder(self);
         self
     }
@@ -221,6 +238,16 @@ impl ShapeBuilder {
         }
         s
     }
+
+    /*
+    pub fn convert_to_real_indicies(&mut self, particle_indicies: [i64; 2]) -> [usize; 2] {
+        let real_particle_indicies: [usize; 2] = [
+            convert_to_real_index(particle_indicies[0], self.particles.len()),
+            convert_to_real_index(particle_indicies[1], self.particles.len()),
+        ];
+        //let particle_positions = [self.particles[real_particle_indicies[0]].pos, self.particles[real_particle_indicies[1]].pos];
+        real_particle_indicies
+    }*/
 }
 
 #[cfg(test)]
@@ -248,7 +275,7 @@ mod tests {
     #[test]
     fn line() {
         let mut b = ShapeBuilder::new();
-        b.apply_operation(&LineSegment::new(Vec2::new(0.0, 0.0), Vec2::new(10.0, 0.0)));
+        b.apply_operation(LineSegment::new(Vec2::new(0.0, 0.0), Vec2::new(10.0, 0.0)));
         assert_eq!(b.particles.len(), 10);
     }
 
@@ -256,7 +283,7 @@ mod tests {
     fn create_in_particle_container() {
         let mut b = ShapeBuilder::new();
         b.set_particle_template(Particle::default().set_static(true).clone());
-        b.apply_operation(&Circle::new(Vec2::new(0.0, 0.0), 10.0));
+        b.apply_operation(Circle::new(Vec2::new(0.0, 0.0), 10.0));
 
         let mut pc = ParticleContainer::new();
         b.create_in_particle_container(&mut pc);

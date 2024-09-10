@@ -101,12 +101,12 @@ mod tests {
             // static perimiter
             let mut b = ShapeBuilder::new();
             b.set_particle_template(Particle::default().set_static(true).clone());
-            b.apply_operation(&Circle::new(vec2(0.0, 0.0), 10.0));
+            b.apply_operation(Circle::new(vec2(0.0, 0.0), 10.0));
             b.create_in_particle_container(particle_container);
 
             // some dynamic particles on the inside
             let mut b2 = ShapeBuilder::new();
-            b2.apply_operation(&LineSegment::new(vec2(-3.0, 0.0), vec2(3.0, 0.0)));
+            b2.apply_operation(LineSegment::new(vec2(-3.0, 0.0), vec2(3.0, 0.0)));
             b2.create_in_particle_container(particle_container);
         }
 

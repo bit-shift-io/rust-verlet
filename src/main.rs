@@ -50,6 +50,7 @@ mod v4 {
         pub mod line_segment;
         pub mod rectangle;
         pub mod circle;
+        pub mod rectangle_stick_grid;
     }
     pub mod spatial_hash;
     pub mod particle_container;

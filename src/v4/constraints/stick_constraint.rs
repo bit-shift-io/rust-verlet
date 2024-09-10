@@ -20,6 +20,16 @@ impl StickConstraint {
         self.stiffness_factor = stiffness_factor;
         self
     }
+
+    pub fn set_particle_handles(&mut self, particle_handles: [ParticleHandle; 2]) -> &mut Self {
+        self.particle_handles = particle_handles;
+        self
+    }
+
+    pub fn set_length(&mut self, length: f32) -> &mut Self {
+        self.length = length;
+        self
+    }
 }
 
 impl Constraint for StickConstraint {

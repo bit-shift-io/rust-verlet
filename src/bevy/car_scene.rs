@@ -15,7 +15,7 @@ use bevy::{
 };
 use bytemuck::{Pod, Zeroable};
 
-use crate::v4::{constraint_container::ConstraintContainer, constraints::stick_constraint::StickConstraint, particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{line_segment::LineSegment, rectangle::Rectangle, shape_builder::{radius_divisions_between_points, ShapeBuilder}}};
+use crate::v4::{constraint_container::ConstraintContainer, constraints::stick_constraint::StickConstraint, particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{rectangle_stick_grid::RectangleStickGrid, line_segment::LineSegment, rectangle::Rectangle, shape_builder::{radius_divisions_between_points, ShapeBuilder}}};
 
 use super::{instance_material_data::{InstanceData, InstanceMaterialData}, performance_ui::performance_ui_build};
 
@@ -80,15 +80,15 @@ impl CarScene {
             
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone()) 
-                .apply_operation(&LineSegment::new(vec2(-5.0, 0.0), vec2(5.0, 0.0)))
-                .apply_operation(&LineSegment::new(vec2(5.0, 0.0), vec2(8.0, 0.5)))
+                .apply_operation(LineSegment::new(vec2(-5.0, 0.0), vec2(5.0, 0.0)))
+                .apply_operation(LineSegment::new(vec2(5.0, 0.0), vec2(8.0, 0.5)))
                 .create_in_particle_container(&mut particle_container);
         
             // add a jellow cube to the scene
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).clone())
-                .set_constraint_template(StickConstraint::default().set_stiffness_factor(20.0).clone())// this ignores mass
-                .apply_operation(&Rectangle::from_center_size(vec2(-3.0, 1.5), vec2(1.0, 1.0)))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
+                //.set_constraint_template(StickConstraint::default().set_stiffness_factor(20.0).clone())// this ignores mass
+                .apply_operation(RectangleStickGrid::from_rectangle(StickConstraint::default().set_stiffness_factor(20.0).clone(), Rectangle::from_center_size(vec2(-3.0, 1.5), vec2(1.0, 1.0))))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
                 .create_in_particle_container(&mut particle_container);
             
  
@@ -96,14 +96,14 @@ impl CarScene {
           /* 
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone()) 
-                .apply_operation(&LineSegment::new(vec2(-1.0, 0.0), vec2(1.0, 0.0)))
+                .apply_operation(LineSegment::new(vec2(-1.0, 0.0), vec2(1.0, 0.0)))
                 .create_in_particle_container(&mut particle_container);
 
             // single particle for easier testing
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).clone())
                 .set_constraint_template(StickConstraint::default().set_stiffness_factor(20.0).clone())// this ignores mass
-                .apply_operation(&LineSegment::new(vec2(0.0, 0.4 - particle_radius * 2.0), vec2(0.0, 0.4 + particle_radius * 2.0)))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
+                .apply_operation(LineSegment::new(vec2(0.0, 0.4 - particle_radius * 2.0), vec2(0.0, 0.4 + particle_radius * 2.0)))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
                 .create_in_particle_container(&mut particle_container);
 */
 
@@ -116,7 +116,7 @@ impl CarScene {
                 let mut suspension_bridge = ShapeBuilder::new();
                 suspension_bridge.set_particle_template(Particle::default().set_radius(particle_radius).clone());
 
-                suspension_bridge.apply_operation(&Rectangle::from_corners(vec2(-8.0, 0.0), vec2(-5.0, -particle_radius * 6.0)));
+                suspension_bridge.apply_operation(Rectangle::from_corners(vec2(-8.0, 0.0), vec2(-5.0, -particle_radius * 6.0)));
                 
                 /* 
                 // make the very left particles and very right particle static
@@ -161,22 +161,22 @@ impl CarScene {
                 let mut liquid = ShapeBuilder::new();
                 liquid
                     .set_particle_template(Particle::default().set_mass(liquid_particle_mass).set_radius(liquid_particle_radius).clone())
-                    .apply_operation(&Rectangle::from_center_size(origin + vec2(0.0 + liquid_particle_radius * 2.0, funnel_height + 1.0), vec2(width, height)))
+                    .apply_operation(Rectangle::from_center_size(origin + vec2(0.0 + liquid_particle_radius * 2.0, funnel_height + 1.0), vec2(width, height)))
                     .create_in_particle_container(&mut particle_container);
  
                 let mut funnel = ShapeBuilder::new();
                 funnel
                     .set_particle_template(Particle::default().set_static(true).set_radius(funnel_particle_radius).clone())
-                    .apply_operation(&LineSegment::new(origin + vec2(-3.0, funnel_height + 2.0), origin + vec2(1.0, funnel_height))) //.add_line(origin + Vec2::new(-3.0, funnel_height + 2.0), origin + Vec2::new(1.0, funnel_height), funnel_particle_radius)
-                    .apply_operation(&LineSegment::new(origin + vec2(5.0, funnel_height + 2.0), origin + vec2(1.0 + liquid_particle_radius * 8.0, funnel_height))) //.add_line(origin + Vec2::new(5.0, funnel_height + 2.0), origin + Vec2::new(1.0 + liquid_particle_radius * 8.0, funnel_height), funnel_particle_radius)
+                    .apply_operation(LineSegment::new(origin + vec2(-3.0, funnel_height + 2.0), origin + vec2(1.0, funnel_height))) //.add_line(origin + Vec2::new(-3.0, funnel_height + 2.0), origin + Vec2::new(1.0, funnel_height), funnel_particle_radius)
+                    .apply_operation(LineSegment::new(origin + vec2(5.0, funnel_height + 2.0), origin + vec2(1.0 + liquid_particle_radius * 8.0, funnel_height))) //.add_line(origin + Vec2::new(5.0, funnel_height + 2.0), origin + Vec2::new(1.0 + liquid_particle_radius * 8.0, funnel_height), funnel_particle_radius)
                     .create_in_particle_container(&mut particle_container);
  
                 let mut bucket = ShapeBuilder::new();
                 bucket
                     .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone())
-                    .apply_operation(&LineSegment::new(origin, origin + vec2(bucket_height, -bucket_height))) 
-                    .apply_operation(&LineSegment::new(origin + vec2(bucket_height, -bucket_height), origin + vec2(bucket_width - bucket_height, -bucket_height)))
-                    .apply_operation(&LineSegment::new(origin + vec2(bucket_width - bucket_height, -bucket_height), origin + vec2(bucket_width, 0.0)))
+                    .apply_operation(LineSegment::new(origin, origin + vec2(bucket_height, -bucket_height))) 
+                    .apply_operation(LineSegment::new(origin + vec2(bucket_height, -bucket_height), origin + vec2(bucket_width - bucket_height, -bucket_height)))
+                    .apply_operation(LineSegment::new(origin + vec2(bucket_width - bucket_height, -bucket_height), origin + vec2(bucket_width, 0.0)))
                     .create_in_particle_container(&mut particle_container);
             }
 
@@ -185,7 +185,7 @@ impl CarScene {
                 // ground line to the righ of the bucket
                 ShapeBuilder::new()
                     .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius * 2.0).clone())
-                    .apply_operation(&LineSegment::new(vec2(11.0, 0.3), vec2(20.0, 1.0))) //.add_line(Vec2::new(11.0, 0.3), Vec2::new(20.0, 1.0), particle_radius * 2.0)
+                    .apply_operation(LineSegment::new(vec2(11.0, 0.3), vec2(20.0, 1.0))) //.add_line(Vec2::new(11.0, 0.3), Vec2::new(20.0, 1.0), particle_radius * 2.0)
                     .create_in_particle_container(&mut particle_container);
             }
         }
