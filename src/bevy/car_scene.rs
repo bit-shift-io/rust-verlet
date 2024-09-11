@@ -300,29 +300,6 @@ fn update_car_scene(
     car_component.car.update(&mut car_scene.particle_sim, keys);
 
     car_scene.particle_sim.update(delta_seconds);
-/* 
-    // reset forces to just the gravity value
-    // 9.8 = units are in metres per second
-    let gravity = Vec2::new(0.0, -9.8); // * 5.0); //9.8);
-    let mut collider = ParticleCollider::new();
-    collider.reset_forces(&mut car_scene.particle_accelerator, gravity);
-
-
-    // do other physics here...
-    // now update the car which will setup its forces on the particles
-    let particle_accelerator = &mut car_scene.particle_accelerator;
-    car_component.car.update(particle_accelerator, keys);
-
-
-    // finally, solve everything for this frame
-    let desired_hertz = 240.0; // times per second
-    for sub_dt in collider.range_substeps_2(delta_seconds, desired_hertz).iter() {
-        collider.solve_collisions(&mut car_scene.particle_accelerator);
-        collider.update_constraints(&mut car_scene.particle_accelerator, *sub_dt);
-        collider.update_positions(&mut car_scene.particle_accelerator, *sub_dt);
-        collider.post_update_constraints(&mut car_scene.particle_accelerator, *sub_dt);
-    }
-    */
 }
 
 

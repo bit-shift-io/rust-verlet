@@ -1,6 +1,6 @@
 use bevy::{color::{Color, LinearRgba}, input::ButtonInput, math::{vec2, Vec2}, prelude::{Component, KeyCode, Res}};
 
-use crate::v4::{constraints::stick_constraint::StickConstraint, particle::Particle, particle_handle::ParticleHandle, particle_manipulator::ParticleManipulator, particle_sim::ParticleSim, shape_builder::{adjacent_sticks::AdjacentSticks, circle::Circle, shape_builder::ShapeBuilder}};
+use crate::v4::{constraints::{constraint::Constraint, stick_constraint::StickConstraint}, particle::Particle, particle_handle::ParticleHandle, particle_manipulator::ParticleManipulator, particle_sim::ParticleSim, shape_builder::{adjacent_sticks::AdjacentSticks, circle::Circle, shape_builder::ShapeBuilder}};
 
 use super::car_scene::{cm_to_m, g_to_kg, CarSceneContext};
 
@@ -38,7 +38,7 @@ impl CarWheel {
 
             builder.apply_operation(Circle::new(origin, circle_radius));
             builder.apply_operation(AdjacentSticks::new(StickConstraint::default().clone(), 1, true));
-            builder.apply_operation(AdjacentSticks::new(StickConstraint::default().clone(), 4, true));
+            //builder.apply_operation(AdjacentSticks::new(StickConstraint::default().clone(), 4, true));
 
             builder.create_in_particle_sim(particle_sim);
 
@@ -83,6 +83,22 @@ impl CarWheel {
         particle_sim.create_attachment_constraint(weighted_particles.clone(), weighted_particles.clone(), hub_particle_handle.clone());
         */
 
+        // instead of the above, which moved the huib to the centre, lets try just connecting the hub to the rim
+        // then we can just change the stiffness!
+        {
+            let mut constraint_container = particle_sim.constraint_container.as_ref().write().unwrap();
+            
+            for (idx, surface_particle_handle) in surface_particle_handles.iter().enumerate() {
+                let length = (particle_sim.get_particle(hub_particle_handle).pos - particle_sim.get_particle(surface_particle_handle.clone()).pos).length(); 
+            
+                constraint_container.add(StickConstraint::default()
+                    .set_stiffness_factor(20.0)
+                    .set_length(length)
+                    .set_particle_handles([hub_particle_handle, surface_particle_handle.clone()]).box_clone()
+                );
+            }
+        }
+
         Self {
             hub_particle_handle,
             surface_particle_handles,
@@ -115,15 +131,18 @@ impl Car {
         let wheel_1 = CarWheel::new(origin + Vec2::new(wheel_spacing, 0.0), particle_sim);
         let wheel_2 = CarWheel::new(origin - Vec2::new(wheel_spacing, 0.0), particle_sim);
 
-        /* todo: port to v4
-        
         // axle stick to connect the two wheel hubs
         {
-            let length = (particle_sim.get_particle_position(&wheel_1.hub_particle_handle) - particle_sim.get_particle_position(&wheel_2.hub_particle_handle)).magnitude(); 
-            particle_sim.create_stick([&wheel_1.hub_particle_handle, &wheel_2.hub_particle_handle], length, 0.0);
+            let length = (particle_sim.get_particle(wheel_1.hub_particle_handle).pos - particle_sim.get_particle(wheel_2.hub_particle_handle).pos).length(); 
+            //particle_sim.create_stick([&wheel_1.hub_particle_handle, &wheel_2.hub_particle_handle], length, 0.0);
+
+            let mut constraint_container = particle_sim.constraint_container.as_ref().write().unwrap();
+            constraint_container.add(StickConstraint::default()
+                .set_length(length)
+                .set_particle_handles([wheel_1.hub_particle_handle, wheel_2.hub_particle_handle]).box_clone()
+            );
         }
 
-        */
         Self {
             wheels: [wheel_1, wheel_2],
         }
