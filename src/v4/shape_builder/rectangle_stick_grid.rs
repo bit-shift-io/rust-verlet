@@ -32,8 +32,8 @@ impl ShapeBuilderOperation for RectangleStickGrid {
 
         let (x_divisions, y_divisions, _x_delta, _y_delta) = self.rectangle.get_divisions_and_deltas_for_radius(radius);
 
-        println!("---- RectangleStickGrid. x_divisions: {}, y_divisions: {}", x_divisions, y_divisions);
-        println!("");
+        //println!("---- RectangleStickGrid. x_divisions: {}, y_divisions: {}", x_divisions, y_divisions);
+        //println!("");
 
         for yi in 0..y_divisions {
             for xi in 0..x_divisions {
@@ -43,7 +43,7 @@ impl ShapeBuilderOperation for RectangleStickGrid {
                         ParticleHandle::new(current_index - 1),
                         ParticleHandle::new(current_index)
                     ];
-                    println!("x: {} -> {}", current_index - 1, current_index);
+                    //println!("x: {} -> {}", current_index - 1, current_index);
                     self.add_constraint_to_shape_builder_from_particle_handles(shape_builder, particle_handles);
                 }
 
@@ -53,14 +53,14 @@ impl ShapeBuilderOperation for RectangleStickGrid {
                         ParticleHandle::new(up_point),
                         ParticleHandle::new(current_index)
                     ];
-                    println!("y: {} -> {}", up_point, current_index);
+                    //println!("y: {} -> {}", up_point, current_index);
                     self.add_constraint_to_shape_builder_from_particle_handles(shape_builder, particle_handles);
                 }
             }
 
-            println!("");
+            //println!("");
         }
 
-        println!("");
+        //println!("");
     }
 }

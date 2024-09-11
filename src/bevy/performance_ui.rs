@@ -43,7 +43,7 @@ fn performance_ui_update(
     
     perf_metrics.last_update += delta_seconds;
     if (perf_metrics.last_update >= 1.0) {
-        println!("num_collision_checks_last_second {}", perf_metrics.num_collision_checks_last_second);
+        //println!("num_collision_checks_last_second {}", perf_metrics.num_collision_checks_last_second);
         perf_metrics.last_update -= 1.0;
         perf_metrics.num_collision_checks_last_second = 0;
     }

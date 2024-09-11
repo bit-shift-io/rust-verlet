@@ -20,6 +20,15 @@ mod bevy {
     pub mod car;
 }
 
+mod level {
+    pub mod level;
+    pub mod level_builder;
+    pub mod level_blocks {
+        pub mod level_block;
+        pub mod straight_level_block;
+    }
+}
+
 /*
 mod scenes {
     pub mod car {

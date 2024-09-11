@@ -20,6 +20,8 @@ use bevy::{
 use bytemuck::{Pod, Zeroable};
 use iyes_perf_ui::{prelude::PerfUiCompleteBundle, PerfUiPlugin};
 
+use crate::level::level::LevelPlugin;
+
 use super::{car_scene::CarScenePlugin, instance_material_data::{InstanceData, InstanceMaterialData}};
 
 /// This example uses a shader source file from the assets subdirectory
@@ -27,7 +29,7 @@ const SHADER_ASSET_PATH: &str = "shaders/instancing.wgsl";
 
 pub fn main_bevy() {
     App::new()
-        .add_plugins((DefaultPlugins, CustomMaterialPlugin, CarScenePlugin))
+        .add_plugins((DefaultPlugins, CustomMaterialPlugin, CarScenePlugin, LevelPlugin))
         .add_systems(Startup, setup_camera)
         //.add_systems(Startup, setup_particle_instances)
         //.add_systems(Update, update_particle_instances)
