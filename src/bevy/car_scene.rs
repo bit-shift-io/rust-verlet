@@ -333,15 +333,13 @@ fn update_camera(
     mut car_component_query: Query<(&mut CarComponent)>,
     mut camera_query: Query<(&mut Camera, &mut Transform)>,
 ) {
-    /* 
     let mut car_scene = query_car_scenes.single_mut();
     let mut car_component = car_component_query.single_mut();
     let Ok((mut camera, mut camera_transform)) = camera_query.get_single_mut() else { return };
 
-    let particle_accelerator = &mut car_scene.particle_accelerator;
+    let particle_sim = &mut car_scene.particle_sim;
 
-    let camera_look_at_position = car_component.car.get_camera_look_at_position(particle_accelerator);
+    let camera_look_at_position = car_component.car.get_camera_look_at_position(particle_sim);
 
     camera_transform.translation = Vec3::new(camera_look_at_position.x, camera_look_at_position.y, 150.0);
-    */
 }

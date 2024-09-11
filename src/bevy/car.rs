@@ -144,15 +144,15 @@ impl Car {
         }
     }
 
-    pub fn get_camera_look_at_position(&self, particle_sim: &mut ParticleSim) -> Vec2 {
+    pub fn get_camera_look_at_position(&self, particle_sim: &ParticleSim) -> Vec2 {
         let mut pos = Vec2::new(0.0, 0.0);
-        /* todo: port to v4
+        
         for wheel in self.wheels.iter() {
-            pos += particle_sim.get_particle_position(&wheel.hub_particle_handle);
+            pos += particle_sim.get_particle(wheel.hub_particle_handle).pos;
         }
         pos /= NUM_WHEELS as f32;
         //pos.extend(1.0); // homogeneous coordinate
-        */
+        
         pos
     }
 }
