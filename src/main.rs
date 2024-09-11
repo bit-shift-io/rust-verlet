@@ -69,6 +69,7 @@ mod v4 {
         pub mod stick_constraint;
     }
     pub mod particle_sim;
+    pub mod particle_manipulator;
 }
 
 //use crate::sdl::main_sdl::main_sdl;
