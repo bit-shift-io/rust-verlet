@@ -145,7 +145,7 @@ impl CarScene {
                 let height = liquid_particle_radius * 2.0 * 15.0;
                 let mut liquid = ShapeBuilder::new();
                 liquid
-                    .set_particle_template(Particle::default().set_mass(liquid_particle_mass).set_radius(liquid_particle_radius).clone())
+                    .set_particle_template(Particle::default().set_mass(liquid_particle_mass).set_radius(liquid_particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
                     .apply_operation(Rectangle::from_center_size(origin + vec2(0.0 + liquid_particle_radius * 2.0, funnel_height + 1.0), vec2(width, height)))
                     .create_in_particle_sim(&mut particle_sim);
  

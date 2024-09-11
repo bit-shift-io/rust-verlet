@@ -55,8 +55,13 @@ impl Particle {
         acc * mass
     }
 
-    pub fn set_force_based_on_acceleration(&mut self, acceleration: Vec2) -> &mut Self{
+    pub fn set_force_based_on_acceleration(&mut self, acceleration: Vec2) -> &mut Self {
         self.force = acceleration * self.mass;
+        self
+    }
+
+    pub fn add_force(&mut self, force: Vec2) -> &mut Self {
+        self.force += force;
         self
     }
 

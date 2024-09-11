@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc, sync::{Arc, RwLock}};
 
 use bevy::math::{vec2, Vec2};
 
-use super::{constraint_container::ConstraintContainer, constraint_solvers::constraint_solver::ConstraintSolver, particle_container::ParticleContainer, particle_solvers::{particle_solver::ParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}};
+use super::{constraint_container::ConstraintContainer, constraint_solvers::constraint_solver::ConstraintSolver, particle::Particle, particle_container::ParticleContainer, particle_handle::{self, ParticleHandle}, particle_solvers::{particle_solver::ParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}};
 
 
 pub fn reset_forces(particle_container: &mut ParticleContainer, gravity: Vec2) {
@@ -74,6 +74,11 @@ impl ParticleSim {
             self.particle_solver.update_particle_positions(*sub_dt);
             self.constraint_solver.post_update_constraints(*sub_dt);
         }
+    }
+
+    // todo: currently this returns a copy, which could kill performance. can we return a ref? or use self.particle_container directly?
+    pub fn get_particle(&self, particle_handle: ParticleHandle) -> Particle {
+        self.particle_container.as_ref().read().unwrap().particles[particle_handle.id()]
     }
 }
 

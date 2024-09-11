@@ -1,6 +1,6 @@
-use bevy::{input::ButtonInput, math::{vec2, Vec2}, prelude::{Component, KeyCode, Res}};
+use bevy::{color::{Color, LinearRgba}, input::ButtonInput, math::{vec2, Vec2}, prelude::{Component, KeyCode, Res}};
 
-use crate::v4::{constraints::stick_constraint::StickConstraint, particle::Particle, particle_handle::ParticleHandle, particle_sim::ParticleSim, shape_builder::{adjacent_sticks::AdjacentSticks, circle::Circle, shape_builder::ShapeBuilder}};
+use crate::v4::{constraints::stick_constraint::StickConstraint, particle::Particle, particle_handle::ParticleHandle, particle_manipulator::ParticleManipulator, particle_sim::ParticleSim, shape_builder::{adjacent_sticks::AdjacentSticks, circle::Circle, shape_builder::ShapeBuilder}};
 
 use super::car_scene::{cm_to_m, g_to_kg, CarSceneContext};
 
@@ -19,7 +19,7 @@ impl CarWheel {
             let mask = 0x0;
             let particle_radius = cm_to_m(4.0);
             let mut builder = ShapeBuilder::new();
-            builder.set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).clone());
+            builder.set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).set_color(Color::from(LinearRgba::GREEN)).clone());
 
             builder.add_particle(builder.create_particle().set_position(origin).clone())
                 .create_in_particle_sim(particle_sim);
@@ -34,7 +34,7 @@ impl CarWheel {
             let circle_radius = cm_to_m(35.0); // around a typical car tyre size - 17-18" (once you account for particle radius)
             let particle_radius = cm_to_m(4.0);
             let mut builder = ShapeBuilder::new();
-            builder.set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).clone());
+            builder.set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).set_color(Color::from(LinearRgba::GREEN)).clone());
 
             builder.apply_operation(Circle::new(origin, circle_radius));
             builder.apply_operation(AdjacentSticks::new(StickConstraint::default().clone(), 1, true));
@@ -91,14 +91,14 @@ impl CarWheel {
     }
 
     fn rotate(&mut self, direction: f32, particle_sim: &mut ParticleSim) {
-        /* todo: port to v4
-        let centre = particle_sim.get_particle_position(&self.hub_particle_handle);
+        
+        let hub_particle = particle_sim.get_particle(self.hub_particle_handle);
+        let centre = hub_particle.pos;
         let force_magnitude = 60.0;
 
         let particle_manipulator = ParticleManipulator::new();
         particle_manipulator.add_rotational_force_around_point(particle_sim, &self.surface_particle_handles, centre, force_magnitude * direction);
         //particle_manipulator.add_rotational_force_around_point(particle_sim, &self.interior_particle_handles, centre, force_magnitude * direction);
-        */
     }
 }
 
