@@ -84,7 +84,8 @@ impl CarScene {
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).set_color(Color::from(LinearRgba::RED)).clone())
                 //.set_constraint_template(StickConstraint::default().set_stiffness_factor(20.0).clone())// this ignores mass
-                .apply_operation(RectangleStickGrid::from_rectangle(StickConstraint::default().set_stiffness_factor(20.0).clone(), Rectangle::from_center_size(vec2(-3.0, 1.5), vec2(1.0, 1.0))))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
+                .apply_operation(RectangleStickGrid::from_rectangle(StickConstraint::default().set_stiffness_factor(20.0).clone(), 
+                    Rectangle::from_center_size(vec2(-3.0, 1.5), vec2(1.0, 1.0))))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
                 .create_in_particle_sim(&mut particle_sim);
             
  
@@ -106,34 +107,23 @@ impl CarScene {
              
             // suspension bridge on the ground
             {
-                //let width = radius_divisions_between_points(Vec2::new(-5.0, 0.0), Vec2::new(-8.0, 0.0), particle_radius);
-                //let height = radius_divisions_between_points(Vec2::new(-8.0, 0.0), Vec2::new(-8.0, particle_radius * 6.0), particle_radius);
-                
                 let mut suspension_bridge = ShapeBuilder::new();
                 suspension_bridge.set_particle_template(Particle::default().set_radius(particle_radius).clone());
 
-                suspension_bridge.apply_operation(Rectangle::from_corners(vec2(-8.0, 0.0), vec2(-5.0, -particle_radius * 6.0)));
+                suspension_bridge.apply_operation(RectangleStickGrid::from_rectangle(StickConstraint::default().set_stiffness_factor(200.0).clone(), 
+                    Rectangle::from_corners(vec2(-8.0, 0.0), vec2(-5.0, -particle_radius * 6.0))));
                 
-                /* 
-                // make the very left particles and very right particle static
-                //let particle_count = suspension_bridge.particles.len();
-                for y in 0..height {
-                    let first_particle_idx = y * width;
-                    let last_particle_idx = first_particle_idx + width - 1;
-
-                    suspension_bridge.particles[first_particle_idx].is_static = true;
-                    suspension_bridge.particles[last_particle_idx].is_static = true;
-                }
-
-                let particle_count = suspension_bridge.particles.len();
-                suspension_bridge.particles[0].is_static = true;
-                suspension_bridge.particles[particle_count - 1].is_static = true;
-        */
-                {
-                    // extract left particles and make them static
-                    let mut left = suspension_bridge.extract_left_most_particles();
-                    left.create_in_particle_sim(&mut particle_sim);
-                }
+                // set left and right most particles and make them static
+                // todo: make this an operation?
+                let aabb = suspension_bridge.get_aabb();
+                suspension_bridge.particles.iter_mut().for_each(|particle| {
+                    if particle.pos.x == aabb.min.x {
+                        particle.set_static(true);
+                    }
+                    if particle.pos.x == aabb.max.x {
+                        particle.set_static(true);
+                    }
+                });
 
                 suspension_bridge.create_in_particle_sim(&mut particle_sim);
             }
