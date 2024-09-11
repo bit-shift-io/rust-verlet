@@ -17,7 +17,7 @@ mod bevy {
     pub mod main_bevy;
     pub mod car_scene;
     pub mod performance_ui;
-    //pub mod car;
+    pub mod car;
 }
 
 /*
@@ -51,6 +51,7 @@ mod v4 {
         pub mod rectangle;
         pub mod circle;
         pub mod rectangle_stick_grid;
+        pub mod adjacent_sticks;
     }
     pub mod spatial_hash;
     pub mod particle_container;

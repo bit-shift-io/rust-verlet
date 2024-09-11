@@ -1,6 +1,6 @@
-use bevy::{input::ButtonInput, prelude::{Component, KeyCode, Res}};
-use sdl2::keyboard::Keycode;
-use crate::v3::{particle_accelerator::{ParticleAccelerator, ParticleHandle, ParticleManipulator, WeightedParticle}, shape_builder::ShapeBuilder, types::Vec2};
+use bevy::{input::ButtonInput, math::{vec2, Vec2}, prelude::{Component, KeyCode, Res}};
+
+use crate::v4::{constraints::stick_constraint::StickConstraint, particle::Particle, particle_handle::ParticleHandle, particle_sim::ParticleSim, shape_builder::{adjacent_sticks::AdjacentSticks, circle::Circle, shape_builder::ShapeBuilder}};
 
 use super::car_scene::{cm_to_m, g_to_kg, CarSceneContext};
 
@@ -11,7 +11,7 @@ pub struct CarWheel {
 }
 
 impl CarWheel {
-    pub fn new(origin: Vec2, particle_accelerator: &mut ParticleAccelerator) -> Self {
+    pub fn new(origin: Vec2, particle_sim: &mut ParticleSim) -> Self {
         let particle_mass = 1.0; //g_to_kg(10.0);
 
         // wheel hub - this is on mask layer zero which is a special no collisions layer
@@ -19,9 +19,11 @@ impl CarWheel {
             let mask = 0x0;
             let particle_radius = cm_to_m(4.0);
             let mut builder = ShapeBuilder::new();
-            builder.set_mass(particle_mass);
-            builder.add_particle(origin, particle_radius)
-                .create_in_particle_accelerator(particle_accelerator, mask);
+            builder.set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).clone());
+
+            builder.add_particle(builder.create_particle().set_position(origin).clone())
+                .create_in_particle_sim(particle_sim);
+
             builder.particle_handles.first().unwrap().clone()
         };
 
@@ -32,10 +34,14 @@ impl CarWheel {
             let circle_radius = cm_to_m(35.0); // around a typical car tyre size - 17-18" (once you account for particle radius)
             let particle_radius = cm_to_m(4.0);
             let mut builder = ShapeBuilder::new();
-            builder.set_mass(particle_mass);
-            builder.add_adjacent_stick_circle(origin, circle_radius, particle_radius, divisions)
-                .connect_adjacent_sticks(1, 4) // todo: wrap around!
-                .create_in_particle_accelerator(particle_accelerator, mask);
+            builder.set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).clone());
+
+            builder.apply_operation(Circle::new(origin, circle_radius));
+            builder.apply_operation(AdjacentSticks::new(StickConstraint::default().clone(), 1, true));
+            builder.apply_operation(AdjacentSticks::new(StickConstraint::default().clone(), 4, true));
+
+            builder.create_in_particle_sim(particle_sim);
+
             builder.particle_handles.clone()
         };
 
@@ -50,7 +56,7 @@ impl CarWheel {
             builder.set_mass(particle_mass);
             builder.add_circle(origin, circle_radius, particle_radius, divisions)
                 //.connect_with_stick_chain(2) // stop the air escaping so easily
-                .create_in_particle_accelerator(particle_accelerator, mask);
+                .create_in_particle_sim(particle_sim, mask);
             builder.particle_handles.clone()
             
             //vec![]
@@ -65,6 +71,7 @@ impl CarWheel {
         // or add a flag to particles to say they are "invisible"?
 
          
+         /* todo: port to v4
         // to optimise this we really only need maybe 4 points to determine the centre of the wheel for the incoming particles
         // we set all particles as output particles so the axle can be pushed by any sticks
         let mut weighted_particles = vec![];
@@ -73,8 +80,8 @@ impl CarWheel {
         }
 
         // todo: reenable outgoing_particles
-        particle_accelerator.create_attachment_constraint(weighted_particles.clone(), weighted_particles.clone(), hub_particle_handle.clone());
-        
+        particle_sim.create_attachment_constraint(weighted_particles.clone(), weighted_particles.clone(), hub_particle_handle.clone());
+        */
 
         Self {
             hub_particle_handle,
@@ -83,13 +90,15 @@ impl CarWheel {
         }
     }
 
-    fn rotate(&mut self, direction: f32, particle_accelerator: &mut ParticleAccelerator) {
-        let centre = particle_accelerator.get_particle_position(&self.hub_particle_handle);
+    fn rotate(&mut self, direction: f32, particle_sim: &mut ParticleSim) {
+        /* todo: port to v4
+        let centre = particle_sim.get_particle_position(&self.hub_particle_handle);
         let force_magnitude = 60.0;
 
         let particle_manipulator = ParticleManipulator::new();
-        particle_manipulator.add_rotational_force_around_point(particle_accelerator, &self.surface_particle_handles, centre, force_magnitude * direction);
-        //particle_manipulator.add_rotational_force_around_point(particle_accelerator, &self.interior_particle_handles, centre, force_magnitude * direction);
+        particle_manipulator.add_rotational_force_around_point(particle_sim, &self.surface_particle_handles, centre, force_magnitude * direction);
+        //particle_manipulator.add_rotational_force_around_point(particle_sim, &self.interior_particle_handles, centre, force_magnitude * direction);
+        */
     }
 }
 
@@ -100,46 +109,50 @@ pub struct Car {
 }
 
 impl Car {
-    pub fn new(particle_accelerator: &mut ParticleAccelerator, origin: Vec2) -> Self {
+    pub fn new(particle_sim: &mut ParticleSim, origin: Vec2) -> Self {
         let wheel_spacing = 1.0 * 0.5; // metres
 
-        let wheel_1 = CarWheel::new(origin + Vec2::new(wheel_spacing, 0.0), particle_accelerator);
-        let wheel_2 = CarWheel::new(origin - Vec2::new(wheel_spacing, 0.0), particle_accelerator);
+        let wheel_1 = CarWheel::new(origin + Vec2::new(wheel_spacing, 0.0), particle_sim);
+        let wheel_2 = CarWheel::new(origin - Vec2::new(wheel_spacing, 0.0), particle_sim);
 
+        /* todo: port to v4
         
         // axle stick to connect the two wheel hubs
         {
-            let length = (particle_accelerator.get_particle_position(&wheel_1.hub_particle_handle) - particle_accelerator.get_particle_position(&wheel_2.hub_particle_handle)).magnitude(); 
-            particle_accelerator.create_stick([&wheel_1.hub_particle_handle, &wheel_2.hub_particle_handle], length, 0.0);
+            let length = (particle_sim.get_particle_position(&wheel_1.hub_particle_handle) - particle_sim.get_particle_position(&wheel_2.hub_particle_handle)).magnitude(); 
+            particle_sim.create_stick([&wheel_1.hub_particle_handle, &wheel_2.hub_particle_handle], length, 0.0);
         }
 
+        */
         Self {
             wheels: [wheel_1, wheel_2],
         }
     }
 
-    fn rotate_wheels(&mut self, direction: f32, particle_accelerator: &mut ParticleAccelerator) {
+    fn rotate_wheels(&mut self, direction: f32, particle_sim: &mut ParticleSim) {
         for wheel in self.wheels.iter_mut() { 
-            wheel.rotate(direction, particle_accelerator);
+            wheel.rotate(direction, particle_sim);
         }
     }
 
-    pub fn update(&mut self, particle_accelerator: &mut ParticleAccelerator, keys: Res<ButtonInput<KeyCode>>) {
+    pub fn update(&mut self, particle_sim: &mut ParticleSim, keys: Res<ButtonInput<KeyCode>>) {
         if keys.pressed(KeyCode::KeyZ) {
-            self.rotate_wheels(1.0, particle_accelerator); // ccw
+            self.rotate_wheels(1.0, particle_sim); // ccw
         }
         if keys.pressed(KeyCode::KeyX) {
-            self.rotate_wheels(-1.0, particle_accelerator); // clockwise
+            self.rotate_wheels(-1.0, particle_sim); // clockwise
         }
     }
 
-    pub fn get_camera_look_at_position(&self, particle_accelerator: &mut ParticleAccelerator, ) -> Vec2 {
+    pub fn get_camera_look_at_position(&self, particle_sim: &mut ParticleSim) -> Vec2 {
         let mut pos = Vec2::new(0.0, 0.0);
+        /* todo: port to v4
         for wheel in self.wheels.iter() {
-            pos += particle_accelerator.get_particle_position(&wheel.hub_particle_handle);
+            pos += particle_sim.get_particle_position(&wheel.hub_particle_handle);
         }
         pos /= NUM_WHEELS as f32;
         //pos.extend(1.0); // homogeneous coordinate
+        */
         pos
     }
 }

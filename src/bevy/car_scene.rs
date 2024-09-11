@@ -17,7 +17,7 @@ use bytemuck::{Pod, Zeroable};
 
 use crate::v4::{constraint_container::ConstraintContainer, constraints::stick_constraint::StickConstraint, particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{rectangle_stick_grid::RectangleStickGrid, line_segment::LineSegment, rectangle::Rectangle, shape_builder::{radius_divisions_between_points, ShapeBuilder}}};
 
-use super::{instance_material_data::{InstanceData, InstanceMaterialData}, performance_ui::performance_ui_build};
+use super::{car::Car, instance_material_data::{InstanceData, InstanceMaterialData}, performance_ui::performance_ui_build};
 
 pub fn m_to_cm(m: f32) -> f32 {
     m * 100.0
@@ -38,7 +38,7 @@ pub struct CarSceneContext<'a> {
     pub particle_sim: &'a mut ParticleSim,
 }
 
-/* 
+
 #[derive(Component)]
 struct CarComponent {
     car: Car
@@ -53,7 +53,7 @@ impl CarComponent {
         }
     }
 }
-    */
+
 
 #[derive(Component)]
 pub struct CarScene {
@@ -194,7 +194,7 @@ impl Plugin for CarScenePlugin {
             .add_systems(Startup, setup_car_scene)
             .add_systems(Update, update_car_scene)
             .add_systems(Update, update_particle_instances)
-            //.add_systems(Update, update_camera);
+            .add_systems(Update, update_camera);
             ;
 
         performance_ui_build(app);
@@ -202,10 +202,10 @@ impl Plugin for CarScenePlugin {
 }
 
 pub fn setup_car_scene(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
-    let car_scene = CarScene::new();
-/* 
+    let mut car_scene = CarScene::new();
+
     let car = CarComponent::new(&mut car_scene.particle_sim);
-*/
+
     let instance_data = {
         let particle_container_ref = car_scene.particle_sim.particle_container.as_ref().read().unwrap();
         let particle_container = &*particle_container_ref;
@@ -242,11 +242,11 @@ pub fn setup_car_scene(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
     commands.spawn((
         car_scene,
     ));
-/* 
+
     // add car to bevy ecs
     commands.spawn((
         car,
-    ));*/
+    ));
 }
 
 fn update_particle_instances(
@@ -277,11 +277,11 @@ fn update_car_scene(
     mut commands: Commands, 
     mut meshes: ResMut<Assets<Mesh>>, 
     mut query_car_scenes: Query<(&mut CarScene)>,
-    //mut car_component_query: Query<(&mut CarComponent)>,
+    mut car_component_query: Query<(&mut CarComponent)>,
     mut instance_material_data_query: Query<(&mut InstanceMaterialData)>
 ) {
     let mut car_scene = query_car_scenes.single_mut();
-    //let mut car_component = car_component_query.single_mut();
+    let mut car_component = car_component_query.single_mut();
     let delta_seconds = time.delta_seconds();
 
     // handle pause - could go in a different update system
@@ -294,6 +294,10 @@ fn update_car_scene(
     }
 
     car_scene.particle_sim.pre_update();
+
+    // do other physics here...
+    // now update the car which will setup its forces on the particles
+    car_component.car.update(&mut car_scene.particle_sim, keys);
 
     car_scene.particle_sim.update(delta_seconds);
 /* 
@@ -321,7 +325,7 @@ fn update_car_scene(
     */
 }
 
-/*
+
 fn update_camera(
     time: Res<Time>, 
     mut commands: Commands,
@@ -341,5 +345,3 @@ fn update_camera(
     camera_transform.translation = Vec3::new(camera_look_at_position.x, camera_look_at_position.y, 150.0);
     */
 }
-
-    */

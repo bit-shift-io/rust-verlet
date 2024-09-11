@@ -11,7 +11,7 @@ use super::constraint::Constraint;
 pub struct StickConstraint {
     pub particle_handles: [ParticleHandle; 2],
     pub length: f32,
-    pub stiffness_factor: f32, // stiffness_factor. 1.0 = fully stiff, 0.9 = 90% per second
+    pub stiffness_factor: f32, // stiffness_factor. 0 = fully stiff, any value > 0 is a % per second?
     pub is_enabled: bool
 }
 
@@ -53,7 +53,7 @@ impl Default for StickConstraint {
         Self {
             particle_handles: [ParticleHandle::default(); 2],
             length: 0.0,
-            stiffness_factor: 1.0,
+            stiffness_factor: 0.0,
             is_enabled: true,
         }
     }
