@@ -6,10 +6,10 @@ use crate::level::level_builder::LevelBuilder;
 struct LevelComponent {
 }
 
-pub fn setup_level(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
+pub fn setup_level(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>) {
     println!("setup the level");
 
-    let level_builder = LevelBuilder::default().generate().add_to_bevy(commands);
+    let level_builder = LevelBuilder::default().generate(commands, meshes, materials);
 }
 
 fn update_level(
