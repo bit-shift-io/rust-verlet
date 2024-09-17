@@ -83,3 +83,7 @@ src/v2 - version 2 verlet systems
 ## Troubleshooting
 
 Can't debug rust in vscode: https://stackoverflow.com/questions/77218022/why-is-my-debugger-in-vscode-not-working-with-rust-after-mac-update-to-sonoma-14
+
+## Aider Usage
+
+aider --model gemini/gemini-1.5-flash-exp-0827 --no-git

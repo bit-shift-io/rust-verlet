@@ -26,12 +26,15 @@ impl LevelBuilderOperation for StraightLevelBlock {
                 mesh: meshes.add(rectangle),
                 material: materials.add(color),
                 transform: Transform::from_xyz(
-                    0.0,
-                    0.0,
+                    level_builder_context.cursor.x,
+                    level_builder_context.cursor.y,
                     0.0,
                 ),
                 ..default()
             }
         ));
+
+        // Update the cursor to the right side of the spawned rectangle
+        level_builder_context.cursor.x += 5.0; 
     }
 }
