@@ -66,7 +66,7 @@ impl LevelBuilder {
         // 2. Generate a block, which will adjust the cursor
         self.cursor = Vec2::default();
 
-        let num_blocks = 10;
+        let num_blocks = 3;
         let mut rng = rand::thread_rng();
         
         let mut level_builder_context = LevelBuilderContext {
