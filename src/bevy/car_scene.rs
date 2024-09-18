@@ -205,10 +205,10 @@ impl Plugin for CarScenePlugin {
 pub fn setup_origin_and_axis_indicators(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>) {
 
     // spawn a rect at the origin so we know where the origin is!
-    let color = Color::rgb(1.0, 1.0, 0.0);
+    let color = Color::from(LinearRgba::new(1.0, 0.0, 0.0, 1.0));
 
     // create a particle from each particle in the particle_accelerator
-    let rectangle = bevy::Rectangle::new(1.0, 1.0); // Add random height to base height
+    let rectangle = bevy::prelude::Rectangle::new(1.0, 1.0); // Add random height to base height
     commands.spawn((
         PbrBundle {
             mesh: meshes.add(rectangle),
@@ -216,7 +216,7 @@ pub fn setup_origin_and_axis_indicators(mut commands: Commands, mut meshes: ResM
             transform: Transform::from_xyz(
                 0.0,
                 0.0,
-                0.0,
+                1.0,
             ),
             ..default()
         }
