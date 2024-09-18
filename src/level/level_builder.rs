@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use rand::Rng;
 
-use super::level_blocks::{level_block::LevelBlock, straight_level_block::StraightLevelBlock};
+use super::level_blocks::{straight_level_block::StraightLevelBlock};
 
 pub struct LevelBuilderOperationRegistry {
     level_builder_operations: Vec<Box<dyn LevelBuilderOperation>>,
@@ -31,7 +31,6 @@ impl LevelBuilderOperationRegistry {
 
 
 pub struct LevelBuilder {
-    level_blocks: Vec<Box<dyn LevelBlock>>,
     level_builder_operations_registry: Box<LevelBuilderOperationRegistry>,
     cursor: Vec2,
 }
@@ -39,7 +38,6 @@ pub struct LevelBuilder {
 impl Default for LevelBuilder {
     fn default() -> Self {
         Self {
-            level_blocks: vec![],
             level_builder_operations_registry: Box::new(LevelBuilderOperationRegistry::new()),
             cursor: Vec2::default(),
         }
@@ -47,7 +45,6 @@ impl Default for LevelBuilder {
 }
 
 pub struct LevelBuilderContext<'a> {
-    pub level_blocks: Vec<Box<dyn LevelBlock>>,
     pub cursor: Vec2,
     pub commands: Commands<'a, 'a>,
     pub meshes: ResMut<'a, Assets<Mesh>>,
@@ -70,7 +67,6 @@ impl LevelBuilder {
         let mut rng = rand::thread_rng();
         
         let mut level_builder_context = LevelBuilderContext {
-            level_blocks: vec![],
             cursor: self.cursor.clone(),
             commands,
             meshes,

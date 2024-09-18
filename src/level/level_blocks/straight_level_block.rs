@@ -3,7 +3,7 @@ use rand::Rng;
 
 use crate::level::level_builder::{LevelBuilder, LevelBuilderContext, LevelBuilderOperation};
 
-use super::level_block::{LevelBlock, LevelBlockComponent};
+use super::level_block::LevelBlockComponent;
 
 pub struct StraightLevelBlock {
 }
@@ -29,18 +29,18 @@ impl LevelBuilderOperation for StraightLevelBlock {
 
         // Generate a random height between -2 and 2
         let random_height = rng.gen_range(-2.0..2.0);
-
+ 
         // create a particle from each particle in the particle_accelerator
         let rectangle = Rectangle::new(random_width, random_height + 10.0); // Add random height to base height
         commands.spawn((
             LevelBlockComponent {
-            },
+            }, 
             PbrBundle {
                 mesh: meshes.add(rectangle),
                 material: materials.add(random_color),
                 transform: Transform::from_xyz(
-                    level_builder_context.cursor.x,
-                    level_builder_context.cursor.y,
+                    level_builder_context.cursor.x - random_width / 2.0,
+                    level_builder_context.cursor.y + random_height / 2.0,
                     0.0,
                 ),
                 ..default()

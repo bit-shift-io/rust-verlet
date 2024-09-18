@@ -31,51 +31,8 @@ pub fn main_bevy() {
     App::new()
         .add_plugins((DefaultPlugins, CustomMaterialPlugin, CarScenePlugin, LevelPlugin))
         .add_systems(Startup, setup_camera)
-        //.add_systems(Startup, setup_particle_instances)
-        //.add_systems(Update, update_particle_instances)
-
         .run();
 }
-
-/* 
-fn update_particle_instances(time: Res<Time>, mut instance_material_data_query: Query<(&mut InstanceMaterialData)>) {
-    for mut instance_material_data in &mut instance_material_data_query {
-        // https://www.reddit.com/r/bevy/comments/1e23o1z/animate_instance_data_in_update_loop/
-        for instance in instance_material_data.iter_mut() {
-            instance.scale += (time.elapsed_seconds()).sin() * 0.01;
-        } 
-    }
-}
-
-fn setup_particle_instances(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
-    let circle = Circle { radius: 0.5 };
-
-    commands.spawn((
-        //meshes.add(Cuboid::new(0.5, 0.5, 0.5)),
-        meshes.add(circle),
-        SpatialBundle::INHERITED_IDENTITY,
-        InstanceMaterialData(
-            (1..=10)
-                .flat_map(|x| (1..=10).map(move |y| (x as f32 / 10.0, y as f32 / 10.0)))
-                .map(|(x, y)| InstanceData {
-                    position: Vec3::new(x * 10.0 - 5.0, y * 10.0 - 5.0, 0.0),
-                    scale: 1.0,
-                    color: LinearRgba::from(Color::hsla(x * 360., y, 0.5, 1.0)).to_f32_array(),
-                })
-                .collect(),
-        ),
-        // NOTE: Frustum culling is done based on the Aabb of the Mesh and the GlobalTransform.
-        // As the cube is at the origin, if its Aabb moves outside the view frustum, all the
-        // instanced cubes will be culled.
-        // The InstanceMaterialData contains the 'GlobalTransform' information for this custom
-        // instancing, and that is not taken into account with the built-in frustum culling.
-        // We must disable the built-in frustum culling by adding the `NoFrustumCulling` marker
-        // component to avoid incorrect culling.
-        NoFrustumCulling,
-    ));
-
-}
-*/
 
 
 

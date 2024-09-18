@@ -192,6 +192,7 @@ impl Plugin for CarScenePlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Startup, setup_car_scene)
+            .add_systems(Startup, setup_origin_and_axis_indicators)
             .add_systems(Update, update_car_scene)
             .add_systems(Update, update_particle_instances)
             .add_systems(Update, update_camera);
@@ -199,6 +200,27 @@ impl Plugin for CarScenePlugin {
 
         performance_ui_build(app);
     }
+}
+
+pub fn setup_origin_and_axis_indicators(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>) {
+
+    // spawn a rect at the origin so we know where the origin is!
+    let color = Color::rgb(1.0, 1.0, 0.0);
+
+    // create a particle from each particle in the particle_accelerator
+    let rectangle = bevy::Rectangle::new(1.0, 1.0); // Add random height to base height
+    commands.spawn((
+        PbrBundle {
+            mesh: meshes.add(rectangle),
+            material: materials.add(color),
+            transform: Transform::from_xyz(
+                0.0,
+                0.0,
+                0.0,
+            ),
+            ..default()
+        }
+    ));
 }
 
 pub fn setup_car_scene(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
