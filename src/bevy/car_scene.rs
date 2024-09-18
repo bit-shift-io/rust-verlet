@@ -15,7 +15,7 @@ use bevy::{
 };
 use bytemuck::{Pod, Zeroable};
 
-use crate::v4::{constraint_container::ConstraintContainer, constraints::stick_constraint::StickConstraint, particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{rectangle_stick_grid::RectangleStickGrid, line_segment::LineSegment, rectangle::Rectangle, shape_builder::{radius_divisions_between_points, ShapeBuilder}}};
+use crate::{level::level::{setup_level, update_level}, v4::{constraint_container::ConstraintContainer, constraints::stick_constraint::StickConstraint, particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{line_segment::LineSegment, rectangle::Rectangle, rectangle_stick_grid::RectangleStickGrid, shape_builder::{radius_divisions_between_points, ShapeBuilder}}}};
 
 use super::{car::Car, instance_material_data::{InstanceData, InstanceMaterialData}, performance_ui::performance_ui_build};
 
@@ -73,19 +73,20 @@ impl CarScene {
             // line along the ground
             //let mask = 0x1;
 
-            
+            /* 
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone()) 
                 .apply_operation(LineSegment::new(vec2(-5.0, 0.0), vec2(5.0, 0.0)))
                 .apply_operation(LineSegment::new(vec2(5.0, 0.0), vec2(8.0, 0.5)))
                 .create_in_particle_sim(&mut particle_sim);
-        
+            */
+
             // add a jellow cube to the scene
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).set_color(Color::from(LinearRgba::RED)).clone())
                 //.set_constraint_template(StickConstraint::default().set_stiffness_factor(20.0).clone())// this ignores mass
                 .apply_operation(RectangleStickGrid::from_rectangle(StickConstraint::default().set_stiffness_factor(20.0).clone(), 
-                    Rectangle::from_center_size(vec2(-3.0, 1.5), vec2(1.0, 1.0))))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
+                    Rectangle::from_center_size(vec2(3.0, 1.5), vec2(0.4, 0.8))))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
                 .create_in_particle_sim(&mut particle_sim);
             
  
@@ -111,7 +112,7 @@ impl CarScene {
                 suspension_bridge.set_particle_template(Particle::default().set_radius(particle_radius).clone());
 
                 suspension_bridge.apply_operation(RectangleStickGrid::from_rectangle(StickConstraint::default().set_stiffness_factor(200.0).clone(), 
-                    Rectangle::from_corners(vec2(-8.0, 0.0), vec2(-5.0, -particle_radius * 6.0))));
+                    Rectangle::from_corners(vec2(-5.0, 0.0), vec2(-1.0, -particle_radius * 6.0))));
                 
                 // set left and right most particles and make them static
                 // todo: make this an operation?
@@ -156,6 +157,8 @@ impl CarScene {
                     .apply_operation(LineSegment::new(origin + vec2(5.0, funnel_height + 2.0), origin + vec2(1.0 + liquid_particle_radius * 8.0, funnel_height))) //.add_line(origin + Vec2::new(5.0, funnel_height + 2.0), origin + Vec2::new(1.0 + liquid_particle_radius * 8.0, funnel_height), funnel_particle_radius)
                     .create_in_particle_sim(&mut particle_sim);
  
+                /* 
+                // bucket
                 let mut bucket = ShapeBuilder::new();
                 bucket
                     .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone())
@@ -163,16 +166,18 @@ impl CarScene {
                     .apply_operation(LineSegment::new(origin + vec2(bucket_height, -bucket_height), origin + vec2(bucket_width - bucket_height, -bucket_height)))
                     .apply_operation(LineSegment::new(origin + vec2(bucket_width - bucket_height, -bucket_height), origin + vec2(bucket_width, 0.0)))
                     .create_in_particle_sim(&mut particle_sim);
+                */
             }
 
  
+            /*
             {
                 // ground line to the righ of the bucket
                 ShapeBuilder::new()
                     .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius * 2.0).clone())
                     .apply_operation(LineSegment::new(vec2(11.0, 0.3), vec2(20.0, 1.0))) //.add_line(Vec2::new(11.0, 0.3), Vec2::new(20.0, 1.0), particle_radius * 2.0)
                     .create_in_particle_sim(&mut particle_sim);
-            }
+            }*/
         }
 
         // let particle system know all static particles have been built
@@ -191,11 +196,15 @@ pub struct CarScenePlugin;
 impl Plugin for CarScenePlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Startup, setup_car_scene)
-            .add_systems(Startup, setup_origin_and_axis_indicators)
+            .add_systems(Startup, (
+                setup_origin_and_axis_indicators, 
+                setup_car_scene, 
+                setup_level.after(setup_car_scene) // https://github.com/bevyengine/bevy/blob/main/examples/ecs/one_shot_systems.rs
+            ))
             .add_systems(Update, update_car_scene)
+            .add_systems(Update, update_level)
             .add_systems(Update, update_particle_instances)
-            .add_systems(Update, update_camera);
+            .add_systems(Update, update_camera)
             ;
 
         performance_ui_build(app);
@@ -273,23 +282,96 @@ pub fn setup_car_scene(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
 
 fn update_particle_instances(
     time: Res<Time>, 
+    mut commands: Commands, 
     mut query_car_scenes: Query<(&mut CarScene)>,
-    mut instance_material_data_query: Query<(&mut InstanceMaterialData)>
+    mut instance_material_data_query: Query<(&mut InstanceMaterialData)>,
+    mut meshes: ResMut<Assets<Mesh>>
 ) {
     // todo: will need to destroy the old InstanceMaterialData bundle and recreate if there is a different
     // number of particles (i.e. particles have spawned or been destroyed)
 
     let car_scene = query_car_scenes.single_mut();
 
-    for mut instance_material_data in &mut instance_material_data_query {
-        // https://www.reddit.com/r/bevy/comments/1e23o1z/animate_instance_data_in_update_loop/
+    let mut instance_material_data = instance_material_data_query.single_mut();
+
+    let particle_container_ref = car_scene.particle_sim.particle_container.as_ref().read().unwrap();
+    let particle_container = &*particle_container_ref;
+
+
+    if instance_material_data.len() != particle_container.particles.len() {
+        // delete old instance data
+
+        /* 
+        for entity in instance_material_data_query.iter() {
+            commands.entity(entity).remove::<InstanceMaterialData>();
+        }*/
+
+        instance_material_data.resize(particle_container.particles.len(), InstanceData {
+            scale: 1.0,
+            position: Vec3::default(),
+            color: Color::WHITE.to_linear().to_f32_array(),
+        });
+
         let mut i = 0;
         for instance in instance_material_data.iter_mut() {
             let particle = &car_scene.particle_sim.particle_container.as_ref().read().unwrap().particles[i];
             instance.position = Vec3::new(particle.pos.x, particle.pos.y, 0.0);
-            //instance.scale += (time.elapsed_seconds()).sin() * 0.01;
+            instance.scale = particle.radius;
+            instance.color = particle.color.to_linear().to_f32_array();
             i += 1;
         } 
+
+        /* 
+        instance_material_data = particle_container.particles.iter().map(|(particle)| InstanceData {
+            position: Vec3::new(particle.pos.x, particle.pos.y, 0.0),
+            scale: particle.radius,
+            //color: LinearRgba::from(Color::hsla(x * 360., y, 0.5, 1.0)).to_f32_array(),
+            color: particle.color.to_linear().to_f32_array(), //LinearRgba::from(Color::srgba_u8(particle.color.r, particle.color.g, particle.color.b, particle.color.a)).to_f32_array(),
+        }*/
+
+        /* 
+        let instance_data = {
+            
+            // create the required particles
+            let instance_data = InstanceMaterialData(particle_container.particles.iter().map(|(particle)| InstanceData {
+                position: Vec3::new(particle.pos.x, particle.pos.y, 0.0),
+                scale: particle.radius,
+                //color: LinearRgba::from(Color::hsla(x * 360., y, 0.5, 1.0)).to_f32_array(),
+                color: particle.color.to_linear().to_f32_array(), //LinearRgba::from(Color::srgba_u8(particle.color.r, particle.color.g, particle.color.b, particle.color.a)).to_f32_array(),
+            })
+            .collect());
+            instance_data
+        };*/
+
+        /* 
+        // create a particle from each particle in the particle_accelerator
+        let circle = Circle { radius: 1.0 };
+        commands.spawn((
+            //meshes.add(Cuboid::new(0.5, 0.5, 0.5)),
+            meshes.add(circle),
+            SpatialBundle::INHERITED_IDENTITY,
+            instance_data,
+            // NOTE: Frustum culling is done based on the Aabb of the Mesh and the GlobalTransform.
+            // As the cube is at the origin, if its Aabb moves outside the view frustum, all the
+            // instanced cubes will be culled.
+            // The InstanceMaterialData contains the 'GlobalTransform' information for this custom
+            // instancing, and that is not taken into account with the built-in frustum culling.
+            // We must disable the built-in frustum culling by adding the `NoFrustumCulling` marker
+            // component to avoid incorrect culling.
+            NoFrustumCulling,
+        ));*/
+    } else {
+
+        //for mut instance_material_data in &mut instance_material_data_query {
+            // https://www.reddit.com/r/bevy/comments/1e23o1z/animate_instance_data_in_update_loop/
+            let mut i = 0;
+            for instance in instance_material_data.iter_mut() {
+                let particle = &car_scene.particle_sim.particle_container.as_ref().read().unwrap().particles[i];
+                instance.position = Vec3::new(particle.pos.x, particle.pos.y, 0.0);
+                //instance.scale += (time.elapsed_seconds()).sin() * 0.01;
+                i += 1;
+            } 
+        //}
     }
 }
 

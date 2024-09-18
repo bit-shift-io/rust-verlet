@@ -1,5 +1,7 @@
-use bevy::prelude::*;
+use bevy::{math::vec2, prelude::*};
 use rand::Rng;
+
+use crate::v4::particle_sim::ParticleSim;
 
 use super::level_blocks::{straight_level_block::StraightLevelBlock};
 
@@ -45,6 +47,7 @@ impl Default for LevelBuilder {
 }
 
 pub struct LevelBuilderContext<'a> {
+    pub particle_sim: &'a mut ParticleSim,
     pub cursor: Vec2,
     pub commands: Commands<'a, 'a>,
     pub meshes: ResMut<'a, Assets<Mesh>>,
@@ -57,16 +60,17 @@ pub trait LevelBuilderOperation {
 
 impl LevelBuilder {
     
-    pub fn generate(&mut self, mut commands: Commands, meshes: ResMut<Assets<Mesh>>, materials: ResMut<Assets<StandardMaterial>>) -> &mut Self {
+    pub fn generate(&mut self, particle_sim: &mut ParticleSim, mut commands: Commands, meshes: ResMut<Assets<Mesh>>, materials: ResMut<Assets<StandardMaterial>>) -> &mut Self {
         // Algorithm to generate a level
-        // 1. Set cursor to origin. This is where the car will spawn
+        // 1. Set cursor to origin. This is where the car will spawn (well, a bit behind)
         // 2. Generate a block, which will adjust the cursor
-        self.cursor = Vec2::default();
+        self.cursor = vec2(-1.0, 0.0);
 
         let num_blocks = 3;
         let mut rng = rand::thread_rng();
         
         let mut level_builder_context = LevelBuilderContext {
+            particle_sim,
             cursor: self.cursor.clone(),
             commands,
             meshes,

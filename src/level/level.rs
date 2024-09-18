@@ -1,18 +1,19 @@
 use bevy::prelude::*;
 
-use crate::level::level_builder::LevelBuilder;
+use crate::{bevy::car_scene::CarScene, level::level_builder::LevelBuilder};
 
 #[derive(Component)]
-struct LevelComponent {
+pub struct LevelComponent {
 }
 
-pub fn setup_level(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>) {
-    println!("setup the level");
+pub fn setup_level(mut commands: Commands, mut query_car_scenes: Query<(&mut CarScene)>, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>) {
+    let mut car_scene = query_car_scenes.single_mut();
+    let particle_sim = &mut car_scene.particle_sim;
 
-    let level_builder = LevelBuilder::default().generate(commands, meshes, materials);
+    let level_builder = LevelBuilder::default().generate(particle_sim, commands, meshes, materials);
 }
 
-fn update_level(
+pub fn update_level(
     time: Res<Time>, 
     keys: Res<ButtonInput<KeyCode>>,
     mut commands: Commands, 
@@ -24,12 +25,13 @@ fn update_level(
 
 }
 
+/* 
 pub struct LevelPlugin;
 
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Startup, setup_level)
+            //.add_systems(Startup, setup_level)
             .add_systems(Update, update_level);
     }
-}
+}*/
