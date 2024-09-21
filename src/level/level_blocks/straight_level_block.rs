@@ -25,16 +25,13 @@ impl LevelBuilderOperation for StraightLevelBlock {
             rng.gen_range(0.0..1.0),
         );
 
-        // Generate a random width between 5 and 10
-        let random_width = rng.gen_range(5.0..10.0);
-
-        // Generate a random height between -2 and 2
-        let random_height = rng.gen_range(-1.0..1.0);
+        let width = rng.gen_range(5.0..10.0);
+        let height = rng.gen_range(-1.5..1.5);
  
  /* 
         // todo: https://github.com/bevyengine/bevy/discussions/15280
         // draw an AABB for this level block
-        let rectangle = Rectangle::new(random_width, random_height + 10.0); // Add random height to base height
+        let rectangle = Rectangle::new(width, height + 10.0); // Add random height to base height
         commands.spawn((
             LevelBlockComponent {
             }, 
@@ -42,8 +39,8 @@ impl LevelBuilderOperation for StraightLevelBlock {
                 mesh: meshes.add(rectangle),
                 material: materials.add(random_color),
                 transform: Transform::from_xyz(
-                    level_builder_context.cursor.x - random_width / 2.0,
-                    level_builder_context.cursor.y + random_height / 2.0,
+                    level_builder_context.cursor.x - width / 2.0,
+                    level_builder_context.cursor.y + height / 2.0,
                     0.0,
                 ),
                 ..default()
@@ -51,24 +48,14 @@ impl LevelBuilderOperation for StraightLevelBlock {
         ));
 */
 
-        let cursor = level_builder_context.cursor;
-        let cursor_end = cursor + vec2(random_width, random_height);
-        // create the ground in the particle system
-        let particle_radius = cm_to_m(4.0);
-         
-        let color = Color::from(LinearRgba::new(1.0, 1.0, 1.0, 1.0));
+        let cursor_start = level_builder_context.cursor;
+        let cursor_end = cursor_start + vec2(width * level_builder_context.x_direction, height);
 
         let mut sb = ShapeBuilder::new();
-
-        sb.set_particle_template(Particle::default().set_color(color).set_static(true).set_radius(particle_radius * 2.0).clone())
+        sb.set_particle_template(level_builder_context.particle_template.clone())
             .apply_operation(LineSegment::new(level_builder_context.cursor, cursor_end)) 
             .create_in_particle_sim(level_builder_context.particle_sim);
 
-
-        // let particle system know all static particles have been built - can we move this into create_in_particle_sim?
-        level_builder_context.particle_sim.notify_particle_container_changed();
-
-        println!("straight level block created with {} particles. {} -> {}", sb.particle_handles.len(), level_builder_context.cursor, cursor_end);
 
         // Update the cursor to the right side of the spawned rectangle
         level_builder_context.cursor = cursor_end;

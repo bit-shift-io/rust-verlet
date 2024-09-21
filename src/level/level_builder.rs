@@ -1,7 +1,7 @@
 use bevy::{math::vec2, prelude::*};
 use rand::Rng;
 
-use crate::v4::particle_sim::ParticleSim;
+use crate::{bevy::car_scene::cm_to_m, v4::{particle::Particle, particle_sim::ParticleSim}};
 
 use super::level_blocks::{finish_operation::FinishOperation, saggy_bridge_operation::SaggyBridgeOperation, spawn_operation::SpawnOperation, straight_level_block::StraightLevelBlock};
 
@@ -51,9 +51,11 @@ impl Default for LevelBuilder {
 pub struct LevelBuilderContext<'a> {
     pub particle_sim: &'a mut ParticleSim,
     pub cursor: Vec2,
+    pub x_direction: f32, // which way the cursor is pointing
     pub commands: Commands<'a, 'a>,
     pub meshes: ResMut<'a, Assets<Mesh>>,
     pub materials: ResMut<'a, Assets<StandardMaterial>>,
+    pub particle_template: Particle,
 }
 
 pub trait LevelBuilderOperation {
@@ -66,17 +68,21 @@ impl LevelBuilder {
         // Algorithm to generate a level
         // 1. Set cursor to origin. This is where the car will spawn (well, a bit behind)
         // 2. Generate a block, which will adjust the cursor
-        self.cursor = vec2(-1.0, 0.0);
+        //self.cursor = vec2(0.0, 0.0);
 
         let num_blocks = 10;
         let mut rng = rand::thread_rng();
-        
+
+        let particle_radius = cm_to_m(4.0);
+
         let mut level_builder_context = LevelBuilderContext {
             particle_sim,
-            cursor: self.cursor.clone(),
+            cursor: vec2(0.0, 0.0) ,
+            x_direction: -1.0,
             commands,
             meshes,
             materials,
+            particle_template: Particle::default().set_static(true).set_color(Color::from(LinearRgba::new(1.0, 1.0, 1.0, 1.0))).set_radius(particle_radius).clone()
         };
 
         // for now just start with a spawn operation
@@ -103,6 +109,9 @@ impl LevelBuilder {
         // for now just end with a finish operation
         let finish_op = FinishOperation {};
         finish_op.execute(&mut level_builder_context);
+
+        // let particle system know all static particles have been built - can we move this into create_in_particle_sim?
+        level_builder_context.particle_sim.notify_particle_container_changed();
 
         self
     }
