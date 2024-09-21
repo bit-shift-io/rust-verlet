@@ -1,12 +1,36 @@
 use bevy::{color::Color, math::vec2, prelude::*, sprite::{MaterialMesh2dBundle, Mesh2dHandle}};
 use rand::Rng;
 
-use crate::{bevy::car_scene::cm_to_m, level::level_builder::{LevelBuilder, LevelBuilderContext, LevelBuilderOperation}, v4::{particle::Particle, shape_builder::{line_segment::LineSegment, shape_builder::ShapeBuilder}}};
+use crate::{bevy::car_scene::cm_to_m, level::{level_builder::{LevelBuilder, LevelBuilderContext}, level_builder_operation::LevelBuilderOperation}, v4::{particle::Particle, shape_builder::{line_segment::LineSegment, shape_builder::ShapeBuilder}}};
 
 pub struct SpawnOperation {
 }
 
 impl LevelBuilderOperation for SpawnOperation {
+    fn type_name(&self) -> &str {"SpawnOperation"}
+
+    fn box_clone(&self) -> Box<dyn LevelBuilderOperation + Send + Sync> {
+        Box::new(SpawnOperation {})
+    }
+
+    fn prepare(&self, level_builder_context: &mut LevelBuilderContext, level_builder_operations: &mut Vec<(f32, Box<dyn LevelBuilderOperation + Send + Sync>)>) {
+        // ensure that we are always the first operation that gets applied
+        // and is never used outside of that range
+        if level_builder_context.is_first {
+            for op_chance in level_builder_operations.iter_mut() {
+                if op_chance.1.type_name() != self.type_name() {
+                    op_chance.0 = 0.0;
+                }
+            }
+        } else {
+            for op_chance in level_builder_operations.iter_mut() {
+                if op_chance.1.type_name() == self.type_name() {
+                    op_chance.0 = 0.0;
+                }
+            }
+        }
+    }
+
     fn execute(&self, level_builder_context: &mut LevelBuilderContext) {
         let width = 4.0;
         let height = 0.0;

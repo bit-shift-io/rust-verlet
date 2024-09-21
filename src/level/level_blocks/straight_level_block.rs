@@ -1,7 +1,7 @@
 use bevy::{color::Color, math::vec2, prelude::*, sprite::{MaterialMesh2dBundle, Mesh2dHandle}};
 use rand::Rng;
 
-use crate::{bevy::car_scene::cm_to_m, level::level_builder::{LevelBuilder, LevelBuilderContext, LevelBuilderOperation}, v4::{particle::Particle, shape_builder::{line_segment::LineSegment, shape_builder::ShapeBuilder}}};
+use crate::{bevy::car_scene::cm_to_m, level::{level_builder::{LevelBuilder, LevelBuilderContext}, level_builder_operation::LevelBuilderOperation}, v4::{particle::Particle, shape_builder::{line_segment::LineSegment, shape_builder::ShapeBuilder}}};
 
 use super::level_block::LevelBlockComponent;
 
@@ -9,6 +9,12 @@ pub struct StraightLevelBlock {
 }
 
 impl LevelBuilderOperation for StraightLevelBlock {
+    fn type_name(&self) -> &str {"StraightLevelBlock"}
+
+    fn box_clone(&self) -> Box<dyn LevelBuilderOperation + Send + Sync> {
+        Box::new(StraightLevelBlock {})
+    }
+
     fn execute(&self, level_builder_context: &mut LevelBuilderContext) {
         // https://bevyengine.org/examples/2d-rendering/2d-shapes/
         // https://bevyengine.org/examples/3d-rendering/3d-shapes/

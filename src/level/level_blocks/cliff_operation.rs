@@ -1,12 +1,22 @@
 use bevy::{color::Color, math::vec2, prelude::*, sprite::{MaterialMesh2dBundle, Mesh2dHandle}};
 use rand::Rng;
 
-use crate::{bevy::car_scene::cm_to_m, level::level_builder::{LevelBuilder, LevelBuilderContext, LevelBuilderOperation}, v4::{particle::Particle, shape_builder::{line_segment::LineSegment, shape_builder::ShapeBuilder}}};
+use crate::{bevy::car_scene::cm_to_m, level::{level_builder::{LevelBuilder, LevelBuilderContext}, level_builder_operation::LevelBuilderOperation}, v4::{particle::Particle, shape_builder::{line_segment::LineSegment, shape_builder::ShapeBuilder}}};
 
 pub struct CliffOperation {
 }
 
 impl LevelBuilderOperation for CliffOperation {
+    fn type_name(&self) -> &str {"CliffOperation"}
+
+    fn box_clone(&self) -> Box<dyn LevelBuilderOperation + Send + Sync> {
+        Box::new(CliffOperation {})
+    }
+
+    fn default_spawn_chance(&self) -> f32 {
+        0.5
+    }
+
     fn execute(&self, level_builder_context: &mut LevelBuilderContext) {
         let mut rng = rand::thread_rng();
 

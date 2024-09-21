@@ -3,50 +3,16 @@ use rand::Rng;
 
 use crate::{bevy::car_scene::cm_to_m, v4::{particle::Particle, particle_sim::ParticleSim}};
 
-use super::level_blocks::{cliff_operation::CliffOperation, finish_operation::FinishOperation, fluid_funnel::FluidFunnel, jelly_cube::JellyCube, saggy_bridge_operation::SaggyBridgeOperation, spawn_operation::SpawnOperation, straight_level_block::StraightLevelBlock};
-
-pub struct LevelBuilderOperationRegistry {
-    level_builder_operations: Vec<Box<dyn LevelBuilderOperation>>,
-}
-
-impl LevelBuilderOperationRegistry {
-    pub fn new() -> Self {
-        let mut result = Self {
-            level_builder_operations: vec![],
-        };
-
-        // here is our registry
-        //result.register_level_builder_operation(SpawnOperation {});
-        result.register_level_builder_operation(StraightLevelBlock {});
-        result.register_level_builder_operation(SaggyBridgeOperation {});
-        result.register_level_builder_operation(CliffOperation {});
-        result.register_level_builder_operation(FluidFunnel {});
-        result.register_level_builder_operation(JellyCube {});
-
-        result
-    }
-
-    pub fn register_level_builder_operation<T: LevelBuilderOperation + 'static>(&mut self, level_builder_operation: T) -> &mut Self {
-        self.level_builder_operations.push(Box::new(level_builder_operation));
-        self
-    }
-
-    pub fn len(&self) -> usize {
-        self.level_builder_operations.len()
-    }
-}
-
+use super::{level_blocks::{finish_operation::FinishOperation, spawn_operation::SpawnOperation}, level_builder_operation::LevelBuilderOperation, level_builder_operation_registry::LevelBuilderOperationRegistry};
 
 pub struct LevelBuilder {
-    level_builder_operations_registry: Box<LevelBuilderOperationRegistry>,
-    cursor: Vec2,
+    level_builder_operations_registry: LevelBuilderOperationRegistry,
 }
 
-impl Default for LevelBuilder {
-    fn default() -> Self {
+impl LevelBuilder {
+    pub fn new(level_builder_operations_registry: LevelBuilderOperationRegistry) -> Self {
         Self {
-            level_builder_operations_registry: Box::new(LevelBuilderOperationRegistry::new()),
-            cursor: Vec2::default(),
+            level_builder_operations_registry,
         }
     }
 }
@@ -59,11 +25,11 @@ pub struct LevelBuilderContext<'a> {
     pub meshes: ResMut<'a, Assets<Mesh>>,
     pub materials: ResMut<'a, Assets<StandardMaterial>>,
     pub particle_template: Particle,
+    pub operations: Vec<Box<dyn LevelBuilderOperation + Send + Sync>>,
+    pub is_first: bool,
+    pub is_last: bool,
 }
 
-pub trait LevelBuilderOperation {
-    fn execute(&self, level_builder_context: &mut LevelBuilderContext);
-}
 
 impl LevelBuilder {
     
@@ -71,8 +37,8 @@ impl LevelBuilder {
         // Algorithm to generate a level
         // 1. Set cursor to origin. This is where the car will spawn (well, a bit behind)
         // 2. Generate a block, which will adjust the cursor
-        //self.cursor = vec2(0.0, 0.0);
 
+        // currently I spawn an amount of blocks. It might be better to keep spawning blocks till we get a certain distance? or a combination? 
         let num_blocks = 10;
         let mut rng = rand::thread_rng();
 
@@ -85,33 +51,45 @@ impl LevelBuilder {
             commands,
             meshes,
             materials,
-            particle_template: Particle::default().set_static(true).set_color(Color::from(LinearRgba::new(1.0, 1.0, 1.0, 1.0))).set_radius(particle_radius).clone()
+            particle_template: Particle::default().set_static(true).set_color(Color::from(LinearRgba::new(1.0, 1.0, 1.0, 1.0))).set_radius(particle_radius).clone(),
+            operations: vec![],
+            is_first: true,
+            is_last: false,
         };
 
-        // for now just start with a spawn operation
-        let spawn_op = SpawnOperation {};
-        spawn_op.execute(&mut level_builder_context);
-
         for bi in 0..num_blocks {
-            // I'm trying to take make a list of operations that can be applied, as well as a number to indicate how
-            // likely the operation should be chosen in this stop.
-            /*
-            let filtered_operations = self.level_builder_operations_registry.level_builder_operations.clone();
-            for op in self.level_builder_operations_registry.level_builder_operations.iter() {
-                op.as_ref().filter(&mut filtered_operations);
-            }*/
+            level_builder_context.is_first = bi == 0;
+            level_builder_context.is_last = bi == (num_blocks - 1);
 
-            let block_type = rng.gen_range(0..self.level_builder_operations_registry.len());
+            // 1. Create a pair of "spawn change" and a operation.
+            let mut spawn_chance_operations = vec![];
+            for op in self.level_builder_operations_registry.iter() {
+                spawn_chance_operations.push((op.as_ref().default_spawn_chance(), op.as_ref().box_clone()))
+            }
 
-            let level_builder_operation_box = &self.level_builder_operations_registry.level_builder_operations[block_type];
-            let level_builder_operation = level_builder_operation_box.as_ref();
+            // 2. Give each operation a chance to mutate "spawn_chance_operations".
+            for op in self.level_builder_operations_registry.iter() {
+                op.as_ref().prepare(&mut level_builder_context, &mut spawn_chance_operations);
+            }
 
-            level_builder_operation.execute(&mut level_builder_context);
+            // 3. Select an operation
+            let mut spawn_chance_total = 0.0;
+            for (chance, _) in &spawn_chance_operations {
+                spawn_chance_total += chance;
+            }
+
+            // 4. Find the selected operation and execute it
+            let mut spawn_value = rng.gen_range(0.0..spawn_chance_total);
+            for (chance, operation) in &spawn_chance_operations {
+                spawn_value -= chance;
+                if spawn_value <= 0.0 {
+                    // pick this item!
+                    level_builder_context.operations.push(operation.box_clone());
+                    operation.execute(&mut level_builder_context);
+                    break;
+                }
+            }
         }
-
-        // for now just end with a finish operation
-        let finish_op = FinishOperation {};
-        finish_op.execute(&mut level_builder_context);
 
         // let particle system know all static particles have been built - can we move this into create_in_particle_sim?
         level_builder_context.particle_sim.notify_particle_container_changed();

@@ -55,7 +55,7 @@ fn performance_ui_setup(mut commands: Commands) {
     commands.spawn((
         PerfUiRoot::default(),
         PerfUiEntryFPS::default(),
-        PerfUiTimeSinceLastClick::default(),
+        //PerfUiTimeSinceLastClick::default(),
     ));
 }
 

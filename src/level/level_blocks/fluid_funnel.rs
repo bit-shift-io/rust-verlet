@@ -1,12 +1,22 @@
 use bevy::{color::Color, math::vec2, prelude::*, sprite::{MaterialMesh2dBundle, Mesh2dHandle}};
 use rand::Rng;
 
-use crate::{bevy::car_scene::{cm_to_m, g_to_kg}, level::level_builder::{LevelBuilder, LevelBuilderContext, LevelBuilderOperation}, v4::{particle::Particle, shape_builder::{line_segment::LineSegment, rectangle, shape_builder::ShapeBuilder}}};
+use crate::{bevy::car_scene::{cm_to_m, g_to_kg}, level::{level_builder::{LevelBuilder, LevelBuilderContext}, level_builder_operation::LevelBuilderOperation}, v4::{particle::Particle, shape_builder::{line_segment::LineSegment, rectangle, shape_builder::ShapeBuilder}}};
 
 pub struct FluidFunnel {
 }
 
 impl LevelBuilderOperation for FluidFunnel {
+    fn type_name(&self) -> &str {"FluidFunnel"}
+
+    fn box_clone(&self) -> Box<dyn LevelBuilderOperation + Send + Sync> {
+        Box::new(FluidFunnel {})
+    }
+
+    fn default_spawn_chance(&self) -> f32 {
+        0.5
+    }
+
     fn execute(&self, level_builder_context: &mut LevelBuilderContext) {
         let mut rng = rand::thread_rng();
 

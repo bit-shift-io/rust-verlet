@@ -1,12 +1,18 @@
 use bevy::{color::Color, math::vec2, prelude::*, sprite::{MaterialMesh2dBundle, Mesh2dHandle}};
 use rand::Rng;
 
-use crate::{bevy::car_scene::cm_to_m, level::level_builder::{LevelBuilder, LevelBuilderContext, LevelBuilderOperation}, v4::{constraints::stick_constraint::StickConstraint, particle::Particle, shape_builder::{line_segment::LineSegment, rectangle, rectangle_stick_grid::RectangleStickGrid, shape_builder::ShapeBuilder}}};
+use crate::{bevy::car_scene::cm_to_m, level::{level_builder::{LevelBuilder, LevelBuilderContext}, level_builder_operation::LevelBuilderOperation}, v4::{constraints::stick_constraint::StickConstraint, particle::Particle, shape_builder::{line_segment::LineSegment, rectangle, rectangle_stick_grid::RectangleStickGrid, shape_builder::ShapeBuilder}}};
 
 pub struct SaggyBridgeOperation {
 }
 
 impl LevelBuilderOperation for SaggyBridgeOperation {
+    fn type_name(&self) -> &str {"SaggyBridgeOperation"}
+
+    fn box_clone(&self) -> Box<dyn LevelBuilderOperation + Send + Sync> {
+        Box::new(SaggyBridgeOperation {})
+    }
+
     fn execute(&self, level_builder_context: &mut LevelBuilderContext) {
         let mut rng = rand::thread_rng();
 
