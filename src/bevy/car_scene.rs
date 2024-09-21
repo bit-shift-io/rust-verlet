@@ -81,6 +81,7 @@ impl CarScene {
                 .create_in_particle_sim(&mut particle_sim);
             */
 
+            /* 
             // add a jellow cube to the scene
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).set_color(Color::from(LinearRgba::RED)).clone())
@@ -88,7 +89,7 @@ impl CarScene {
                 .apply_operation(RectangleStickGrid::from_rectangle(StickConstraint::default().set_stiffness_factor(20.0).clone(), 
                     Rectangle::from_center_size(vec2(3.0, 1.5), vec2(0.4, 0.8))))//                 //.add_stick_grid(2, 5, particle_radius * 2.2, Vec2::new(-3.0, cm_to_m(50.0)))
                 .create_in_particle_sim(&mut particle_sim);
-            
+            */
  
  
           /* 
@@ -129,7 +130,7 @@ impl CarScene {
                 suspension_bridge.create_in_particle_sim(&mut particle_sim);
             }*/
 
- 
+            /* 
             // particle liquid + bucket
             {
                 let liquid_particle_radius = particle_radius * 0.85;
@@ -157,7 +158,6 @@ impl CarScene {
                     .apply_operation(LineSegment::new(origin + vec2(5.0, funnel_height + 2.0), origin + vec2(1.0 + liquid_particle_radius * 8.0, funnel_height))) //.add_line(origin + Vec2::new(5.0, funnel_height + 2.0), origin + Vec2::new(1.0 + liquid_particle_radius * 8.0, funnel_height), funnel_particle_radius)
                     .create_in_particle_sim(&mut particle_sim);
  
-                /* 
                 // bucket
                 let mut bucket = ShapeBuilder::new();
                 bucket
@@ -166,8 +166,8 @@ impl CarScene {
                     .apply_operation(LineSegment::new(origin + vec2(bucket_height, -bucket_height), origin + vec2(bucket_width - bucket_height, -bucket_height)))
                     .apply_operation(LineSegment::new(origin + vec2(bucket_width - bucket_height, -bucket_height), origin + vec2(bucket_width, 0.0)))
                     .create_in_particle_sim(&mut particle_sim);
-                */
-            }
+
+            }*/
 
  
             /*

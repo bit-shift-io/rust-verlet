@@ -19,6 +19,7 @@ impl Particle {
     }
 
     pub fn set_radius(&mut self, radius: f32) -> &mut Self {
+        debug_assert!(!radius.is_nan());
         self.radius = radius;
         self
     }
@@ -29,6 +30,8 @@ impl Particle {
     }
 
     pub fn set_position(&mut self, pos: Vec2) -> &mut Self {
+        debug_assert!(!pos.x.is_nan());
+        debug_assert!(!pos.y.is_nan());
         self.pos = pos;
         self.pos_prev = pos;
         self
@@ -45,10 +48,12 @@ impl Particle {
     }
 
     pub fn get_aabb(&self) -> Aabb2d {
-        Aabb2d {
+        let aabb = Aabb2d {
             min: self.pos - vec2(self.radius, self.radius),
             max: self.pos + vec2(self.radius, self.radius),
-        }
+        };
+        debug_assert!(aabb.min.x <= aabb.max.x && aabb.min.y <= aabb.max.y);
+        aabb
     }
 
     pub fn acceleration_to_force(acc: Vec2, mass: f32) -> Vec2 {

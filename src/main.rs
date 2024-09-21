@@ -30,6 +30,8 @@ mod level {
         pub mod saggy_bridge_operation;
         pub mod finish_operation;
         pub mod cliff_operation;
+        pub mod fluid_funnel;
+        pub mod jelly_cube;
     }
 }
 

@@ -110,7 +110,8 @@ impl ParticleSolver for SpatialHashParticleSolver {
         for ai in 0..particle_count {
             let particle_a = particle_container.particles[ai];
             if !particle_a.is_static && particle_a.is_enabled {
-                dynamic_spatial_hash.insert_aabb(particle_a.get_aabb().grow(grow_amount), ai);
+                let aabb = particle_a.get_aabb();
+                dynamic_spatial_hash.insert_aabb(aabb.grow(grow_amount), ai);
             }
         }
  
