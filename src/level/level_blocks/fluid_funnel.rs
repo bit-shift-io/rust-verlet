@@ -17,6 +17,17 @@ impl LevelBuilderOperation for FluidFunnel {
         0.5
     }
 
+    fn prepare(&self, level_builder_context: &mut LevelBuilderContext, level_builder_operations: &mut Vec<(f32, Box<dyn LevelBuilderOperation + Send + Sync>)>) {
+        // once the level changes direction, do not spawn a fluid funnel as it takes up to much vertical space and can interfere with stuff above us
+        if level_builder_context.x_direction_changed {
+            for op_chance in level_builder_operations.iter_mut() {
+                if op_chance.1.type_name() == self.type_name() {
+                    op_chance.0 = 0.0;
+                }
+            }
+        }
+    }
+
     fn execute(&self, level_builder_context: &mut LevelBuilderContext) {
         let mut rng = rand::thread_rng();
 

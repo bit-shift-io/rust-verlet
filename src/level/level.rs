@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{bevy::car_scene::CarScene, level::level_builder::LevelBuilder};
 
-use super::{level_blocks::{cliff_operation::CliffOperation, finish_operation::FinishOperation, fluid_funnel::FluidFunnel, jelly_cube::JellyCube, saggy_bridge_operation::SaggyBridgeOperation, spawn_operation::SpawnOperation, straight_level_block::StraightLevelBlock}, level_builder_operation_registry::LevelBuilderOperationRegistry};
+use super::{level_blocks::{cliff_operation::CliffOperation, drop_direction_reverse::DropDirectionReverse, finish_operation::FinishOperation, fluid_funnel::FluidFunnel, jelly_cube::JellyCube, saggy_bridge_operation::SaggyBridgeOperation, spawn_operation::SpawnOperation, straight_level_block::StraightLevelBlock}, level_builder_operation_registry::LevelBuilderOperationRegistry};
 
 #[derive(Component)]
 pub struct LevelComponent {
@@ -25,6 +25,7 @@ pub fn setup_level(mut commands: Commands, mut query_car_scenes: Query<(&mut Car
     registry.register(CliffOperation {});
     registry.register(FluidFunnel {});
     registry.register(JellyCube {});
+    registry.register(DropDirectionReverse {});
 
     let level_builder = LevelBuilder::new(registry).generate(particle_sim, commands, meshes, materials);
 }

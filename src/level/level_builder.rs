@@ -21,6 +21,7 @@ pub struct LevelBuilderContext<'a> {
     pub particle_sim: &'a mut ParticleSim,
     pub cursor: Vec2,
     pub x_direction: f32, // which way the cursor is pointing
+    pub x_direction_changed: bool,
     pub commands: Commands<'a, 'a>,
     pub meshes: ResMut<'a, Assets<Mesh>>,
     pub materials: ResMut<'a, Assets<StandardMaterial>>,
@@ -47,7 +48,8 @@ impl LevelBuilder {
         let mut level_builder_context = LevelBuilderContext {
             particle_sim,
             cursor: vec2(0.0, 0.0) ,
-            x_direction: -1.0,
+            x_direction: if rng.gen_range(0..=1) == 1 { 1.0 } else  { -1.0 },
+            x_direction_changed: false,
             commands,
             meshes,
             materials,

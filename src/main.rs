@@ -34,6 +34,7 @@ mod level {
         pub mod cliff_operation;
         pub mod fluid_funnel;
         pub mod jelly_cube;
+        pub mod drop_direction_reverse;
     }
 }
 
