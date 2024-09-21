@@ -422,5 +422,5 @@ fn update_camera(
 
     let camera_look_at_position = car_component.car.get_camera_look_at_position(particle_sim);
 
-    camera_transform.translation = Vec3::new(camera_look_at_position.x, camera_look_at_position.y, 150.0);
+    camera_transform.translation = Vec3::new(camera_look_at_position.x, camera_look_at_position.y, 250.0);
 }

@@ -98,6 +98,8 @@ impl ParticleSolver for SpatialHashParticleSolver {
 
                         let mut_particle_a = &mut particle_container.particles[ai];
                         mut_particle_a.pos += movement;
+                        debug_assert!(!mut_particle_a.pos.x.is_nan());
+                        debug_assert!(!mut_particle_a.pos.y.is_nan());
 
                         // as the particle moves we need to move the aabb around
                         //dynamic_spatial_hash.insert_aabb(mut_particle_a.get_aabb(), ai);

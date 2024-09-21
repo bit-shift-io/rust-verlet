@@ -92,10 +92,14 @@ impl ParticleSolver for NaiveParticleSolver {
                     //let mut ap_mut = a_particle.as_ref().borrow_mut();
                     let verlet_position_a = &mut particle_container.particles[ai]; //&mut particle_accelerator.verlet_positions[particle_id_a];
                     verlet_position_a.pos += a_movement_weight * delta * n;
+                    debug_assert!(!verlet_position_a.pos.x.is_nan());
+                    debug_assert!(!verlet_position_a.pos.y.is_nan());
 
                     //let mut bp_mut = b_particle.as_ref().borrow_mut();
                     let verlet_position_b = &mut particle_container.particles[bi]; //particle_b; //&mut particle_accelerator.verlet_positions[particle_id_b];
                     verlet_position_b.pos -= b_movement_weight * delta * n;
+                    debug_assert!(!verlet_position_b.pos.x.is_nan());
+                    debug_assert!(!verlet_position_b.pos.y.is_nan());
                 }
             }
         }

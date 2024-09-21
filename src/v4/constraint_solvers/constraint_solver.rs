@@ -149,11 +149,15 @@ impl ConstraintSolver {
                 {
                     let p1mut = &mut particle_container.particles[stick.particle_handles[0].id()];
                     p1mut.pos += offset * a_movement_weight;
+                    debug_assert!(!p1mut.pos.x.is_nan());
+                    debug_assert!(!p1mut.pos.y.is_nan());
                 }
     
                 {
                     let p2mut = &mut particle_container.particles[stick.particle_handles[1].id()];
                     p2mut.pos -= offset * b_movement_weight;
+                    debug_assert!(!p2mut.pos.x.is_nan());
+                    debug_assert!(!p2mut.pos.y.is_nan());
                 }
             }
         }

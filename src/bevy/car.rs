@@ -113,6 +113,9 @@ impl CarWheel {
         let force_magnitude = 60.0;
 
         let particle_manipulator = ParticleManipulator::new();
+
+        // todo: instead of rotating the points to the wheel tangent. Try moving points towards the next point in the wheel (or where it would be in a perfect wheel).
+        // this will stop the wheels expanding outwards as you accelerate
         particle_manipulator.add_rotational_force_around_point(particle_sim, &self.surface_particle_handles, centre, force_magnitude * direction);
         //particle_manipulator.add_rotational_force_around_point(particle_sim, &self.interior_particle_handles, centre, force_magnitude * direction);
     }

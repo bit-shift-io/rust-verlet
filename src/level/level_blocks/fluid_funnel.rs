@@ -23,7 +23,10 @@ impl LevelBuilderOperation for FluidFunnel {
         let liquid_particle_mass = g_to_kg(20.0);
 
         let funnel_height = 3.0;
+        
         let funnel_particle_radius = liquid_particle_radius * 0.75;
+
+        let funnel_mouth_half_width = liquid_particle_radius * 6.0 * 0.5;
 
         let bucket_height = particle_radius * 6.0;
         let bucket_width = 3.0;
@@ -36,14 +39,14 @@ impl LevelBuilderOperation for FluidFunnel {
         let mut liquid = ShapeBuilder::new();
         liquid
             .set_particle_template(Particle::default().set_mass(liquid_particle_mass).set_radius(liquid_particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
-            .apply_operation(rectangle::Rectangle::from_center_size(origin + vec2(0.0 + liquid_particle_radius * 2.0, funnel_height + 1.0), vec2(width, height)))
+            .apply_operation(rectangle::Rectangle::from_center_size(origin + vec2(0.0, funnel_height + 1.0), vec2(width, height)))
             .create_in_particle_sim(level_builder_context.particle_sim);
 
         let mut funnel = ShapeBuilder::new();
         funnel
             .set_particle_template(Particle::default().set_static(true).set_radius(funnel_particle_radius).clone())
-            .apply_operation(LineSegment::new(origin + vec2(-3.0, funnel_height + 2.0), origin + vec2(1.0, funnel_height))) //.add_line(origin + Vec2::new(-3.0, funnel_height + 2.0), origin + Vec2::new(1.0, funnel_height), funnel_particle_radius)
-            .apply_operation(LineSegment::new(origin + vec2(5.0, funnel_height + 2.0), origin + vec2(1.0 + liquid_particle_radius * 8.0, funnel_height))) //.add_line(origin + Vec2::new(5.0, funnel_height + 2.0), origin + Vec2::new(1.0 + liquid_particle_radius * 8.0, funnel_height), funnel_particle_radius)
+            .apply_operation(LineSegment::new(origin + vec2(-funnel_mouth_half_width, funnel_height), origin + vec2(-3.0, funnel_height + 2.0))) 
+            .apply_operation(LineSegment::new(origin + vec2(funnel_mouth_half_width, funnel_height), origin + vec2(3.0, funnel_height + 2.0))) 
             .create_in_particle_sim(level_builder_context.particle_sim);
  
                 /* 

@@ -10,6 +10,9 @@ pub fn setup_level(mut commands: Commands, mut query_car_scenes: Query<(&mut Car
     let mut car_scene = query_car_scenes.single_mut();
     let particle_sim = &mut car_scene.particle_sim;
 
+    // todo: set random seed based on date
+    // https://stackoverflow.com/questions/59020767/how-can-i-input-an-integer-seed-for-producing-random-numbers-using-the-rand-crat
+
     let level_builder = LevelBuilder::default().generate(particle_sim, commands, meshes, materials);
 }
 

@@ -15,16 +15,21 @@ pub struct Particle {
 
 impl Particle {
     pub fn new(pos: Vec2, radius: f32, mass: f32, is_static: bool, color: Color) -> Self {
+        debug_assert!(!pos.x.is_nan());
+        debug_assert!(!pos.y.is_nan());
+        
         Self { pos, pos_prev: pos, radius, mass, is_static, color, is_enabled: true, force: vec2(0.0, 0.0) }
     }
 
     pub fn set_radius(&mut self, radius: f32) -> &mut Self {
         debug_assert!(!radius.is_nan());
+        debug_assert!(radius > 0.0);
         self.radius = radius;
         self
     }
 
     pub fn set_mass(&mut self, mass: f32) -> &mut Self {
+        debug_assert!(!mass.is_nan());
         self.mass = mass;
         self
     }
@@ -48,6 +53,11 @@ impl Particle {
     }
 
     pub fn get_aabb(&self) -> Aabb2d {
+        debug_assert!(!self.pos.x.is_nan());
+        debug_assert!(!self.pos.y.is_nan());
+        debug_assert!(!self.radius.is_nan());
+        debug_assert!(self.radius > 0.0);
+
         let aabb = Aabb2d {
             min: self.pos - vec2(self.radius, self.radius),
             max: self.pos + vec2(self.radius, self.radius),

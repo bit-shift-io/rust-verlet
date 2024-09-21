@@ -32,6 +32,8 @@ pub fn update_particle_positions(particle_container: &mut ParticleContainer, del
 
         particle.pos_prev = particle.pos;
         particle.pos = particle.pos + velocity + acceleration * delta_seconds * delta_seconds;
+        debug_assert!(!particle.pos.x.is_nan());
+        debug_assert!(!particle.pos.y.is_nan());
 
         i += 1;
     }
