@@ -3,7 +3,7 @@ use rand::Rng;
 
 use crate::{bevy::car_scene::cm_to_m, v4::{particle::Particle, particle_sim::ParticleSim}};
 
-use super::level_blocks::{finish_operation::FinishOperation, saggy_bridge_operation::SaggyBridgeOperation, spawn_operation::SpawnOperation, straight_level_block::StraightLevelBlock};
+use super::level_blocks::{cliff_operation::CliffOperation, finish_operation::FinishOperation, saggy_bridge_operation::SaggyBridgeOperation, spawn_operation::SpawnOperation, straight_level_block::StraightLevelBlock};
 
 pub struct LevelBuilderOperationRegistry {
     level_builder_operations: Vec<Box<dyn LevelBuilderOperation>>,
@@ -19,6 +19,7 @@ impl LevelBuilderOperationRegistry {
         //result.register_level_builder_operation(SpawnOperation {});
         result.register_level_builder_operation(StraightLevelBlock {});
         result.register_level_builder_operation(SaggyBridgeOperation {});
+        result.register_level_builder_operation(CliffOperation {});
 
         result
     }

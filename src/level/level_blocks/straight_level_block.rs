@@ -25,8 +25,8 @@ impl LevelBuilderOperation for StraightLevelBlock {
             rng.gen_range(0.0..1.0),
         );
 
-        let width = rng.gen_range(5.0..10.0);
-        let height = rng.gen_range(-1.5..1.5);
+        let width = rng.gen_range(5.0..=10.0);
+        let height = rng.gen_range(-1.5..=1.5);
  
  /* 
         // todo: https://github.com/bevyengine/bevy/discussions/15280

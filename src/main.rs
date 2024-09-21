@@ -29,6 +29,7 @@ mod level {
         pub mod spawn_operation;
         pub mod saggy_bridge_operation;
         pub mod finish_operation;
+        pub mod cliff_operation;
     }
 }
 

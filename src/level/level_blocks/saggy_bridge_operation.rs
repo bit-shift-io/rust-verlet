@@ -10,7 +10,7 @@ impl LevelBuilderOperation for SaggyBridgeOperation {
     fn execute(&self, level_builder_context: &mut LevelBuilderContext) {
         let mut rng = rand::thread_rng();
 
-        let width = rng.gen_range(1.0..3.0);
+        let width = rng.gen_range(1.0..=3.0);
         let height = 0.0;
 
         let rect_height = level_builder_context.particle_template.radius * 6.0;
@@ -20,8 +20,6 @@ impl LevelBuilderOperation for SaggyBridgeOperation {
 
         let rectangle = rectangle::Rectangle::from_corners(cursor_start, cursor_end + vec2(0.0, -rect_height));
      
-        println!("rect {}, {}", rectangle.rect.min, rectangle.rect.max);
-
         let mut sb = ShapeBuilder::new();
         sb.set_particle_template(level_builder_context.particle_template.clone().set_static(false).clone());
         sb.apply_operation(RectangleStickGrid::from_rectangle(StickConstraint::default().set_stiffness_factor(500.0).clone(), 
