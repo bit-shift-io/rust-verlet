@@ -3,7 +3,7 @@ use rand::Rng;
 
 use crate::v4::particle_sim::ParticleSim;
 
-use super::level_blocks::{straight_level_block::StraightLevelBlock};
+use super::level_blocks::{finish_operation::FinishOperation, saggy_bridge_operation::SaggyBridgeOperation, spawn_operation::SpawnOperation, straight_level_block::StraightLevelBlock};
 
 pub struct LevelBuilderOperationRegistry {
     level_builder_operations: Vec<Box<dyn LevelBuilderOperation>>,
@@ -16,7 +16,9 @@ impl LevelBuilderOperationRegistry {
         };
 
         // here is our registry
+        //result.register_level_builder_operation(SpawnOperation {});
         result.register_level_builder_operation(StraightLevelBlock {});
+        result.register_level_builder_operation(SaggyBridgeOperation {});
 
         result
     }
@@ -66,7 +68,7 @@ impl LevelBuilder {
         // 2. Generate a block, which will adjust the cursor
         self.cursor = vec2(-1.0, 0.0);
 
-        let num_blocks = 3;
+        let num_blocks = 10;
         let mut rng = rand::thread_rng();
         
         let mut level_builder_context = LevelBuilderContext {
@@ -77,7 +79,19 @@ impl LevelBuilder {
             materials,
         };
 
+        // for now just start with a spawn operation
+        let spawn_op = SpawnOperation {};
+        spawn_op.execute(&mut level_builder_context);
+
         for bi in 0..num_blocks {
+            // I'm trying to take make a list of operations that can be applied, as well as a number to indicate how
+            // likely the operation should be chosen in this stop.
+            /*
+            let filtered_operations = self.level_builder_operations_registry.level_builder_operations.clone();
+            for op in self.level_builder_operations_registry.level_builder_operations.iter() {
+                op.as_ref().filter(&mut filtered_operations);
+            }*/
+
             let block_type = rng.gen_range(0..self.level_builder_operations_registry.len());
 
             let level_builder_operation_box = &self.level_builder_operations_registry.level_builder_operations[block_type];
@@ -85,6 +99,10 @@ impl LevelBuilder {
 
             level_builder_operation.execute(&mut level_builder_context);
         }
+
+        // for now just end with a finish operation
+        let finish_op = FinishOperation {};
+        finish_op.execute(&mut level_builder_context);
 
         self
     }

@@ -5,10 +5,10 @@ use crate::{bevy::car_scene::cm_to_m, level::level_builder::{LevelBuilder, Level
 
 use super::level_block::LevelBlockComponent;
 
-pub struct StraightLevelBlock {
+pub struct FinishOperation {
 }
 
-impl LevelBuilderOperation for StraightLevelBlock {
+impl LevelBuilderOperation for FinishOperation {
     fn execute(&self, level_builder_context: &mut LevelBuilderContext) {
         // https://bevyengine.org/examples/2d-rendering/2d-shapes/
         // https://bevyengine.org/examples/3d-rendering/3d-shapes/
@@ -25,11 +25,11 @@ impl LevelBuilderOperation for StraightLevelBlock {
             rng.gen_range(0.0..1.0),
         );
 
-        // Generate a random width between 5 and 10
-        let random_width = rng.gen_range(5.0..10.0);
+        // Generate a width
+        let random_width = 3.0; //rng.gen_range(2.0..3.0);
 
-        // Generate a random height between -2 and 2
-        let random_height = rng.gen_range(-1.0..1.0);
+        // Generate a random height
+        let random_height = 0.0;
  
  /* 
         // todo: https://github.com/bevyengine/bevy/discussions/15280
@@ -62,13 +62,14 @@ impl LevelBuilderOperation for StraightLevelBlock {
 
         sb.set_particle_template(Particle::default().set_color(color).set_static(true).set_radius(particle_radius * 2.0).clone())
             .apply_operation(LineSegment::new(level_builder_context.cursor, cursor_end)) 
+            .apply_operation(LineSegment::new(cursor_end, cursor_end + vec2(0.0, 1.5)))
             .create_in_particle_sim(level_builder_context.particle_sim);
 
 
         // let particle system know all static particles have been built - can we move this into create_in_particle_sim?
         level_builder_context.particle_sim.notify_particle_container_changed();
 
-        println!("straight level block created with {} particles. {} -> {}", sb.particle_handles.len(), level_builder_context.cursor, cursor_end);
+        println!("spawn level block created with {} particles. {} -> {}", sb.particle_handles.len(), level_builder_context.cursor, cursor_end);
 
         // Update the cursor to the right side of the spawned rectangle
         level_builder_context.cursor = cursor_end;

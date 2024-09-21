@@ -105,7 +105,7 @@ impl CarScene {
                 .create_in_particle_sim(&mut particle_sim);
 */
 
-             
+             /* 
             // suspension bridge on the ground
             {
                 let mut suspension_bridge = ShapeBuilder::new();
@@ -127,7 +127,7 @@ impl CarScene {
                 });
 
                 suspension_bridge.create_in_particle_sim(&mut particle_sim);
-            }
+            }*/
 
  
             // particle liquid + bucket

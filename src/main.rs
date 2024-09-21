@@ -26,6 +26,9 @@ mod level {
     pub mod level_blocks {
         pub mod level_block;
         pub mod straight_level_block;
+        pub mod spawn_operation;
+        pub mod saggy_bridge_operation;
+        pub mod finish_operation;
     }
 }
 
