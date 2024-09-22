@@ -24,7 +24,8 @@ impl LevelBuilderOperation for StraightLevelBlock {
         //let particle_sim = &mut level_builder_context.particle_sim;
 
         // Generate a random color
-        let mut rng = rand::thread_rng();
+        let rng = &mut level_builder_context.rng;
+        
         let random_color = Color::rgb(
             rng.gen_range(0.0..1.0),
             rng.gen_range(0.0..1.0),

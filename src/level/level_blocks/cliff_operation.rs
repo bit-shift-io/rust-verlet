@@ -18,7 +18,7 @@ impl LevelBuilderOperation for CliffOperation {
     }
 
     fn execute(&self, level_builder_context: &mut LevelBuilderContext) {
-        let mut rng = rand::thread_rng();
+        let rng = &mut level_builder_context.rng;
 
         let width = 0.0;
         let height = rng.gen_range(-2.0..=-0.5);

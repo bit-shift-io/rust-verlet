@@ -146,19 +146,34 @@ impl ParticleSolver for SpatialHashParticleSolver {
                     let min_dist_squared = min_dist * min_dist;
 
                     if dist_squared < min_dist_squared {
-                        let dist = f32::sqrt(dist_squared);
+                        let mut dist = f32::sqrt(dist_squared);
+
+                        if dist <= 0.0 {
+                            // dist is zero, but min_dist_squared might have some tiny value. If so, use that.
+                            if min_dist_squared > 0.0 {
+                                dist = min_dist_squared;
+                            } else {
+                                // oh dear! 2 particles at the same spot! give up and ignore it
+                                // todo: move the particles towards the prev pos instead to make some distance between them?
+                                continue;
+                            }
+                        }
+
                         let n = collision_axis / dist;
                         let delta = min_dist - dist;
                         let movement = delta * 0.5 * n;
 
+                        //println!("movement {}, min_dist_squared {}, dist {}, n {}, delta {}, collision_axis {}", movement, min_dist_squared, dist, n, delta, collision_axis);
+                        debug_assert!(!movement.x.is_nan());
+                        debug_assert!(!movement.y.is_nan());
 
                         //println!("collision occured between particle_a and particle_b {} {}. min_dist: {}, dist: {}. mmovement: {}", ai, bi, min_dist, dist, movement);
-
-
 
                         {
                             let mut_particle_a = &mut particle_container.particles[ai];
                             mut_particle_a.pos += movement;
+                            debug_assert!(!mut_particle_a.pos.x.is_nan());
+                            debug_assert!(!mut_particle_a.pos.y.is_nan());
 
                             // as the particle moves we need to move the aabb around
                             //dynamic_spatial_hash.insert_aabb(mut_particle_a.get_aabb(), ai);
@@ -167,6 +182,8 @@ impl ParticleSolver for SpatialHashParticleSolver {
                         {
                             let mut_particle_b = &mut particle_container.particles[bi];
                             mut_particle_b.pos -= movement;
+                            debug_assert!(!mut_particle_b.pos.x.is_nan());
+                            debug_assert!(!mut_particle_b.pos.y.is_nan());
 
                             // as the particle moves we need to move the aabb around
                             //dynamic_spatial_hash.insert_aabb(mut_particle_b.get_aabb(), bi);

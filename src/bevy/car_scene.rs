@@ -14,8 +14,9 @@ use bevy::{
     }
 };
 use bytemuck::{Pod, Zeroable};
+use rand_pcg::Pcg64;
 
-use crate::{level::level::{setup_level, update_level}, v4::{constraint_container::ConstraintContainer, constraints::stick_constraint::StickConstraint, particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{line_segment::LineSegment, rectangle::Rectangle, rectangle_stick_grid::RectangleStickGrid, shape_builder::{radius_divisions_between_points, ShapeBuilder}}}};
+use crate::{level::level::{setup_level, update_level}, random::{Random}, v4::{constraint_container::ConstraintContainer, constraints::stick_constraint::StickConstraint, particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{line_segment::LineSegment, rectangle::Rectangle, rectangle_stick_grid::RectangleStickGrid, shape_builder::{radius_divisions_between_points, ShapeBuilder}}}};
 
 use super::{car::Car, instance_material_data::{InstanceData, InstanceMaterialData}, performance_ui::performance_ui_build};
 
@@ -58,6 +59,7 @@ impl CarComponent {
 #[derive(Component)]
 pub struct CarScene {
     pub particle_sim: ParticleSim,
+    //pub rng: Pcg64,
     paused: bool,
 }
 
@@ -185,6 +187,7 @@ impl CarScene {
 
         Self {
             particle_sim,
+            //rng: Random::seed_from_beginning_of_week(),
             paused: true,
         }
     }

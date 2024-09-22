@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rand = "0.8.5"
+rand = { version = "0.8.5", features = ["small_rng"] }
 collision = "0.20.1"
 sdl2 = { version = "0.36.0", features = ["unsafe_textures", "gfx", "image"] }
 nalgebra = "0.32.5"
@@ -15,6 +15,10 @@ log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] 
 bytemuck = "1.7"
 iyes_perf_ui = "0.3.0"
 smallvec = { version = "1.11", features = ["union", "const_generics"] }
+rand_seeder = "0.3.0"
+rand_pcg = "0.3.1"
+now = "0.1.3"
+chrono = "0.4.38"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

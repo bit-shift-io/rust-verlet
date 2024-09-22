@@ -12,6 +12,8 @@ mod sdl {
 }
 */
 
+mod random;
+
 mod bevy {
     pub mod instance_material_data;
     pub mod main_bevy;

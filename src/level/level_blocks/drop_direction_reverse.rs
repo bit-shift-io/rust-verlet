@@ -16,11 +16,11 @@ impl LevelBuilderOperation for DropDirectionReverse {
     }
 
     fn default_spawn_chance(&self) -> f32 {
-        0.8
+        0.3
     }
 
     fn execute(&self, level_builder_context: &mut LevelBuilderContext) {
-        let mut rng = rand::thread_rng();
+        let rng = &mut level_builder_context.rng;
 
         let width = 3.0;
         let height = rng.gen_range(-2.5..=-2.0);
