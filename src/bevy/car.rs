@@ -37,8 +37,8 @@ impl CarWheel {
             builder.set_particle_template(Particle::default().set_mass(particle_mass).set_radius(particle_radius).set_color(Color::from(LinearRgba::GREEN)).clone());
 
             builder.apply_operation(Circle::new(origin, circle_radius));
-            builder.apply_operation(AdjacentSticks::new(StickConstraint::default().clone(), 1, true));
-            //builder.apply_operation(AdjacentSticks::new(StickConstraint::default().clone(), 4, true));
+            builder.apply_operation(AdjacentSticks::new(StickConstraint::default().clone(), 1, true)); // connect adjacent points
+            builder.apply_operation(AdjacentSticks::new(StickConstraint::default().clone(), 6, true)); // connect every n points for extra stability during collisions
 
             builder.create_in_particle_sim(particle_sim);
 

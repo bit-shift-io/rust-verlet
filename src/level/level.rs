@@ -18,6 +18,16 @@ pub fn setup_level(mut commands: Commands, mut query_car_scenes: Query<(&mut Car
     let mut registry = LevelBuilderOperationRegistry::new();
 
     // here is our registry
+    //
+    // things to try:
+    // - a jelly draw bridge you drive into and it falls over
+    // - a flexible curved pipe that changes direction and flips the car over at the same time
+    // - a big ball you drive onto and keep it rolling forwards to get to the other side
+    // - an elevator
+    // - a steep incline with toothed or flexible ground to give you grip to get up step. (or change the car tyres to be spiked)
+    // - some cloth you need to drive under/tear through
+    //
+    // we should keep a bounding box for each operation applied to help work out if a block can be used instead of using x_direction_changed for example
     registry.register(SpawnOperation {});
     registry.register(FinishOperation {});
     registry.register(StraightLevelBlock {});
