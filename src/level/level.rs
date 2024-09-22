@@ -46,7 +46,7 @@ pub fn setup_level(mut commands: Commands, mut query_car_scenes: Query<(&mut Car
     registry.register(DropDirectionReverse {});
 
     let mut level_builder_context = LevelBuilderContext::new(particle_sim, &mut rng, commands, meshes, materials);
-    let level_builder = LevelBuilder::new(registry).generate(&mut level_builder_context, 10);
+    let level_builder = LevelBuilder::new(registry).generate(&mut level_builder_context, 20);
 }
 
 pub fn update_level(
