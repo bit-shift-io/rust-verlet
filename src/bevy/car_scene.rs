@@ -18,7 +18,7 @@ use rand_pcg::Pcg64;
 
 use crate::{level::level::{setup_level, update_level}, random::{Random}, v4::{constraint_container::ConstraintContainer, constraints::stick_constraint::StickConstraint, particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{line_segment::LineSegment, rectangle::Rectangle, rectangle_stick_grid::RectangleStickGrid, shape_builder::{radius_divisions_between_points, ShapeBuilder}}}};
 
-use super::{car::Car, instance_material_data::{InstanceData, InstanceMaterialData}, performance_ui::performance_ui_build};
+use super::{car::{self, Car}, instance_material_data::{InstanceData, InstanceMaterialData}, performance_ui::performance_ui_build};
 
 pub fn m_to_cm(m: f32) -> f32 {
     m * 100.0
@@ -39,7 +39,7 @@ pub struct CarSceneContext<'a> {
     pub particle_sim: &'a mut ParticleSim,
 }
 
-
+/* 
 #[derive(Component)]
 struct CarComponent {
     car: Car
@@ -54,10 +54,12 @@ impl CarComponent {
         }
     }
 }
-
+*/
 
 #[derive(Component)]
 pub struct CarScene {
+    pub car: Option<Car>,
+
     pub particle_sim: ParticleSim,
     //pub rng: Pcg64,
     paused: bool,
@@ -185,12 +187,43 @@ impl CarScene {
         // let particle system know all static particles have been built
         particle_sim.notify_particle_container_changed();
 
+        let car = Some(Car::new(&mut particle_sim, Vec2::new(0.0, 0.5)));
+        //let car = None;
+
         Self {
+            car,
             particle_sim,
             //rng: Random::seed_from_beginning_of_week(),
             paused: true,
         }
     }
+
+    pub fn update(&mut self, time: Res<Time>, keys: Res<ButtonInput<KeyCode>>) {
+        let delta_seconds = time.delta_seconds();
+
+        // handle pause - could go in a different update system
+        if keys.just_pressed(KeyCode::KeyP) {
+            self.paused = !self.paused;
+        }
+
+        if self.paused {
+            return;
+        }
+
+        self.particle_sim.pre_update();
+    
+        // do other physics here...
+        // now update the car which will setup its forces on the particles
+        match self.car {
+            Some(ref mut car) => {
+                car.update(&mut self.particle_sim, keys);
+            }
+            None => (),
+        };
+
+        self.particle_sim.update(delta_seconds);
+    }
+    
 }
 
 
@@ -236,9 +269,9 @@ pub fn setup_origin_and_axis_indicators(mut commands: Commands, mut meshes: ResM
 }
 
 pub fn setup_car_scene(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
-    let mut car_scene = CarScene::new();
+    let car_scene = CarScene::new();
 
-    let car = CarComponent::new(&mut car_scene.particle_sim);
+    //let car = CarComponent::new(&mut car_scene.particle_sim);
 
     let instance_data = {
         let particle_container_ref = car_scene.particle_sim.particle_container.as_ref().read().unwrap();
@@ -277,10 +310,12 @@ pub fn setup_car_scene(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
         car_scene,
     ));
 
+    /* 
     // add car to bevy ecs
     commands.spawn((
         car,
     ));
+    */
 }
 
 fn update_particle_instances(
@@ -384,46 +419,28 @@ fn update_car_scene(
     mut commands: Commands, 
     mut meshes: ResMut<Assets<Mesh>>, 
     mut query_car_scenes: Query<(&mut CarScene)>,
-    mut car_component_query: Query<(&mut CarComponent)>,
+    //mut car_component_query: Query<(&mut CarComponent)>,
     mut instance_material_data_query: Query<(&mut InstanceMaterialData)>
 ) {
-    let mut car_scene = query_car_scenes.single_mut();
-    let mut car_component = car_component_query.single_mut();
-    let delta_seconds = time.delta_seconds();
-
-    // handle pause - could go in a different update system
-    if keys.just_pressed(KeyCode::KeyP) {
-        car_scene.paused = !car_scene.paused;
-    }
-
-    if car_scene.paused {
-        return;
-    }
-
-    car_scene.particle_sim.pre_update();
-
-    // do other physics here...
-    // now update the car which will setup its forces on the particles
-    car_component.car.update(&mut car_scene.particle_sim, keys);
-
-    car_scene.particle_sim.update(delta_seconds);
+    let mut car_scene_mut = query_car_scenes.single_mut();
+    car_scene_mut.update(time, keys);
 }
-
 
 fn update_camera(
     time: Res<Time>, 
     mut commands: Commands,
     mut query_car_scenes: Query<(&mut CarScene)>,
-    mut car_component_query: Query<(&mut CarComponent)>,
+    //mut car_component_query: Query<(&mut CarComponent)>,
     mut camera_query: Query<(&mut Camera, &mut Transform)>,
 ) {
-    let mut car_scene = query_car_scenes.single_mut();
-    let mut car_component = car_component_query.single_mut();
-    let Ok((mut camera, mut camera_transform)) = camera_query.get_single_mut() else { return };
+    let car_scene = query_car_scenes.single_mut();
+    if car_scene.car.is_none() {
+        return;
+    }
 
-    let particle_sim = &mut car_scene.particle_sim;
-
-    let camera_look_at_position = car_component.car.get_camera_look_at_position(particle_sim);
-
+    //let Ok(car_component) = car_component_query.get_single() else { return };
+    let Ok((mut _camera, mut camera_transform)) = camera_query.get_single_mut() else { return };
+    let particle_sim = &car_scene.particle_sim;
+    let camera_look_at_position = car_scene.car.as_ref().unwrap().get_camera_look_at_position(particle_sim); // car_component
     camera_transform.translation = Vec3::new(camera_look_at_position.x, camera_look_at_position.y, 250.0);
 }
