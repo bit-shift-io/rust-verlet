@@ -7,6 +7,9 @@ use v4::{particle::Particle, particle_sim::ParticleSim, particle_solvers::{naive
 #[path = "../src/v4/mod.rs"]
 mod v4;
 
+// TODO: split the setup from the benching of the update loop!
+// I don't care to benchmark how long setup takes
+
 // This lets us do some standard test on a solver to get some comparison
 fn run_sim_solver_test(particle_sim: &mut ParticleSim) {
     // create some static shapes
@@ -26,8 +29,8 @@ fn run_sim_solver_test(particle_sim: &mut ParticleSim) {
             .create_in_particle_sim(particle_sim);
     //}
 
-    // step the simulation 1 second forward in time
-    particle_sim.update(1.0);
+    // step the simulation x second forward in time
+    particle_sim.update(0.5);
 
     // print out the metrics to help us determine performance
     //println!("num_collision_checks: {}", sim.particle_solver.as_ref().get_metrics().num_collision_checks);
