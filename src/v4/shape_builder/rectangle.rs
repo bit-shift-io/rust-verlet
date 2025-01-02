@@ -20,8 +20,8 @@ impl Rectangle {
         let x_max = self.rect.min + vec2(self.rect.width(), 0.0);
         let y_max = self.rect.min + vec2(0.0, self.rect.height());
 
-        println!("min, x_max, y_max: {}, {}, {}", min, x_max, y_max);
-        println!("radius {}", radius);
+        //println!("min, x_max, y_max: {}, {}, {}", min, x_max, y_max);
+        //println!("radius {}", radius);
 
         let x_divisions = radius_divisions_between_points(min, x_max, radius);
         let y_divisions = radius_divisions_between_points(min, y_max, radius);
