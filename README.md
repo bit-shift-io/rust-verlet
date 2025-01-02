@@ -55,6 +55,8 @@ src/v2 - version 2 verlet systems
 
 ## Benchmark/Testing
 
+Bench mark uses https://lib.rs/crates/criterion
+
     cargo bench
     cargo test
 

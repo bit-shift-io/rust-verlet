@@ -16,7 +16,7 @@ use bevy::{
 use bytemuck::{Pod, Zeroable};
 use rand_pcg::Pcg64;
 
-use crate::{level::level::{setup_level, update_level}, random::{Random}, v4::{constraint_container::ConstraintContainer, constraints::stick_constraint::StickConstraint, particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{line_segment::LineSegment, rectangle::Rectangle, rectangle_stick_grid::RectangleStickGrid, shape_builder::{radius_divisions_between_points, ShapeBuilder}}}};
+use crate::{level::level::{setup_level, update_level}, random::Random, v4::{constraint_container::ConstraintContainer, constraints::stick_constraint::StickConstraint, particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{circle, line_segment::LineSegment, rectangle::Rectangle, rectangle_stick_grid::RectangleStickGrid, shape_builder::{radius_divisions_between_points, ShapeBuilder}}}};
 
 use super::{car::{self, Car}, instance_material_data::{InstanceData, InstanceMaterialData}, performance_ui::performance_ui_build};
 
@@ -67,7 +67,8 @@ pub struct CarScene {
 
 impl CarScene {
     pub fn new() -> Self {
-        let particle_solver = Box::new(SpatialHashParticleSolver::new()); // SpatialHashParticleSolver::new()); // NaiveParticleSolver::new()); 
+        let particle_solver = Box::new(NaiveParticleSolver::new()); // SpatialHashParticleSolver::new()); // NaiveParticleSolver::new()); 
+        //let particle_solver = Box::new(SpatialHashParticleSolver::new()); // SpatialHashParticleSolver::new()); // NaiveParticleSolver::new()); 
         let mut particle_sim = ParticleSim::new(particle_solver);
 
         {
@@ -77,12 +78,14 @@ impl CarScene {
             // line along the ground
             //let mask = 0x1;
 
+            /* 
             ShapeBuilder::new()
                 .set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone()) 
                 .apply_operation(LineSegment::new(vec2(-5.0, 0.0), vec2(5.0, 0.0)))
                 .apply_operation(LineSegment::new(vec2(5.0, 0.0), vec2(8.0, 0.5)))
                 .apply_operation(LineSegment::new(vec2(-5.0, 0.0), vec2(-8.0, 0.5)))
                 .create_in_particle_sim(&mut particle_sim);
+            */
 
             /* 
             // add a jellow cube to the scene
@@ -133,6 +136,25 @@ impl CarScene {
                 suspension_bridge.create_in_particle_sim(&mut particle_sim);
             }*/
 
+            // this is the bench
+            {
+
+                // static perimiter
+                let mut perimeter = ShapeBuilder::new();
+                perimeter.set_particle_template(Particle::default().set_static(true).set_radius(0.03).clone())
+                    .set_particle_template(Particle::default().set_static(true).clone())
+                    .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 4.0))
+                    .create_in_particle_sim(&mut particle_sim);
+
+                // some dynamic particles on the inside
+                let mut liquid = ShapeBuilder::new();
+                liquid
+                    .set_particle_template(Particle::default().set_mass(20.0 * 0.001).set_radius(0.03).set_color(Color::from(LinearRgba::BLUE)).clone())
+                    .apply_operation(Rectangle::from_center_size(vec2(0.0, 0.0), vec2(3.0, 3.0)))
+                    .create_in_particle_sim(&mut particle_sim);
+            }
+
+            /* 
             // particle liquid + bucket
             {
                 let liquid_particle_radius = particle_radius * 0.85;
@@ -162,7 +184,7 @@ impl CarScene {
                     .apply_operation(LineSegment::new(origin + vec2(funnel_width * 0.5, funnel_height), origin + vec2(liquid_particle_radius * 4.0, 0.0))) //.add_line(origin + Vec2::new(5.0, funnel_height + 2.0), origin + Vec2::new(1.0 + liquid_particle_radius * 8.0, funnel_height), funnel_particle_radius)
                     .create_in_particle_sim(&mut particle_sim);
  
-                /* 
+                / * 
                 // bucket
                 let mut bucket = ShapeBuilder::new();
                 bucket
@@ -171,8 +193,8 @@ impl CarScene {
                     .apply_operation(LineSegment::new(origin + vec2(bucket_height, -bucket_height), origin + vec2(bucket_width - bucket_height, -bucket_height)))
                     .apply_operation(LineSegment::new(origin + vec2(bucket_width - bucket_height, -bucket_height), origin + vec2(bucket_width, 0.0)))
                     .create_in_particle_sim(&mut particle_sim);
-                */
-            }
+                * /
+            }*/
 
  
             /*

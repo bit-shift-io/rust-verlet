@@ -69,11 +69,15 @@ impl ParticleSim {
 
     pub fn update(&mut self, delta_seconds: f32) {
         for sub_dt in Self::range_substeps(delta_seconds, self.desired_hertz).iter() {
-            self.particle_solver.solve_collisions();
-            self.constraint_solver.update_constraints(*sub_dt);
-            self.particle_solver.update_particle_positions(*sub_dt);
-            self.constraint_solver.post_update_constraints(*sub_dt);
+            self.update_step(*sub_dt);
         }
+    }
+
+    pub fn update_step(&mut self, delta_seconds: f32) {
+        self.particle_solver.solve_collisions();
+        self.constraint_solver.update_constraints(delta_seconds);
+        self.particle_solver.update_particle_positions(delta_seconds);
+        self.constraint_solver.post_update_constraints(delta_seconds);
     }
 
     // todo: currently this returns a copy, which could kill performance. can we return a ref? or use self.particle_container directly?
@@ -91,8 +95,8 @@ mod tests {
 
     use super::*;
 
-    extern crate test;
-    use test::Bencher;
+    // extern crate test;
+    // use test::Bencher;
 
     // This lets us do some standard test on a solver to get some comparison
     fn run_sim_solver_test(sim: &mut ParticleSim) {
@@ -132,13 +136,13 @@ mod tests {
         run_sim_solver_test(&mut sim);
     }
 
-    #[bench]
-    fn naive_particle_solver_particle_sim_bench(b: &mut Bencher) {
-        b.iter(|| naive_particle_solver_particle_sim());
-    }
+    // #[bench]
+    // fn naive_particle_solver_particle_sim_bench(b: &mut Bencher) {
+    //     b.iter(|| naive_particle_solver_particle_sim());
+    // }
 
-    #[bench]
-    fn spatial_hash_particle_solver_particle_sim_bench(b: &mut Bencher) {
-        b.iter(|| spatial_hash_particle_solver_particle_sim());
-    }
+    // #[bench]
+    // fn spatial_hash_particle_solver_particle_sim_bench(b: &mut Bencher) {
+    //     b.iter(|| spatial_hash_particle_solver_particle_sim());
+    // }
 }
