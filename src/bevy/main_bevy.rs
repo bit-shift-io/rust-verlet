@@ -44,11 +44,12 @@ fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera3dBundle {
         projection: OrthographicProjection {
             // n world units (metres) per window height.
-            scaling_mode: ScalingMode::FixedVertical(10.0),
+            scaling_mode: ScalingMode::FixedVertical(200.0), // was 10
             ..default()
         }
         .into(),
-        transform: Transform::from_xyz(0.0, 0.0, 150.0).looking_at(Vec3::ZERO, Vec3::Y).with_translation(Vec3::new(0.0, 2.0, 0.0)),
+        transform: Transform::from_xyz(0.0, 0.0, 1000.0).looking_at(Vec3::ZERO, Vec3::Y).with_translation(Vec3::new(0.0, 0.0, 0.0)),
+        // transform: Transform::from_xyz(0.0, 0.0, 150.0).looking_at(Vec3::ZERO, Vec3::Y).with_translation(Vec3::new(0.0, 2.0, 0.0)),
         ..default()
     });
     

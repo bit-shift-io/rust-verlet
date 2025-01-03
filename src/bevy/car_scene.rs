@@ -67,7 +67,7 @@ pub struct CarScene {
 
 impl CarScene {
     pub fn new() -> Self {
-        let particle_solver = Box::new(NaiveParticleSolver::new()); // SpatialHashParticleSolver::new()); // NaiveParticleSolver::new()); 
+        let particle_solver = Box::new(SpatialHashParticleSolver::new()); // SpatialHashParticleSolver::new()); // NaiveParticleSolver::new()); 
         //let particle_solver = Box::new(SpatialHashParticleSolver::new()); // SpatialHashParticleSolver::new()); // NaiveParticleSolver::new()); 
         let mut particle_sim = ParticleSim::new(particle_solver);
 
@@ -138,19 +138,25 @@ impl CarScene {
 
             // this is the bench
             {
+                // the ideal is particle size around 1, as the spatial has has a grid size of 1!
+                let particle_radius = 1.0;
 
-                // static perimiter
+                // static
                 let mut perimeter = ShapeBuilder::new();
-                perimeter.set_particle_template(Particle::default().set_static(true).set_radius(0.03).clone())
-                    .set_particle_template(Particle::default().set_static(true).clone())
-                    .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 4.0))
+                perimeter.set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone())
+                    .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 100.0))
+                    .create_in_particle_sim(&mut particle_sim);
+
+                let mut perimeter2 = ShapeBuilder::new();
+                perimeter2.set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone())
+                    .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 100.0 + (particle_radius * 2.0)))
                     .create_in_particle_sim(&mut particle_sim);
 
                 // some dynamic particles on the inside
                 let mut liquid = ShapeBuilder::new();
                 liquid
-                    .set_particle_template(Particle::default().set_mass(20.0 * 0.001).set_radius(0.03).set_color(Color::from(LinearRgba::BLUE)).clone())
-                    .apply_operation(Rectangle::from_center_size(vec2(0.0, 0.0), vec2(3.0, 3.0)))
+                    .set_particle_template(Particle::default().set_mass(20.0 * 0.001).set_radius(particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
+                    .apply_operation(Rectangle::from_center_size(vec2(0.0, 0.0), vec2(120.0, 120.0)))
                     .create_in_particle_sim(&mut particle_sim);
             }
 

@@ -62,7 +62,8 @@ impl ParticleSolver for SpatialHashParticleSolver {
     fn solve_collisions(&mut self) {
         let grow_amount = vec2(2.0, 2.0); // this if like the maximum a particle should be able to move per frame - 2metres
 
-        let mut particle_container = self.particle_container.as_ref().write().unwrap();        let particle_count: usize = particle_container.particles.len();
+        let mut particle_container = self.particle_container.as_ref().write().unwrap();        
+        let particle_count: usize = particle_container.particles.len();
 
         // consider that there might be duplicate checks as an entity can be in multiple cells
         let mut collision_check = vec![0; particle_count];
