@@ -1,5 +1,7 @@
 #![feature(extract_if)]
 
+use std::time::Duration;
+
 use bevy::{color::{Color, LinearRgba}, math::vec2};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use v4::{particle::Particle, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{circle::{self, Circle}, line_segment::LineSegment, rectangle::Rectangle, shape_builder::ShapeBuilder}};
@@ -59,10 +61,13 @@ fn fibonacci(n: u64) -> u64 {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("fib 20", |b| b.iter(|| fibonacci(black_box(20))));
+    //c.bench_function("fib 20", |b| b.iter(|| fibonacci(black_box(20))));
 
-    c.bench_function("spatial_hash_particle_solver_particle_sim", |b| b.iter(|| spatial_hash_particle_solver_particle_sim()));
-    c.bench_function("naive_particle_solver_particle_sim", |b| b.iter(|| naive_particle_solver_particle_sim()));
+    let mut group = c.benchmark_group("sample-size-example");
+    group.sample_size(20);//.measurement_time(Duration::from_secs(10));
+
+    group.bench_function("spatial_hash_particle_solver_particle_sim", |b| b.iter(|| spatial_hash_particle_solver_particle_sim()));
+    group.bench_function("naive_particle_solver_particle_sim", |b| b.iter(|| naive_particle_solver_particle_sim()));
 
 }
 
