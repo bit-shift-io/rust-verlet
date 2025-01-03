@@ -15,6 +15,7 @@ mod sdl {
 mod random;
 mod bevy;
 mod v4;
+mod v5;
 
 mod level {
     pub mod level;
