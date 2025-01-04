@@ -1,7 +1,30 @@
-use super::{particle::Particle, particle_handle::ParticleHandle};
-use bevy::{color::Color, math::Vec2};
+use std::sync::{Arc, RwLock};
 
+use super::{particle::Particle, particle_handle::ParticleHandle};
+use bevy::{color::Color, math::{vec2, Vec2}};
+
+
+/* 
 // https://www.cs.brandeis.edu/~cs146a/rust/rustbyexample-02-21-2015/simd.html
+
+#[derive(Clone)]
+pub struct SharedParticleVec(Arc<RwLock<ParticleVec>>);
+
+impl Default for SharedParticleVec {
+    fn default() -> Self { 
+        SharedParticleVec(Arc::new(RwLock::new(ParticleVec::default())))
+    }
+}
+
+impl AsRef<ParticleVec> for SharedParticleVec {
+    fn as_ref(&self) -> &ParticleVec {
+        // Return a reference to the inner value
+        &self.0
+    }
+}*/
+
+pub type SharedParticleVec = Arc<RwLock<ParticleVec>>;
+
 
 pub struct ParticleVec {
     pub pos_x: Vec<f32>,
@@ -21,8 +44,9 @@ pub struct ParticleVec {
 }
 
 impl ParticleVec {
+    /// Add a particle to this particle vector.
     pub fn add(&mut self, particle: Particle) -> ParticleHandle {
-        let id = self.pos_x.len();
+        let id = self.len();
 
         self.pos_x.push(particle.pos.x);
         self.pos_y.push(particle.pos.y);
@@ -36,6 +60,29 @@ impl ParticleVec {
         self.force.push(particle.force);
 
         ParticleHandle::new(id) 
+    }
+
+    /// Get the particle that the particle_handle refers to.
+    pub fn get(&self, particle_handle: ParticleHandle) -> Option<Particle> {
+        let id = particle_handle.id();
+        if id >= self.len() {
+            return None;
+        }
+
+        Some(Particle { 
+            pos: vec2(self.pos_x[id], self.pos_y[id]), 
+            pos_prev: vec2(self.pos_prev_x[id], self.pos_prev_y[id]), 
+            radius: self.radius[id], 
+            mass: self.mass[id], 
+            is_static: self.is_static[id], 
+            color: self.color[id], 
+            is_enabled: self.is_enabled[id], 
+            force: self.force[id]
+        })
+    }
+
+    pub fn len(&self) -> usize {
+        self.pos_x.len()
     }
 }
 
