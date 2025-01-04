@@ -3,7 +3,7 @@
 mod tests {
     use bevy::math::Vec2;
 
-    use crate::v5::{particle::Particle, shape_builder::{circle::Circle, line_segment::LineSegment, shape_builder::ShapeBuilder}};
+    use crate::v5::{particle::Particle, particle_vec::SharedParticleVec, shape_builder::{circle::Circle, line_segment::LineSegment, shape_builder::ShapeBuilder}};
 
     use super::*;
 
@@ -29,16 +29,17 @@ mod tests {
     }
 
     #[test]
-    fn create_in_particle_container() {
+    fn create_in_shared_particle_vec() {
         let mut b = ShapeBuilder::new();
         b.set_particle_template(Particle::default().set_static(true).clone());
         b.apply_operation(Circle::new(Vec2::new(0.0, 0.0), 10.0));
 
-        let mut pc = ParticleContainer::new();
-        b.create_in_particle_container(&mut pc);
+        let mut shared_particle_vec = SharedParticleVec::default();
+        b.create_in_shared_particle_vec(&mut shared_particle_vec);
 
-        assert_eq!(pc.particles.len(), b.particle_handles.len());
-        assert_eq!(pc.particles.len(),  b.particles.len());
+        let particle_vec = shared_particle_vec.as_ref().read().unwrap();
+        assert_eq!(particle_vec.len(), b.particle_handles.len());
+        assert_eq!(particle_vec.len(), b.particles.len());
     }
 }
 

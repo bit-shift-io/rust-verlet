@@ -25,7 +25,6 @@ mod tests {
         solver.bind(&shared_particle_vec);
         solver.solve_collisions();
 
-    
         let particle_vec = shared_particle_vec.as_ref().write().unwrap();
         let p_1 = particle_vec.get(ph_1).unwrap();
         let p_2 = particle_vec.get(ph_2).unwrap();
@@ -50,7 +49,6 @@ mod tests {
 
         solver.bind(&shared_particle_vec);
         solver.solve_collisions();
-
     
         let particle_vec = shared_particle_vec.as_ref().write().unwrap();
         let p_1 = particle_vec.get(ph_1).unwrap();

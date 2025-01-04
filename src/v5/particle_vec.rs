@@ -5,6 +5,15 @@ use bevy::{color::Color, math::{vec2, Vec2}};
 
 
 /* 
+pub trait ParticleAdd {
+    /// Add a particle to this particle vector.
+    fn add(&mut self, particle: Particle) -> ParticleHandle;
+
+    /// Add multiple particles to this particle vector.
+    fn add_vec(&mut self, particles: &Vec<Particle>) -> Vec<ParticleHandle>;
+}*/
+
+/* 
 // https://www.cs.brandeis.edu/~cs146a/rust/rustbyexample-02-21-2015/simd.html
 
 #[derive(Clone)]
@@ -61,6 +70,17 @@ impl ParticleVec {
 
         ParticleHandle::new(id) 
     }
+
+    pub fn add_vec(&mut self, particles: &Vec<Particle>) -> Vec<ParticleHandle> {
+        let mut handles = Vec::new();
+        for p in particles {
+            handles.push(self.add(*p));
+        }
+        handles
+    }
+}
+
+impl ParticleVec {
 
     /// Get the particle that the particle_handle refers to.
     pub fn get(&self, particle_handle: ParticleHandle) -> Option<Particle> {
