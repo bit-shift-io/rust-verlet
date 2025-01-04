@@ -1,11 +1,7 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::sync::{Arc, RwLock};
-
 use bevy::math::{vec2, Vec2};
 
 use super::particle_solver::compute_movement_weight;
-use super::particle_vec::{ParticleVec, SharedParticleVec};
+use super::particle_vec::SharedParticleVec;
 
 pub struct NaiveParticleSolver {
     particle_vec_arc: SharedParticleVec,

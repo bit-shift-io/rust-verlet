@@ -1,78 +1,72 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::sync::{Arc, RwLock};
+
+
+use std::usize;
 
 use bevy::math::bounding::BoundingVolume;
 use bevy::math::vec2;
 
-use crate::v4::particle;
-use crate::v4::spatial_hash::SpatialHash;
-
-use super::super::particle_container::ParticleContainer;
-
-use super::particle_solver::{compute_movement_weight, update_particle_positions, ParticleSolver, ParticleSolverMetrics};
+use super::particle_vec::SharedParticleVec;
+use super::spatial_hash::SpatialHash;
+use super::aabb_ext::aabb2d_from_position_and_radius;
 
 /// This seems to be around 2x better than naive implementation
 /// based on real world testing.
 /// We should try Octree's in future also.
 pub struct SpatialHashParticleSolver {
-    particle_container: Arc<RwLock<ParticleContainer>>,
-    particle_solver_metrics: ParticleSolverMetrics,
+    particle_vec_arc: SharedParticleVec,
     static_spatial_hash: SpatialHash<usize>
 }
 
-impl SpatialHashParticleSolver {
-    pub fn new() -> Self {
+impl Default for SpatialHashParticleSolver {
+    fn default() -> Self {
         Self { 
-            particle_container: Arc::new(RwLock::new(ParticleContainer::new())),
-            particle_solver_metrics: ParticleSolverMetrics::default(),
+            particle_vec_arc: SharedParticleVec::default(),
             static_spatial_hash: SpatialHash::<usize>::new(),
         }
     }
 }
 
-impl ParticleSolver for SpatialHashParticleSolver {
-    fn attach_to_particle_container(&mut self, particle_container: &Arc<RwLock<ParticleContainer>>) {
-        self.particle_container = particle_container.clone();
-        self.notify_particle_container_changed();
+impl SpatialHashParticleSolver {
+
+    pub fn bind(&mut self, particle_vec_arc: &SharedParticleVec) {
+        self.particle_vec_arc = particle_vec_arc.clone();
+        self.notify_particle_vec_changed();
     }
 
-    fn reset_metrics(&mut self) {
-        self.particle_solver_metrics = ParticleSolverMetrics::default()
-    }
-
-    fn get_metrics(&self) -> &ParticleSolverMetrics {
-        &self.particle_solver_metrics
-    }
-
-    fn update_particle_positions(&mut self, delta_seconds: f32) {
-        update_particle_positions(&mut self.particle_container.as_ref().write().unwrap(), delta_seconds);
-    }
-
-    fn notify_particle_container_changed(&mut self/* , particle_container: &Rc<RefCell<ParticleContainer>>, particle_index: usize*/) {
+    fn notify_particle_vec_changed(&mut self/* , particle_vec: &Rc<RefCell<ParticleContainer>>, particle_index: usize*/) {
         // rebuild the static spatial hash if a static particle was changed
         self.static_spatial_hash = SpatialHash::new();
-        for (idx, particle) in self.particle_container.as_ref().read().unwrap().particles.iter().enumerate() {
-            if particle.is_static && particle.is_enabled {
-                self.static_spatial_hash.insert_aabb(particle.get_aabb(), idx);
+
+        let particle_vec = self.particle_vec_arc.as_ref().read().unwrap();        
+        let particle_count: usize = particle_vec.len();
+
+        for ai in 0..particle_count {
+            if particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
+                //let a = Aabb::default();
+                //let r = a.fabian_test();
+
+                let a_aabb = aabb2d_from_position_and_radius(vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]), particle_vec.radius[ai]);
+                self.static_spatial_hash.insert_aabb(a_aabb, ai);
             }
         }
     }
 
-    fn solve_collisions(&mut self) {
+    pub fn solve_collisions(&mut self) {
         let grow_amount = vec2(2.0, 2.0); // this if like the maximum a particle should be able to move per frame - 2metres
 
-        let mut particle_container = self.particle_container.as_ref().write().unwrap();        
-        let particle_count: usize = particle_container.particles.len();
+        let mut particle_vec = self.particle_vec_arc.as_ref().write().unwrap();        
+        let particle_count: usize = particle_vec.len();
 
         // consider that there might be duplicate checks as an entity can be in multiple cells
         let mut collision_check = vec![usize::MAX; particle_count];
 
         // perform dynamic-static collision detection
         for ai in 0..particle_count {
-            let particle_a = particle_container.particles[ai];
-            if !particle_a.is_static && particle_a.is_enabled {
-                for bi in self.static_spatial_hash.aabb_iter(particle_a.get_aabb()) {
+            if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
+
+                let a_aabb = aabb2d_from_position_and_radius(vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]), particle_vec.radius[ai]);
+                
+                for bi in self.static_spatial_hash.aabb_iter(a_aabb) {
                     // avoid double checking against the same particle
                     if collision_check[bi] == ai {
                         //println!("static skipping collision check between {} and {}", bi, ai);
@@ -80,15 +74,13 @@ impl ParticleSolver for SpatialHashParticleSolver {
                     }
                     collision_check[bi] = ai;
 
-
-                    self.particle_solver_metrics.num_collision_checks += 1;
-
-                    let particle_b = particle_container.particles[bi];
-
+                    let mut a_pos = vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]);
+                    let b_pos = vec2(particle_vec.pos_x[bi], particle_vec.pos_y[bi]);
+                    
                     // particle_a is dynamic while particle_b is static
-                    let collision_axis = particle_a.pos - particle_b.pos;
+                    let collision_axis = a_pos - b_pos;
                     let dist_squared = collision_axis.length_squared();
-                    let min_dist = particle_a.radius + particle_b.radius;
+                    let min_dist = particle_vec.radius[ai] + particle_vec.radius[bi];
                     let min_dist_squared = min_dist * min_dist;
 
                     if dist_squared < min_dist_squared {
@@ -97,10 +89,14 @@ impl ParticleSolver for SpatialHashParticleSolver {
                         let delta = min_dist - dist;
                         let movement = delta * n;
 
-                        let mut_particle_a = &mut particle_container.particles[ai];
-                        mut_particle_a.pos += movement;
-                        debug_assert!(!mut_particle_a.pos.x.is_nan());
-                        debug_assert!(!mut_particle_a.pos.y.is_nan());
+                        //let mut_particle_a = &mut particle_vec.particles[ai];
+                        //mut_particle_a.pos += movement;
+
+                        a_pos += movement;
+                        debug_assert!(!a_pos.x.is_nan());
+                        debug_assert!(!a_pos.y.is_nan());
+                        particle_vec.pos_x[ai] = a_pos.x;
+                        particle_vec.pos_y[ai] = a_pos.y;
 
                         // as the particle moves we need to move the aabb around
                         //dynamic_spatial_hash.insert_aabb(mut_particle_a.get_aabb(), ai);
@@ -111,18 +107,19 @@ impl ParticleSolver for SpatialHashParticleSolver {
 
         let mut dynamic_spatial_hash = SpatialHash::<usize>::new();
         for ai in 0..particle_count {
-            let particle_a = particle_container.particles[ai];
-            if !particle_a.is_static && particle_a.is_enabled {
-                let aabb = particle_a.get_aabb();
-                dynamic_spatial_hash.insert_aabb(aabb.grow(grow_amount), ai);
+            if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
+                let a_aabb = aabb2d_from_position_and_radius(vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]), particle_vec.radius[ai]);
+                dynamic_spatial_hash.insert_aabb(a_aabb.grow(grow_amount), ai);
             }
         }
  
         // perform dynamic-dynamic collision detection
         for ai in 0..particle_count {
-            let particle_a = particle_container.particles[ai];
-            if !particle_a.is_static && particle_a.is_enabled {
-                for bi in dynamic_spatial_hash.aabb_iter(particle_a.get_aabb()) {
+            if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
+
+                let a_aabb = aabb2d_from_position_and_radius(vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]), particle_vec.radius[ai]);
+                
+                for bi in dynamic_spatial_hash.aabb_iter(a_aabb) {
                     // skip self-collision, and anything that is before ai
                     if bi <= ai {
                         continue;
@@ -136,14 +133,15 @@ impl ParticleSolver for SpatialHashParticleSolver {
                     collision_check[bi] = ai;
                     
 
-                    self.particle_solver_metrics.num_collision_checks += 1;
-
-                    let particle_b = particle_container.particles[bi];
+                    let mut a_pos = vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]);
+                    let mut b_pos = vec2(particle_vec.pos_x[bi], particle_vec.pos_y[bi]);
+                    
+                    //let particle_b = particle_vec.particles[bi];
 
                     // particle_a and particle_b are both dynamic particles
-                    let collision_axis = particle_a.pos - particle_b.pos;
+                    let collision_axis = a_pos - b_pos;
                     let dist_squared = collision_axis.length_squared();
-                    let min_dist = particle_a.radius + particle_b.radius;
+                    let min_dist = particle_vec.radius[ai] + particle_vec.radius[bi];
                     let min_dist_squared = min_dist * min_dist;
 
                     if dist_squared < min_dist_squared {
@@ -171,20 +169,25 @@ impl ParticleSolver for SpatialHashParticleSolver {
                         //println!("collision occured between particle_a and particle_b {} {}. min_dist: {}, dist: {}. mmovement: {}", ai, bi, min_dist, dist, movement);
 
                         {
-                            let mut_particle_a = &mut particle_container.particles[ai];
-                            mut_particle_a.pos += movement;
-                            debug_assert!(!mut_particle_a.pos.x.is_nan());
-                            debug_assert!(!mut_particle_a.pos.y.is_nan());
+                            //let mut_particle_a = &mut particle_vec.particles[ai];
+                            //mut_particle_a.pos += movement;
+
+                            a_pos += movement;
+                            debug_assert!(!a_pos.x.is_nan());
+                            debug_assert!(!a_pos.y.is_nan());
+                            particle_vec.pos_x[ai] = a_pos.x;
+                            particle_vec.pos_y[ai] = a_pos.y;
 
                             // as the particle moves we need to move the aabb around
                             //dynamic_spatial_hash.insert_aabb(mut_particle_a.get_aabb(), ai);
                         }
 
                         {
-                            let mut_particle_b = &mut particle_container.particles[bi];
-                            mut_particle_b.pos -= movement;
-                            debug_assert!(!mut_particle_b.pos.x.is_nan());
-                            debug_assert!(!mut_particle_b.pos.y.is_nan());
+                            b_pos -= movement;
+                            debug_assert!(!b_pos.x.is_nan());
+                            debug_assert!(!b_pos.y.is_nan());
+                            particle_vec.pos_x[bi] = b_pos.x;
+                            particle_vec.pos_y[bi] = b_pos.y;
 
                             // as the particle moves we need to move the aabb around
                             //dynamic_spatial_hash.insert_aabb(mut_particle_b.get_aabb(), bi);
