@@ -35,5 +35,9 @@ opt-level = 3
 channel = "nightly"
 
 [[bench]]
-name = "particle_sim_bench"
+name = "v4_bench"
+harness = false
+
+[[bench]]
+name = "v5_bench"
 harness = false

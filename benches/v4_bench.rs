@@ -46,7 +46,7 @@ fn run_sim_solver_test(particle_sim: &mut ParticleSim) {
 
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let mut group = c.benchmark_group("solvers");
+    let mut group = c.benchmark_group("v4");
     //group.sample_size(20);//.measurement_time(Duration::from_secs(10));
 
     group.bench_function("spatial_hash_particle_solver_particle_sim", |b| {
