@@ -131,7 +131,6 @@ impl Iterator for KeyIter {
 #[cfg(test)]
 mod tests {
     use bevy::math::{bounding::Aabb2d, vec2};
-    use bevy::prelude::default;
     use bevy::utils::HashSet;
 
     use super::*;

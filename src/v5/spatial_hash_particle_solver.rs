@@ -2,12 +2,12 @@
 
 use std::usize;
 
-use bevy::math::bounding::BoundingVolume;
+use bevy::math::bounding::{Aabb2d, BoundingVolume};
 use bevy::math::vec2;
 
+use super::aabb2d_ext::Aabb2dExt;
 use super::particle_vec::SharedParticleVec;
 use super::spatial_hash::SpatialHash;
-use super::aabb_ext::aabb2d_from_position_and_radius;
 
 /// This seems to be around 2x better than naive implementation
 /// based on real world testing.
@@ -45,7 +45,7 @@ impl SpatialHashParticleSolver {
                 //let a = Aabb::default();
                 //let r = a.fabian_test();
 
-                let a_aabb = aabb2d_from_position_and_radius(vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]), particle_vec.radius[ai]);
+                let a_aabb = Aabb2d::from_position_and_radius(vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]), particle_vec.radius[ai]);
                 self.static_spatial_hash.insert_aabb(a_aabb, ai);
             }
         }
@@ -64,7 +64,7 @@ impl SpatialHashParticleSolver {
         for ai in 0..particle_count {
             if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
 
-                let a_aabb = aabb2d_from_position_and_radius(vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]), particle_vec.radius[ai]);
+                let a_aabb = Aabb2d::from_position_and_radius(vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]), particle_vec.radius[ai]);
                 
                 for bi in self.static_spatial_hash.aabb_iter(a_aabb) {
                     // avoid double checking against the same particle
@@ -108,7 +108,7 @@ impl SpatialHashParticleSolver {
         let mut dynamic_spatial_hash = SpatialHash::<usize>::new();
         for ai in 0..particle_count {
             if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
-                let a_aabb = aabb2d_from_position_and_radius(vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]), particle_vec.radius[ai]);
+                let a_aabb = Aabb2d::from_position_and_radius(vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]), particle_vec.radius[ai]);
                 dynamic_spatial_hash.insert_aabb(a_aabb.grow(grow_amount), ai);
             }
         }
@@ -117,7 +117,7 @@ impl SpatialHashParticleSolver {
         for ai in 0..particle_count {
             if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
 
-                let a_aabb = aabb2d_from_position_and_radius(vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]), particle_vec.radius[ai]);
+                let a_aabb = Aabb2d::from_position_and_radius(vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]), particle_vec.radius[ai]);
                 
                 for bi in dynamic_spatial_hash.aabb_iter(a_aabb) {
                     // skip self-collision, and anything that is before ai
