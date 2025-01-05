@@ -49,8 +49,8 @@ impl NaiveParticleSolver {
                 {
                     //let ap = a_particle.as_ref().borrow();
                     //let bp = b_particle.as_ref().borrow();
-                    let verlet_position_a = vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]); //&particle_accelerator.verlet_positions[particle_id_a];
-                    let verlet_position_b = vec2(particle_vec.pos_x[bi], particle_vec.pos_y[bi]); //&particle_accelerator.verlet_positions[particle_id_b];
+                    let verlet_position_a = particle_vec.get_pos_vec2(ai); //vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]); //&particle_accelerator.verlet_positions[particle_id_a];
+                    let verlet_position_b = particle_vec.get_pos_vec2(bi); //vec2(particle_vec.pos_x[bi], particle_vec.pos_y[bi]); //&particle_accelerator.verlet_positions[particle_id_b];
                 
                     collision_axis = verlet_position_a - verlet_position_b;
                     dist = (collision_axis[0].powf(2f32) + collision_axis[1].powf(2f32)).sqrt();
@@ -64,20 +64,18 @@ impl NaiveParticleSolver {
                     // is it better to have no if statement to make the loop tight at the cost
                     // of wasted vector computations?
                     //let mut ap_mut = a_particle.as_ref().borrow_mut();
-                    let mut verlet_position_a = vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]); //&mut particle_accelerator.verlet_positions[particle_id_a];
+                    let mut verlet_position_a = particle_vec.get_pos_vec2(ai); //vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]); //&mut particle_accelerator.verlet_positions[particle_id_a];
                     verlet_position_a += a_movement_weight * delta * n;
                     debug_assert!(!verlet_position_a.x.is_nan());
                     debug_assert!(!verlet_position_a.y.is_nan());
-                    particle_vec.pos_x[ai] = verlet_position_a.x;
-                    particle_vec.pos_y[ai] = verlet_position_a.y;
+                    particle_vec.set_pos_from_vec2(ai, &verlet_position_a);
 
                     //let mut bp_mut = b_particle.as_ref().borrow_mut();
-                    let mut verlet_position_b = vec2(particle_vec.pos_x[bi], particle_vec.pos_y[bi]); //particle_b; //&mut particle_accelerator.verlet_positions[particle_id_b];
+                    let mut verlet_position_b = particle_vec.get_pos_vec2(bi); //vec2(particle_vec.pos_x[bi], particle_vec.pos_y[bi]); //particle_b; //&mut particle_accelerator.verlet_positions[particle_id_b];
                     verlet_position_b -= b_movement_weight * delta * n;
                     debug_assert!(!verlet_position_b.x.is_nan());
                     debug_assert!(!verlet_position_b.y.is_nan());
-                    particle_vec.pos_x[bi] = verlet_position_b.x;
-                    particle_vec.pos_y[bi] = verlet_position_b.y;
+                    particle_vec.set_pos_from_vec2(bi, &verlet_position_b);
                 }
             }
         }

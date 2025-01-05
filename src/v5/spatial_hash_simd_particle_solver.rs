@@ -1,5 +1,6 @@
 
 
+use std::simd::f32x2;
 use std::usize;
 
 use bevy::math::bounding::{Aabb2d, BoundingVolume};
@@ -12,12 +13,12 @@ use super::spatial_hash::SpatialHash;
 /// This seems to be around 2x better than naive implementation
 /// based on real world testing.
 /// We should try Octree's in future also.
-pub struct SpatialHashParticleSolver {
+pub struct SpatialHashSimdParticleSolver {
     particle_vec_arc: SharedParticleVec,
     static_spatial_hash: SpatialHash<usize>
 }
 
-impl Default for SpatialHashParticleSolver {
+impl Default for SpatialHashSimdParticleSolver {
     fn default() -> Self {
         Self { 
             particle_vec_arc: SharedParticleVec::default(),
@@ -26,7 +27,7 @@ impl Default for SpatialHashParticleSolver {
     }
 }
 
-impl SpatialHashParticleSolver {
+impl SpatialHashSimdParticleSolver {
 
     pub fn bind(&mut self, particle_vec_arc: &SharedParticleVec) {
         self.particle_vec_arc = particle_vec_arc.clone();
@@ -74,8 +75,8 @@ impl SpatialHashParticleSolver {
                     }
                     collision_check[bi] = ai;
 
-                    let mut a_pos = particle_vec.get_pos_vec2(ai); //vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]);
-                    let b_pos = particle_vec.get_pos_vec2(bi); //vec2(particle_vec.pos_x[bi], particle_vec.pos_y[bi]);
+                    let mut a_pos = particle_vec.pos[ai]; //vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]);
+                    let b_pos = particle_vec.pos[bi]; //vec2(particle_vec.pos_x[bi], particle_vec.pos_y[bi]);
                     
                     // particle_a is dynamic while particle_b is static
                     let collision_axis = a_pos - b_pos;
@@ -93,9 +94,9 @@ impl SpatialHashParticleSolver {
                         //mut_particle_a.pos += movement;
 
                         a_pos += movement;
-                        debug_assert!(!a_pos.x.is_nan());
-                        debug_assert!(!a_pos.y.is_nan());
-                        particle_vec.set_pos_from_vec2(ai, &a_pos);
+                        //debug_assert!(!a_pos.x.is_nan());
+                        //debug_assert!(!a_pos.y.is_nan());
+                        particle_vec.pos[ai] = a_pos;
 
                         // as the particle moves we need to move the aabb around
                         //dynamic_spatial_hash.insert_aabb(mut_particle_a.get_aabb(), ai);
@@ -132,8 +133,8 @@ impl SpatialHashParticleSolver {
                     collision_check[bi] = ai;
                     
 
-                    let mut a_pos = particle_vec.get_pos_vec2(ai); //vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]);
-                    let mut b_pos = particle_vec.get_pos_vec2(bi); //vec2(particle_vec.pos_x[bi], particle_vec.pos_y[bi]);
+                    let mut a_pos = particle_vec.pos[ai]; //vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]);
+                    let mut b_pos = particle_vec.pos[bi]; //vec2(particle_vec.pos_x[bi], particle_vec.pos_y[bi]);
                     
                     //let particle_b = particle_vec.particles[bi];
 
@@ -172,9 +173,9 @@ impl SpatialHashParticleSolver {
                             //mut_particle_a.pos += movement;
 
                             a_pos += movement;
-                            debug_assert!(!a_pos.x.is_nan());
-                            debug_assert!(!a_pos.y.is_nan());
-                            particle_vec.set_pos_from_vec2(ai, &a_pos);
+                            //debug_assert!(!a_pos.x.is_nan());
+                            //debug_assert!(!a_pos.y.is_nan());
+                            particle_vec.pos[ai] = a_pos;
 
                             // as the particle moves we need to move the aabb around
                             //dynamic_spatial_hash.insert_aabb(mut_particle_a.get_aabb(), ai);
@@ -182,9 +183,9 @@ impl SpatialHashParticleSolver {
 
                         {
                             b_pos -= movement;
-                            debug_assert!(!b_pos.x.is_nan());
-                            debug_assert!(!b_pos.y.is_nan());
-                            particle_vec.set_pos_from_vec2(bi, &b_pos);
+                            //debug_assert!(!b_pos.x.is_nan());
+                            //debug_assert!(!b_pos.y.is_nan());
+                            particle_vec.pos[bi] = b_pos;
 
                             // as the particle moves we need to move the aabb around
                             //dynamic_spatial_hash.insert_aabb(mut_particle_b.get_aabb(), bi);

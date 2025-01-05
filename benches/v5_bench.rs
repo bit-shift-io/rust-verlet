@@ -1,10 +1,11 @@
 #![feature(extract_if)]
+#![feature(portable_simd)]
 
 use std::time::Duration;
 
 use bevy::{color::{Color, LinearRgba}, math::vec2};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use v5::{naive_particle_solver::NaiveParticleSolver, particle::Particle, particle_vec::SharedParticleVec, shape_builder::{circle::{self, Circle}, line_segment::LineSegment, rectangle::Rectangle, shape_builder::ShapeBuilder}, spatial_hash_particle_solver::SpatialHashParticleSolver};
+use v5::{naive_particle_solver::NaiveParticleSolver, particle::Particle, particle_vec::SharedParticleVec, shape_builder::{circle::{self, Circle}, line_segment::LineSegment, rectangle::Rectangle, shape_builder::ShapeBuilder}, spatial_hash_particle_solver::SpatialHashParticleSolver, spatial_hash_simd_particle_solver::SpatialHashSimdParticleSolver};
 
 #[path = "../src/v5/mod.rs"]
 mod v5;
@@ -74,6 +75,18 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     group.bench_function("SpatialHashParticleSolver solve_collisions", |b| {
         let mut solver = SpatialHashParticleSolver::default();
+        let mut shared_particle_vec = SharedParticleVec::default();
+        setup_sim_solver_test(&mut shared_particle_vec);
+        solver.bind(&shared_particle_vec);
+
+        b.iter(|| {
+            solver.solve_collisions();
+            //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
+        })
+    });
+
+    group.bench_function("SpatialHashSimdParticleSolver solve_collisions", |b| {
+        let mut solver = SpatialHashSimdParticleSolver::default();
         let mut shared_particle_vec = SharedParticleVec::default();
         setup_sim_solver_test(&mut shared_particle_vec);
         solver.bind(&shared_particle_vec);

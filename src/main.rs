@@ -1,5 +1,6 @@
 #![feature(test)]
 #![feature(extract_if)]
+#![feature(portable_simd)]
 /*
 mod sdl_system;
 mod keyboard;

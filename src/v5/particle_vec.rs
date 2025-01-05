@@ -1,4 +1,4 @@
-use std::sync::{Arc, RwLock};
+use std::{simd::f32x2, sync::{Arc, RwLock}};
 
 use super::{particle::Particle, particle_handle::ParticleHandle};
 use bevy::{color::Color, math::{vec2, Vec2}};
@@ -36,11 +36,8 @@ pub type SharedParticleVec = Arc<RwLock<ParticleVec>>;
 
 
 pub struct ParticleVec {
-    pub pos_x: Vec<f32>,
-    pub pos_y: Vec<f32>,
-
-    pub pos_prev_x: Vec<f32>,
-    pub pos_prev_y: Vec<f32>,
+    pub pos: Vec<f32x2>,
+    pub pos_prev: Vec<f32x2>,
 
     pub radius: Vec<f32>,
     pub mass: Vec<f32>,
@@ -49,7 +46,7 @@ pub struct ParticleVec {
     pub color: Vec<Color>,
     pub is_enabled: Vec<bool>,
 
-    pub force: Vec<Vec2>, // should this be here? when we apply a force can we not just move the pos?
+    pub force: Vec<f32x2>, // should this be here? when we apply a force can we not just move the pos?
 }
 
 impl ParticleVec {
@@ -57,16 +54,14 @@ impl ParticleVec {
     pub fn add(&mut self, particle: Particle) -> ParticleHandle {
         let id = self.len();
 
-        self.pos_x.push(particle.pos.x);
-        self.pos_y.push(particle.pos.y);
-        self.pos_prev_x.push(particle.pos_prev.x);
-        self.pos_prev_y.push(particle.pos_prev.y);
+        self.pos.push(f32x2::from_array([particle.pos.x, particle.pos.y]));
+        self.pos_prev.push(f32x2::from_array([particle.pos_prev.x, particle.pos_prev.y]));
         self.radius.push(particle.radius);
         self.mass.push(particle.mass);
         self.is_static.push(particle.is_static);
         self.color.push(particle.color);
         self.is_enabled.push(particle.is_enabled);
-        self.force.push(particle.force);
+        self.force.push(f32x2::from_array([particle.force.x, particle.force.y]));
 
         ParticleHandle::new(id) 
     }
@@ -82,6 +77,17 @@ impl ParticleVec {
 
 impl ParticleVec {
 
+    #[inline(always)]
+    pub fn get_pos_vec2(&self, id: usize) -> Vec2 {
+        let pos = self.pos[id].as_array();
+        vec2(pos[0], pos[1])
+    }
+
+    #[inline(always)]
+    pub fn set_pos_from_vec2(&mut self, id: usize, pos: &Vec2) {
+        self.pos[id] = f32x2::from_array([pos.x, pos.y]);
+    }
+
     /// Get the particle that the particle_handle refers to.
     pub fn get(&self, particle_handle: ParticleHandle) -> Option<Particle> {
         let id = particle_handle.id();
@@ -89,51 +95,50 @@ impl ParticleVec {
             return None;
         }
 
+        let pos = self.pos[id].as_array();
+        let pos_prev = self.pos_prev[id].as_array();
+        let force = self.force[id].as_array();
+
         Some(Particle { 
-            pos: vec2(self.pos_x[id], self.pos_y[id]), 
-            pos_prev: vec2(self.pos_prev_x[id], self.pos_prev_y[id]), 
+            pos: vec2(pos[0], pos[1]), 
+            pos_prev: vec2(pos_prev[0], pos_prev[1]), 
             radius: self.radius[id], 
             mass: self.mass[id], 
             is_static: self.is_static[id], 
             color: self.color[id], 
             is_enabled: self.is_enabled[id], 
-            force: self.force[id]
+            force: vec2(force[0], force[1]), 
         })
     }
 
     pub fn len(&self) -> usize {
-        self.pos_x.len()
+        self.pos.len()
     }
-
 
     pub fn update_positions(&mut self, delta_seconds: f32) {
         let particle_count = self.len();
         for id in 0..particle_count {
-            /*
-            if i == 65 {
-                println!("65!");
-            }*/
             if self.is_static[id] || !self.is_enabled[id] {
                 continue
             }
 
-            let pos = vec2(self.pos_x[id], self.pos_y[id]);
-            let pos_prev = vec2(self.pos_prev_x[id], self.pos_prev_y[id]);
+            let pos = self.pos[id]; //vec2(self.pos_x[id], self.pos_y[id]);
+            let pos_prev = self.pos_prev[id]; //vec2(self.pos_prev_x[id], self.pos_prev_y[id]);
 
-            let velocity: Vec2 = pos - pos_prev;
-            let acceleration: Vec2 = self.force[id] / self.mass[id];
+            let velocity = pos - pos_prev;
+            let acceleration = self.force[id] / f32x2::from_array([self.mass[id], self.mass[id]]);
 
             //println!("accel {}, vel {}", acceleration, velocity);
 
-            self.pos_prev_x[id] = pos.x;
-            self.pos_prev_y[id] = pos.y;
+            self.pos_prev[id] = pos;
 
-            let new_pos = pos + velocity + acceleration * delta_seconds * delta_seconds;
-            debug_assert!(!new_pos.x.is_nan());
-            debug_assert!(!new_pos.y.is_nan());
+            let delta_seconds_sqrd = delta_seconds * delta_seconds;
+            let delta_seconds_sqrd_f32x2 = f32x2::from_array([delta_seconds_sqrd, delta_seconds_sqrd]);
+            let new_pos = pos + velocity + acceleration * delta_seconds_sqrd_f32x2;
+            //debug_assert!(!new_pos.x.is_nan());
+            //debug_assert!(!new_pos.y.is_nan());
 
-            self.pos_x[id] = new_pos.x;
-            self.pos_y[id] = new_pos.y;
+            self.pos[id] = new_pos;
         }
     }
 }
@@ -141,11 +146,8 @@ impl ParticleVec {
 impl Default for ParticleVec {
     fn default() -> Self { 
         Self {
-            pos_x: vec![],
-            pos_y: vec![],
-
-            pos_prev_x: vec![],
-            pos_prev_y: vec![],
+            pos: vec![],
+            pos_prev: vec![],
 
             radius: vec![],
             mass: vec![],
