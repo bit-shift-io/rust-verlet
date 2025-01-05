@@ -10,5 +10,6 @@ pub mod spatial_hash;
 pub mod aabb2d_ext;
 
 pub mod shape_builder;
+pub mod simd_ext;
 
 pub mod tests;

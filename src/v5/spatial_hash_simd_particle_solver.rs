@@ -4,11 +4,12 @@ use std::simd::f32x2;
 use std::usize;
 
 use bevy::math::bounding::{Aabb2d, BoundingVolume};
-use bevy::math::vec2;
+use bevy::math::{vec2, Vec2};
 
 use super::aabb2d_ext::Aabb2dExt;
 use super::particle_vec::SharedParticleVec;
 use super::spatial_hash::SpatialHash;
+use super::simd_ext::f32x2Ext;
 
 /// This seems to be around 2x better than naive implementation
 /// based on real world testing.
@@ -86,9 +87,10 @@ impl SpatialHashSimdParticleSolver {
 
                     if dist_squared < min_dist_squared {
                         let dist = f32::sqrt(dist_squared);
-                        let n = collision_axis / dist;
+                        let n = collision_axis / f32x2::from_array([dist, dist]);
                         let delta = min_dist - dist;
-                        let movement = delta * n;
+                        let delta_f32x2 = f32x2::from_array([delta, delta]);
+                        let movement = delta_f32x2 * n;
 
                         //let mut_particle_a = &mut particle_vec.particles[ai];
                         //mut_particle_a.pos += movement;
@@ -158,13 +160,14 @@ impl SpatialHashSimdParticleSolver {
                             }
                         }
 
-                        let n = collision_axis / dist;
+                        let n = collision_axis / f32x2::from_array([dist, dist]);
                         let delta = min_dist - dist;
-                        let movement = delta * 0.5 * n;
+                        let delta_f32x2 = f32x2::from_array([delta * 0.5, delta * 0.5]);
+                        let movement = delta_f32x2 * n;
 
                         //println!("movement {}, min_dist_squared {}, dist {}, n {}, delta {}, collision_axis {}", movement, min_dist_squared, dist, n, delta, collision_axis);
-                        debug_assert!(!movement.x.is_nan());
-                        debug_assert!(!movement.y.is_nan());
+                        //debug_assert!(!movement.x.is_nan());
+                        //debug_assert!(!movement.y.is_nan());
 
                         //println!("collision occured between particle_a and particle_b {} {}. min_dist: {}, dist: {}. mmovement: {}", ai, bi, min_dist, dist, movement);
 
