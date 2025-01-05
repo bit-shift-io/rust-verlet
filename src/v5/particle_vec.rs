@@ -104,6 +104,38 @@ impl ParticleVec {
     pub fn len(&self) -> usize {
         self.pos_x.len()
     }
+
+
+    pub fn update_positions(&mut self, delta_seconds: f32) {
+        let particle_count = self.len();
+        for id in 0..particle_count {
+            /*
+            if i == 65 {
+                println!("65!");
+            }*/
+            if self.is_static[id] || !self.is_enabled[id] {
+                continue
+            }
+
+            let pos = vec2(self.pos_x[id], self.pos_y[id]);
+            let pos_prev = vec2(self.pos_prev_x[id], self.pos_prev_y[id]);
+
+            let velocity: Vec2 = pos - pos_prev;
+            let acceleration: Vec2 = self.force[id] / self.mass[id];
+
+            //println!("accel {}, vel {}", acceleration, velocity);
+
+            self.pos_prev_x[id] = pos.x;
+            self.pos_prev_y[id] = pos.y;
+
+            let new_pos = pos + velocity + acceleration * delta_seconds * delta_seconds;
+            debug_assert!(!new_pos.x.is_nan());
+            debug_assert!(!new_pos.y.is_nan());
+
+            self.pos_x[id] = new_pos.x;
+            self.pos_y[id] = new_pos.y;
+        }
+    }
 }
 
 impl Default for ParticleVec {
