@@ -62,6 +62,18 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    group.bench_function("update_positions_2", |b| {
+        let mut solver = NaiveParticleSolver::default();
+        let mut shared_particle_vec = SharedParticleVec::default();
+        setup_sim_solver_test(&mut shared_particle_vec);
+        solver.bind(&shared_particle_vec);
+        solver.solve_collisions();
+
+        b.iter(|| {    
+            shared_particle_vec.as_ref().write().unwrap().update_positions_2(0.01);
+        })
+    });
+/* 
     group.bench_function("NaiveParticleSolver solve_collisions", |b| {
         let mut solver = NaiveParticleSolver::default();
         let mut shared_particle_vec = SharedParticleVec::default();
@@ -169,6 +181,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             assert!(matches.contains(&e2));
         })
     });
+    */
 }
 
 criterion_group!(benches, criterion_benchmark);

@@ -1,4 +1,4 @@
-use std::{simd::f32x2, sync::{Arc, RwLock}};
+use std::{simd::{f32x2, f32x4, i32x2}, sync::{Arc, RwLock}};
 
 use super::{particle::Particle, particle_handle::ParticleHandle};
 use bevy::{color::Color, math::{vec2, Vec2}};
@@ -143,6 +143,55 @@ impl ParticleVec {
             self.pos[id] = new_pos;
         }
     }
+
+
+    pub fn update_positions_2(&mut self, delta_seconds: f32) {
+        let delta_seconds_sqrd = delta_seconds * delta_seconds;
+        let delta_seconds_sqrd_f32x4 = f32x4::splat(delta_seconds_sqrd);//([delta_seconds_sqrd, delta_seconds_sqrd]);
+
+        // todo: can we take 2x f32x2 and stuff into f32x4 to process 2 particles at once doubling the speed?
+        let particle_count = self.len();
+        let mut ids = [0; 2];
+        let mut id_offset = 0;
+
+        for i in 0..particle_count {
+            if self.is_static[i] || !self.is_enabled[i] {
+                continue
+            }
+
+            ids[id_offset] = i;
+            id_offset += 1;
+
+            if (id_offset >= 2) {
+                id_offset = 0;
+
+                // zip the 2 particles given by ids[0] and ids[1] together
+                let pos = f32x4::from_array([self.pos[ids[0]][0], self.pos[ids[0]][1], self.pos[ids[1]][0], self.pos[ids[1]][1]]);
+                let pos_prev = f32x4::from_array([self.pos_prev[ids[0]][0], self.pos_prev[ids[0]][1], self.pos_prev[ids[1]][0], self.pos_prev[ids[1]][1]]);
+
+                let force = f32x4::from_array([self.force[ids[0]][0], self.force[ids[0]][1], self.force[ids[1]][0], self.force[ids[1]][1]]);
+                let mass = f32x4::from_array([self.mass[ids[0]], self.mass[ids[0]], self.mass[ids[1]], self.mass[ids[1]]]);
+
+
+                let velocity = pos - pos_prev;
+                let acceleration = force / mass; //from_array([self.mass[id], self.mass[id]]);
+
+                //println!("accel {}, vel {}", acceleration, velocity);
+
+                self.pos_prev[ids[0]] = self.pos[ids[0]];
+                self.pos_prev[ids[1]] = self.pos[ids[1]];
+
+                let new_pos = pos + velocity + (acceleration * delta_seconds_sqrd_f32x4);
+                
+                //debug_assert!(!new_pos[0].is_nan());
+                //debug_assert!(!new_pos[1].is_nan());
+
+                self.pos[ids[0]] = f32x2::from_array([new_pos[0], new_pos[1]]);
+                self.pos[ids[1]] = f32x2::from_array([new_pos[2], new_pos[3]]);
+            }
+        
+        }
+    }
 }
 
 impl Default for ParticleVec {
@@ -160,5 +209,25 @@ impl Default for ParticleVec {
 
             force: vec![],
         }
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+
+    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    use super::*;
+
+    #[test]
+    fn alignment() {
+        println!("size of Vec: {}", std::mem::size_of::<Vec<f32x2>>());
+        println!("align of Vec: {}", std::mem::align_of::<Vec<f32x2>>());
+
+        println!("size of ParticleVec: {}", std::mem::size_of::<ParticleVec>());
+        println!("align of ParticleVec: {}", std::mem::align_of::<ParticleVec>());
+
+        assert!(align_of::<Vec<f32x2>>() >= align_of::<f32x2>());
+        assert!(align_of::<ParticleVec>() >= align_of::<f32x2>());
     }
 }
