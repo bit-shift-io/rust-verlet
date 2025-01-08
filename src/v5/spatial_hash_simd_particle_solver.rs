@@ -87,9 +87,9 @@ impl SpatialHashSimdParticleSolver {
 
                     if dist_squared < min_dist_squared {
                         let dist = f32::sqrt(dist_squared);
-                        let n = collision_axis / f32x2::from_array([dist, dist]);
+                        let n = collision_axis / f32x2::splat(dist); //::from_array([dist, dist]);
                         let delta = min_dist - dist;
-                        let delta_f32x2 = f32x2::from_array([delta, delta]);
+                        let delta_f32x2 = f32x2::splat(delta); //from_array([delta, delta]);
                         let movement = delta_f32x2 * n;
 
                         //let mut_particle_a = &mut particle_vec.particles[ai];
@@ -160,9 +160,9 @@ impl SpatialHashSimdParticleSolver {
                             }
                         }
 
-                        let n = collision_axis / f32x2::from_array([dist, dist]);
+                        let n = collision_axis / f32x2::splat(dist); //from_array([dist, dist]);
                         let delta = min_dist - dist;
-                        let delta_f32x2 = f32x2::from_array([delta * 0.5, delta * 0.5]);
+                        let delta_f32x2 = f32x2::splat(delta * 0.5); //from_array([delta * 0.5, delta * 0.5]);
                         let movement = delta_f32x2 * n;
 
                         //println!("movement {}, min_dist_squared {}, dist {}, n {}, delta {}, collision_axis {}", movement, min_dist_squared, dist, n, delta, collision_axis);

@@ -117,7 +117,7 @@ impl ParticleVec {
 
     pub fn update_positions(&mut self, delta_seconds: f32) {
         let delta_seconds_sqrd = delta_seconds * delta_seconds;
-        let delta_seconds_sqrd_f32x2 = f32x2::from_array([delta_seconds_sqrd, delta_seconds_sqrd]);
+        let delta_seconds_sqrd_f32x2 = f32x2::splat(delta_seconds_sqrd);//([delta_seconds_sqrd, delta_seconds_sqrd]);
 
         // todo: can we take 2x f32x2 and stuff into f32x4 to process 2 particles at once doubling the speed?
         let particle_count = self.len();
@@ -130,7 +130,7 @@ impl ParticleVec {
             let pos_prev = self.pos_prev[id];
 
             let velocity = pos - pos_prev;
-            let acceleration = self.force[id] / f32x2::from_array([self.mass[id], self.mass[id]]);
+            let acceleration = self.force[id] / f32x2::splat(self.mass[id]); //from_array([self.mass[id], self.mass[id]]);
 
             //println!("accel {}, vel {}", acceleration, velocity);
 

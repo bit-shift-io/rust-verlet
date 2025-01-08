@@ -3,9 +3,9 @@
 
 use std::time::Duration;
 
-use bevy::{color::{Color, LinearRgba}, math::vec2};
+use bevy::{color::{Color, LinearRgba}, math::{bounding::Aabb2d, vec2}};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use v5::{naive_particle_solver::NaiveParticleSolver, particle::Particle, particle_vec::SharedParticleVec, shape_builder::{circle::{self, Circle}, line_segment::LineSegment, rectangle::Rectangle, shape_builder::ShapeBuilder}, spatial_hash_particle_solver::SpatialHashParticleSolver, spatial_hash_simd_particle_solver::SpatialHashSimdParticleSolver};
+use v5::{naive_particle_solver::NaiveParticleSolver, particle::Particle, particle_vec::SharedParticleVec, shape_builder::{circle::{self, Circle}, line_segment::LineSegment, rectangle::Rectangle, shape_builder::ShapeBuilder}, spatial_hash::SpatialHash, spatial_hash_particle_solver::SpatialHashParticleSolver, spatial_hash_simd::SpatialHashSimd, spatial_hash_simd_particle_solver::SpatialHashSimdParticleSolver};
 
 #[path = "../src/v5/mod.rs"]
 mod v5;
@@ -97,6 +97,77 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+
+    group.bench_function("SpatialHash insert_aabb + aabb_iter", |b| {
+
+        b.iter(|| {
+            const TILE_SIZE: usize = 1;
+            
+            let h = TILE_SIZE as f32 / 2.0;
+            let e1 = 1;
+            let e2 = 2;
+            let mut db = SpatialHash::<usize>::new(); //default();
+            db.insert_aabb(
+                Aabb2d {
+                    min: vec2(-h, -h),
+                    max: vec2(h, h),
+                },
+                e1,
+            );
+            db.insert_aabb(
+                Aabb2d {
+                    min: vec2(h, h),
+                    max: vec2(h, h),
+                },
+                e2,
+            );
+            let matches: Vec<usize> = db
+                .aabb_iter(Aabb2d {
+                    min: vec2(-h, -h),
+                    max: vec2(h, h),
+                })
+                .collect();
+            // assert_eq!(matches.len(), 2);
+            assert!(matches.contains(&e1));
+            assert!(matches.contains(&e2));
+        })
+    });
+
+
+    group.bench_function("SpatialHashSimd insert_aabb + aabb_iter", |b| {
+
+        b.iter(|| {
+            const TILE_SIZE: usize = 1;
+            
+            let h = TILE_SIZE as f32 / 2.0;
+            let e1 = 1;
+            let e2 = 2;
+            let mut db = SpatialHashSimd::<usize>::new(); //default();
+            db.insert_aabb(
+                Aabb2d {
+                    min: vec2(-h, -h),
+                    max: vec2(h, h),
+                },
+                e1,
+            );
+            db.insert_aabb(
+                Aabb2d {
+                    min: vec2(h, h),
+                    max: vec2(h, h),
+                },
+                e2,
+            );
+            let matches: Vec<usize> = db
+                .aabb_iter(Aabb2d {
+                    min: vec2(-h, -h),
+                    max: vec2(h, h),
+                })
+                .collect();
+            // assert_eq!(matches.len(), 2);
+            assert!(matches.contains(&e1));
+            assert!(matches.contains(&e2));
+        })
+    });
 }
 
 criterion_group!(benches, criterion_benchmark);
