@@ -2,10 +2,11 @@
 #![feature(portable_simd)]
 
 use std::time::Duration;
+use std::simd::f32x2;
 
 use bevy::{color::{Color, LinearRgba}, math::{bounding::Aabb2d, vec2}};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use v5::{naive_particle_solver::NaiveParticleSolver, particle::Particle, particle_vec::SharedParticleVec, shape_builder::{circle::{self, Circle}, line_segment::LineSegment, rectangle::Rectangle, shape_builder::ShapeBuilder}, spatial_hash::SpatialHash, spatial_hash_particle_solver::SpatialHashParticleSolver, spatial_hash_simd::SpatialHashSimd, spatial_hash_simd_particle_solver::SpatialHashSimdParticleSolver};
+use v5::{aabb_simd::AabbSimd, naive_particle_solver::NaiveParticleSolver, particle::Particle, particle_vec::SharedParticleVec, shape_builder::{circle::{self, Circle}, line_segment::LineSegment, rectangle::Rectangle, shape_builder::ShapeBuilder}, spatial_hash::SpatialHash, spatial_hash_particle_solver::SpatialHashParticleSolver, spatial_hash_simd::SpatialHashSimd, spatial_hash_simd_particle_solver::SpatialHashSimdParticleSolver};
 
 #[path = "../src/v5/mod.rs"]
 mod v5;
@@ -144,24 +145,24 @@ fn criterion_benchmark(c: &mut Criterion) {
             let e2 = 2;
             let mut db = SpatialHashSimd::<usize>::new(); //default();
             db.insert_aabb(
-                Aabb2d {
-                    min: vec2(-h, -h),
-                    max: vec2(h, h),
-                },
+                &AabbSimd::from_min_max(
+                    f32x2::from_array([-h, -h]),
+                    f32x2::from_array([h, h]),
+                ),
                 e1,
             );
             db.insert_aabb(
-                Aabb2d {
-                    min: vec2(h, h),
-                    max: vec2(h, h),
-                },
+                &AabbSimd::from_min_max(
+                    f32x2::from_array([h, h]),
+                    f32x2::from_array([h, h]),
+                ),
                 e2,
             );
             let matches: Vec<usize> = db
-                .aabb_iter(Aabb2d {
-                    min: vec2(-h, -h),
-                    max: vec2(h, h),
-                })
+                .aabb_iter(&AabbSimd::from_min_max(
+                    f32x2::from_array([-h, -h]),
+                    f32x2::from_array([h, h]),
+                ))
                 .collect();
             // assert_eq!(matches.len(), 2);
             assert!(matches.contains(&e1));

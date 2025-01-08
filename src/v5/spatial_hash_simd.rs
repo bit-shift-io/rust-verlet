@@ -10,6 +10,8 @@ use smallvec::SmallVec;
 
 use super::aabb_simd::AabbSimd;
 
+use std::simd::{f32x4, i32x4, StdFloat};
+
 type Key = (i32, i32);
 
 /// A spatial container that allows querying for entities that share one or more grid cell
@@ -26,7 +28,7 @@ impl<T: Copy + Eq + std::hash::Hash, const TILE_SIZE: usize> SpatialHashSimd<T, 
     }
 
     /// Insert an entity in the given Aabb coordinates
-    pub fn insert_aabb(&mut self, aabb: impl Into<AabbSimd>, entity: T) {
+    pub fn insert_aabb(&mut self, aabb: &AabbSimd/*impl Into<AabbSimd>*/, entity: T) {
         for key in KeyIter::new::<TILE_SIZE>(aabb) {
             self.map.entry(key).or_default().push(entity);
         }
@@ -42,7 +44,7 @@ impl<T: Copy + Eq + std::hash::Hash, const TILE_SIZE: usize> SpatialHashSimd<T, 
     ///
     /// may contain duplicates if some entities are in more than one grid cell
     #[inline]
-    pub fn aabb_iter(&'_ self, aabb: impl Into<AabbSimd>) -> impl Iterator<Item = T> + '_ {
+    pub fn aabb_iter(&'_ self, aabb: &AabbSimd/*impl Into<AabbSimd>*/) -> impl Iterator<Item = T> + '_ {
         KeyIter::new::<TILE_SIZE>(aabb)
             .filter_map(|key| self.map.get(&key))
             .flatten()
@@ -62,7 +64,7 @@ impl<T: Copy + Eq + std::hash::Hash, const TILE_SIZE: usize> SpatialHashSimd<T, 
 
     /// Creates a hash set with all the entities in the grid cells covered by the given [`AabbSimd`]
     #[inline]
-    pub fn query_aabb(&self, aabb: impl Into<AabbSimd>) -> HashSet<T> {
+    pub fn query_aabb(&self, aabb: &AabbSimd/*impl Into<AabbSimd>*/) -> HashSet<T> {
         self.aabb_iter(aabb).collect()
     }
 
@@ -94,12 +96,22 @@ struct KeyIter {
 }
 
 impl KeyIter {
-    fn new<const TILE_SIZE: usize>(aabb: impl Into<AabbSimd>) -> Self {
-        let AabbSimd { min, max } = aabb.into();
+    fn new<const TILE_SIZE: usize>(aabb: &AabbSimd /*impl Into<AabbSimd>*/) -> Self {
+        //let AabbSimd { min, max } = aabb.into();
         // convert to key space
         let s = TILE_SIZE as f32;
-        let min = ((min.x / s).floor() as i32, (min.y / s).floor() as i32);
-        let max = ((max.x / s).ceil() as i32, (max.y / s).ceil() as i32);
+
+        // I've taken this formula and made it simd friendly below:
+        //let min = ((aabb.data[0] / s).floor() as i32, (aabb.data[1] / s).floor() as i32);
+        //let max = ((aabb.data[2] / s).ceil() as i32, (aabb.data[3] / s).ceil() as i32);
+
+        let div = aabb.data / f32x4::splat(s);
+        let floor = div.floor(); // as i32x4;
+        let ceil = div.ceil();// as i32x4;
+        
+        let min = (floor[0] as i32, floor[1] as i32);
+        let max = (ceil[2] as i32, ceil[3] as i32);
+        
         let width = max.0 - min.0;
         let height = max.1 - min.1;
         let count = width * height;
@@ -131,6 +143,8 @@ impl Iterator for KeyIter {
 
 #[cfg(test)]
 mod tests {
+    use std::simd::f32x2;
+
     use bevy::math::vec2;
     use bevy::utils::HashSet;
 
@@ -140,10 +154,10 @@ mod tests {
 
     #[test]
     fn keys_single() {
-        let keys: Vec<Key> = KeyIter::new::<TILE_SIZE>(AabbSimd {
-            min: vec2(0.001, 0.001),
-            max: vec2(0.001, 0.001),
-        })
+        let keys: Vec<Key> = KeyIter::new::<TILE_SIZE>(&AabbSimd::from_min_max(
+            f32x2::from_array([0.001, 0.001]),
+                f32x2::from_array([0.001, 0.001]),
+        ))
         .collect();
         assert_eq!(keys.len(), 1);
         assert_eq!(keys[0], (0, 0));
@@ -151,10 +165,7 @@ mod tests {
 
     #[test]
     fn keys_four_around_origin() {
-        let keys: Vec<Key> = KeyIter::new::<TILE_SIZE>(AabbSimd {
-            min: vec2(-0.001, -0.001),
-            max: vec2(0.001, 0.001),
-        })
+        let keys: Vec<Key> = KeyIter::new::<TILE_SIZE>(&AabbSimd::from_min_max(f32x2::from_array([-0.001, -0.001]), f32x2::from_array([0.001, 0.001])))
         .collect();
         assert!(keys.contains(&(0, 0)));
         assert!(keys.contains(&(0, -1)));
@@ -168,18 +179,18 @@ mod tests {
         let entity = Entity::from_raw(123);
         let mut db = SpatialHashSimd::<Entity, TILE_SIZE>::new(); //default();
         db.insert_aabb(
-            AabbSimd {
-                min: vec2(-0.001, -0.001),
-                max: vec2(0.001, 0.001),
-            },
+            &AabbSimd::from_min_max(
+                f32x2::from_array([-0.001, -0.001]),
+                f32x2::from_array([0.001, 0.001]),
+            ),
             entity,
         );
 
         let matches: Vec<Entity> = db
-            .aabb_iter(AabbSimd {
-                min: vec2(0.001, 0.001),
-                max: vec2(0.001, 0.001),
-            })
+            .aabb_iter(&AabbSimd::from_min_max(
+                f32x2::from_array([0.001, 0.001]),
+                f32x2::from_array([0.001, 0.001]),
+            ))
             .collect();
         assert_eq!(matches.len(), 1);
         assert_eq!(matches[0], entity);
@@ -188,10 +199,10 @@ mod tests {
     #[test]
     fn key_negative() {
         let h = TILE_SIZE as f32 / 2.0;
-        let keys: Vec<Key> = KeyIter::new::<TILE_SIZE>(AabbSimd {
-            min: vec2(-h, -h),
-            max: vec2(-h, -h),
-        })
+        let keys: Vec<Key> = KeyIter::new::<TILE_SIZE>(&AabbSimd::from_min_max(
+            f32x2::from_array([-h, -h]),
+            f32x2::from_array([-h, -h]),
+        ))
         .collect();
         assert!(keys.contains(&(-1, -1)));
         assert_eq!(keys.len(), 1);
@@ -233,51 +244,51 @@ mod tests {
         let e3 = Entity::from_raw(3);
         let mut db: SpatialHashSimd = SpatialHashSimd::new(); //default();
         db.insert_aabb(
-            AabbSimd {
-                min: vec2(-h, -h),
-                max: vec2(h, h),
-            },
+            &AabbSimd::from_min_max(
+                f32x2::from_array([-h, -h]),
+                f32x2::from_array([h, h]),
+            ),
             e1,
         );
         db.insert_aabb(
-            AabbSimd {
-                min: vec2(h, h),
-                max: vec2(h, h),
-            },
+            &AabbSimd::from_min_max(
+                f32x2::from_array([h, h]),
+                f32x2::from_array([h, h]),
+            ),
             e2,
         );
         db.insert_aabb(
-            AabbSimd {
-                min: vec2(-h, -h),
-                max: vec2(-h, -h),
-            },
+            &AabbSimd::from_min_max(
+                f32x2::from_array([-h, -h]),
+                f32x2::from_array([-h, -h]),
+            ),
             e3,
         );
 
         let matches: Vec<Entity> = db
-            .aabb_iter(AabbSimd {
-                min: vec2(-h, -h),
-                max: vec2(h, h),
-            })
+            .aabb_iter(&AabbSimd::from_min_max(
+                f32x2::from_array([-h, -h]),
+                f32x2::from_array([h, h]),
+            ))
             .collect();
         // assert_eq!(matches.len(), 3);
         assert!(matches.contains(&e1));
         assert!(matches.contains(&e2));
         assert!(matches.contains(&e3));
 
-        let matches = db.query_aabb(AabbSimd {
-            min: vec2(-0.001, -0.001),
-            max: vec2(-0.001, -0.001),
-        });
+        let matches = db.query_aabb(&AabbSimd::from_min_max(
+            f32x2::from_array([-0.001, -0.001]),
+            f32x2::from_array([-0.001, -0.001]),
+        ));
         assert_eq!(matches.len(), 2);
         assert!(matches.contains(&e1));
         assert!(matches.contains(&e3));
 
         let matches: Vec<Entity> = db
-            .aabb_iter(AabbSimd {
-                min: vec2(-0.001, -0.001),
-                max: vec2(-0.001, -0.001),
-            })
+            .aabb_iter(&AabbSimd::from_min_max(
+                f32x2::from_array([-0.001, -0.001]),
+                f32x2::from_array([-0.001, -0.001]),
+            ))
             .collect();
         assert_eq!(matches[0], e1);
     }
@@ -305,24 +316,24 @@ mod tests {
         let e2 = 2;
         let mut db = SpatialHashSimd::<usize>::new(); //default();
         db.insert_aabb(
-            AabbSimd {
-                min: vec2(-h, -h),
-                max: vec2(h, h),
-            },
+            &AabbSimd::from_min_max(
+                f32x2::from_array([-h, -h]),
+                f32x2::from_array([h, h]),
+            ),
             e1,
         );
         db.insert_aabb(
-            AabbSimd {
-                min: vec2(h, h),
-                max: vec2(h, h),
-            },
+            &AabbSimd::from_min_max(
+                f32x2::from_array([h, h]),
+                f32x2::from_array([h, h]),
+            ),
             e2,
         );
         let matches: Vec<usize> = db
-            .aabb_iter(AabbSimd {
-                min: vec2(-h, -h),
-                max: vec2(h, h),
-            })
+            .aabb_iter(&AabbSimd::from_min_max(
+                f32x2::from_array([-h, -h]),
+                f32x2::from_array([h, h]),
+            ))
             .collect();
         // assert_eq!(matches.len(), 2);
         assert!(matches.contains(&e1));

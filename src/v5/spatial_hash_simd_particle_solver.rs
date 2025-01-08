@@ -3,12 +3,9 @@
 use std::simd::f32x2;
 use std::usize;
 
-use bevy::math::bounding::{Aabb2d, BoundingVolume};
-use bevy::math::{vec2, Vec2};
-
-use super::aabb2d_ext::Aabb2dExt;
+use super::aabb_simd::AabbSimd;
 use super::particle_vec::SharedParticleVec;
-use super::spatial_hash::SpatialHash;
+use super::spatial_hash_simd::SpatialHashSimd;
 use super::simd_ext::f32x2Ext;
 
 /// This seems to be around 2x better than naive implementation
@@ -16,14 +13,14 @@ use super::simd_ext::f32x2Ext;
 /// We should try Octree's in future also.
 pub struct SpatialHashSimdParticleSolver {
     particle_vec_arc: SharedParticleVec,
-    static_spatial_hash: SpatialHash<usize>
+    static_spatial_hash: SpatialHashSimd<usize>
 }
 
 impl Default for SpatialHashSimdParticleSolver {
     fn default() -> Self {
         Self { 
             particle_vec_arc: SharedParticleVec::default(),
-            static_spatial_hash: SpatialHash::<usize>::new(),
+            static_spatial_hash: SpatialHashSimd::<usize>::new(),
         }
     }
 }
@@ -37,7 +34,7 @@ impl SpatialHashSimdParticleSolver {
 
     fn notify_particle_vec_changed(&mut self/* , particle_vec: &Rc<RefCell<ParticleContainer>>, particle_index: usize*/) {
         // rebuild the static spatial hash if a static particle was changed
-        self.static_spatial_hash = SpatialHash::new();
+        self.static_spatial_hash = SpatialHashSimd::new();
 
         let particle_vec = self.particle_vec_arc.as_ref().read().unwrap();        
         let particle_count: usize = particle_vec.len();
@@ -47,14 +44,14 @@ impl SpatialHashSimdParticleSolver {
                 //let a = Aabb::default();
                 //let r = a.fabian_test();
 
-                let a_aabb = Aabb2d::from_position_and_radius(particle_vec.get_pos_vec2(ai), particle_vec.radius[ai]);
-                self.static_spatial_hash.insert_aabb(a_aabb, ai);
+                let a_aabb = AabbSimd::from_position_and_radius(particle_vec.pos[ai], particle_vec.radius[ai]);
+                self.static_spatial_hash.insert_aabb(&a_aabb, ai);
             }
         }
     }
 
     pub fn solve_collisions(&mut self) {
-        let grow_amount = vec2(2.0, 2.0); // this if like the maximum a particle should be able to move per frame - 2metres
+        let grow_amount: f32 = 2.0; ///let grow_amount = vec2(2.0, 2.0); // this if like the maximum a particle should be able to move per frame - 2metres
 
         let mut particle_vec = self.particle_vec_arc.as_ref().write().unwrap();        
         let particle_count: usize = particle_vec.len();
@@ -66,9 +63,9 @@ impl SpatialHashSimdParticleSolver {
         for ai in 0..particle_count {
             if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
 
-                let a_aabb = Aabb2d::from_position_and_radius(particle_vec.get_pos_vec2(ai), particle_vec.radius[ai]);
+                let a_aabb = AabbSimd::from_position_and_radius(particle_vec.pos[ai], particle_vec.radius[ai]);
                 
-                for bi in self.static_spatial_hash.aabb_iter(a_aabb) {
+                for bi in self.static_spatial_hash.aabb_iter(&a_aabb) {
                     // avoid double checking against the same particle
                     if collision_check[bi] == ai {
                         //println!("static skipping collision check between {} and {}", bi, ai);
@@ -107,11 +104,11 @@ impl SpatialHashSimdParticleSolver {
             }
         }
 
-        let mut dynamic_spatial_hash = SpatialHash::<usize>::new();
+        let mut dynamic_spatial_hash = SpatialHashSimd::<usize>::new();
         for ai in 0..particle_count {
             if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
-                let a_aabb = Aabb2d::from_position_and_radius(particle_vec.get_pos_vec2(ai), particle_vec.radius[ai]);
-                dynamic_spatial_hash.insert_aabb(a_aabb.grow(grow_amount), ai);
+                let a_aabb = AabbSimd::from_position_and_radius(particle_vec.pos[ai], particle_vec.radius[ai] + grow_amount);
+                dynamic_spatial_hash.insert_aabb(&a_aabb, ai);
             }
         }
  
@@ -119,9 +116,9 @@ impl SpatialHashSimdParticleSolver {
         for ai in 0..particle_count {
             if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
 
-                let a_aabb = Aabb2d::from_position_and_radius(particle_vec.get_pos_vec2(ai), particle_vec.radius[ai]);
+                let a_aabb = AabbSimd::from_position_and_radius(particle_vec.pos[ai], particle_vec.radius[ai]);
                 
-                for bi in dynamic_spatial_hash.aabb_iter(a_aabb) {
+                for bi in dynamic_spatial_hash.aabb_iter(&a_aabb) {
                     // skip self-collision, and anything that is before ai
                     if bi <= ai {
                         continue;

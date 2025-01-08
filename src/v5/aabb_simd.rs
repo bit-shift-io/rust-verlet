@@ -7,6 +7,15 @@ pub struct AabbSimd {
 
 impl AabbSimd {
 
+    pub fn from_min_max(min: f32x2, max: f32x2) -> Self {
+        let aabb = Self {
+            data: f32x4::from_array([min[0], min[1], max[0], max[1]])
+        };
+        
+        debug_assert!(aabb.data[0] <= aabb.data[2] && aabb.data[1] <= aabb.data[3]);
+        aabb
+    }
+
     pub fn from_position_and_radius(pos: f32x2, radius: f32) -> Self {
         debug_assert!(!pos[0].is_nan());
         debug_assert!(!pos[1].is_nan());
