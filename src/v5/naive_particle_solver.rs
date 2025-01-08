@@ -54,7 +54,7 @@ impl NaiveParticleSolver {
                 
                     collision_axis = verlet_position_a - verlet_position_b;
                     dist = (collision_axis[0].powf(2f32) + collision_axis[1].powf(2f32)).sqrt();
-                    min_dist = particle_vec.radius[ai] + particle_vec.radius[bi];
+                    min_dist = particle_vec.radius[ai][0] + particle_vec.radius[bi][0];
                 }
 
                 if dist < min_dist as f32 {

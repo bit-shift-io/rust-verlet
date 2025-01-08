@@ -1,6 +1,6 @@
 
 
-use std::simd::f32x2;
+use std::simd::{f32x1, f32x2};
 use std::usize;
 
 use super::aabb_simd::AabbSimd;
@@ -44,14 +44,14 @@ impl SpatialHashSimdParticleSolver {
                 //let a = Aabb::default();
                 //let r = a.fabian_test();
 
-                let a_aabb = AabbSimd::from_position_and_radius(particle_vec.pos[ai], particle_vec.radius[ai]);
+                let a_aabb = AabbSimd::from_position_and_radius(particle_vec.pos[ai], particle_vec.radius[ai][0]);
                 self.static_spatial_hash.insert_aabb(&a_aabb, ai);
             }
         }
     }
 
     pub fn solve_collisions(&mut self) {
-        let grow_amount: f32 = 2.0; ///let grow_amount = vec2(2.0, 2.0); // this if like the maximum a particle should be able to move per frame - 2metres
+        let grow_amount: f32x1 = f32x1::splat(2.0); ///let grow_amount = vec2(2.0, 2.0); // this if like the maximum a particle should be able to move per frame - 2metres
 
         let mut particle_vec = self.particle_vec_arc.as_ref().write().unwrap();        
         let particle_count: usize = particle_vec.len();
@@ -63,7 +63,7 @@ impl SpatialHashSimdParticleSolver {
         for ai in 0..particle_count {
             if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
 
-                let a_aabb = AabbSimd::from_position_and_radius(particle_vec.pos[ai], particle_vec.radius[ai]);
+                let a_aabb = AabbSimd::from_position_and_radius(particle_vec.pos[ai], particle_vec.radius[ai][0]);
                 
                 for bi in self.static_spatial_hash.aabb_iter(&a_aabb) {
                     // avoid double checking against the same particle
@@ -79,7 +79,7 @@ impl SpatialHashSimdParticleSolver {
                     // particle_a is dynamic while particle_b is static
                     let collision_axis = a_pos - b_pos;
                     let dist_squared = collision_axis.length_squared();
-                    let min_dist = particle_vec.radius[ai] + particle_vec.radius[bi];
+                    let min_dist = particle_vec.radius[ai][0] + particle_vec.radius[bi][0];
                     let min_dist_squared = min_dist * min_dist;
 
                     if dist_squared < min_dist_squared {
@@ -107,7 +107,7 @@ impl SpatialHashSimdParticleSolver {
         let mut dynamic_spatial_hash = SpatialHashSimd::<usize>::new();
         for ai in 0..particle_count {
             if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
-                let a_aabb = AabbSimd::from_position_and_radius(particle_vec.pos[ai], particle_vec.radius[ai] + grow_amount);
+                let a_aabb = AabbSimd::from_position_and_radius(particle_vec.pos[ai], particle_vec.radius[ai][0] + grow_amount[0]);
                 dynamic_spatial_hash.insert_aabb(&a_aabb, ai);
             }
         }
@@ -116,7 +116,7 @@ impl SpatialHashSimdParticleSolver {
         for ai in 0..particle_count {
             if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
 
-                let a_aabb = AabbSimd::from_position_and_radius(particle_vec.pos[ai], particle_vec.radius[ai]);
+                let a_aabb = AabbSimd::from_position_and_radius(particle_vec.pos[ai], particle_vec.radius[ai][0]);
                 
                 for bi in dynamic_spatial_hash.aabb_iter(&a_aabb) {
                     // skip self-collision, and anything that is before ai
@@ -140,7 +140,7 @@ impl SpatialHashSimdParticleSolver {
                     // particle_a and particle_b are both dynamic particles
                     let collision_axis = a_pos - b_pos;
                     let dist_squared = collision_axis.length_squared();
-                    let min_dist = particle_vec.radius[ai] + particle_vec.radius[bi];
+                    let min_dist = particle_vec.radius[ai][0] + particle_vec.radius[bi][0];
                     let min_dist_squared = min_dist * min_dist;
 
                     if dist_squared < min_dist_squared {

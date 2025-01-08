@@ -45,7 +45,7 @@ impl SpatialHashParticleSolver {
                 //let a = Aabb::default();
                 //let r = a.fabian_test();
 
-                let a_aabb = Aabb2d::from_position_and_radius(particle_vec.get_pos_vec2(ai), particle_vec.radius[ai]);
+                let a_aabb = Aabb2d::from_position_and_radius(particle_vec.get_pos_vec2(ai), particle_vec.radius[ai][0]);
                 self.static_spatial_hash.insert_aabb(a_aabb, ai);
             }
         }
@@ -64,7 +64,7 @@ impl SpatialHashParticleSolver {
         for ai in 0..particle_count {
             if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
 
-                let a_aabb = Aabb2d::from_position_and_radius(particle_vec.get_pos_vec2(ai), particle_vec.radius[ai]);
+                let a_aabb = Aabb2d::from_position_and_radius(particle_vec.get_pos_vec2(ai), particle_vec.radius[ai][0]);
                 
                 for bi in self.static_spatial_hash.aabb_iter(a_aabb) {
                     // avoid double checking against the same particle
@@ -80,7 +80,7 @@ impl SpatialHashParticleSolver {
                     // particle_a is dynamic while particle_b is static
                     let collision_axis = a_pos - b_pos;
                     let dist_squared = collision_axis.length_squared();
-                    let min_dist = particle_vec.radius[ai] + particle_vec.radius[bi];
+                    let min_dist = particle_vec.radius[ai][0] + particle_vec.radius[bi][0];
                     let min_dist_squared = min_dist * min_dist;
 
                     if dist_squared < min_dist_squared {
@@ -107,7 +107,7 @@ impl SpatialHashParticleSolver {
         let mut dynamic_spatial_hash = SpatialHash::<usize>::new();
         for ai in 0..particle_count {
             if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
-                let a_aabb = Aabb2d::from_position_and_radius(particle_vec.get_pos_vec2(ai), particle_vec.radius[ai]);
+                let a_aabb = Aabb2d::from_position_and_radius(particle_vec.get_pos_vec2(ai), particle_vec.radius[ai][0]);
                 dynamic_spatial_hash.insert_aabb(a_aabb.grow(grow_amount), ai);
             }
         }
@@ -116,7 +116,7 @@ impl SpatialHashParticleSolver {
         for ai in 0..particle_count {
             if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
 
-                let a_aabb = Aabb2d::from_position_and_radius(particle_vec.get_pos_vec2(ai), particle_vec.radius[ai]);
+                let a_aabb = Aabb2d::from_position_and_radius(particle_vec.get_pos_vec2(ai), particle_vec.radius[ai][0]);
                 
                 for bi in dynamic_spatial_hash.aabb_iter(a_aabb) {
                     // skip self-collision, and anything that is before ai
@@ -140,7 +140,7 @@ impl SpatialHashParticleSolver {
                     // particle_a and particle_b are both dynamic particles
                     let collision_axis = a_pos - b_pos;
                     let dist_squared = collision_axis.length_squared();
-                    let min_dist = particle_vec.radius[ai] + particle_vec.radius[bi];
+                    let min_dist = particle_vec.radius[ai][0] + particle_vec.radius[bi][0];
                     let min_dist_squared = min_dist * min_dist;
 
                     if dist_squared < min_dist_squared {

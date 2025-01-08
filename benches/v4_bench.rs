@@ -48,7 +48,7 @@ fn run_sim_solver_test(particle_sim: &mut ParticleSim) {
 fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("v4");
     //group.sample_size(20);//.measurement_time(Duration::from_secs(10));
-
+/* 
     group.bench_function("SpatialHashParticleSolver solve_collisions + update_positions", |b| {
         let particle_solver = Box::new(SpatialHashParticleSolver::new());
         let mut sim = ParticleSim::new(particle_solver);
@@ -64,7 +64,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
         b.iter(|| run_sim_solver_test(&mut sim))
     });
-
+*/
 }
 
 criterion_group!(benches, criterion_benchmark);
