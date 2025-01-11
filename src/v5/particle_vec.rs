@@ -199,7 +199,7 @@ impl ParticleVec {
     }
 
 
-    // attempt to process 2 particles at once
+    // attempt to process 2 particles at once. This kicks ass!
     pub fn update_positions_3(&mut self, delta_seconds: f32) {
         let delta_seconds_sqrd = delta_seconds * delta_seconds;
         let delta_seconds_sqrd_simd = f32x4::splat(delta_seconds_sqrd);//([delta_seconds_sqrd, delta_seconds_sqrd]);

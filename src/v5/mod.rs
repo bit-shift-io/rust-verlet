@@ -8,6 +8,7 @@ pub mod spatial_hash_particle_solver;
 pub mod spatial_hash_simd_particle_solver;
 pub mod spatial_hash;
 pub mod spatial_hash_simd;
+pub mod spatial_hash_simd_2;
 pub mod aabb2d_ext;
 
 pub mod shape_builder;

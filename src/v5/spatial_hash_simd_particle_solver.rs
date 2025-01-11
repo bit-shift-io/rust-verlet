@@ -1,12 +1,15 @@
-
-
-use std::simd::{f32x1, f32x2};
+use std::simd::num::SimdFloat;
+use std::simd::{f32x1, f32x2, f32x4, i32x2, i32x4, StdFloat};
 use std::usize;
+
+
+use crate::v5::spatial_hash_simd_2::KeyIter;
 
 use super::aabb_simd::AabbSimd;
 use super::particle_vec::SharedParticleVec;
-use super::spatial_hash_simd::SpatialHashSimd;
+use super::spatial_hash_simd::{SpatialHashSimd};
 use super::simd_ext::f32x2Ext;
+use super::spatial_hash_simd_2::SpatialHashSimd2;
 
 /// This seems to be around 2x better than naive implementation
 /// based on real world testing.
@@ -50,14 +53,13 @@ impl SpatialHashSimdParticleSolver {
         }
     }
 
-    pub fn solve_collisions(&mut self) {
-        let grow_amount: f32x1 = f32x1::splat(2.0); ///let grow_amount = vec2(2.0, 2.0); // this if like the maximum a particle should be able to move per frame - 2metres
-
+    #[inline(always)]
+    pub fn perform_dynamic_to_static_collision_detection(&mut self, collision_check: &mut Vec<usize>) {
         let mut particle_vec = self.particle_vec_arc.as_ref().write().unwrap();        
         let particle_count: usize = particle_vec.len();
 
         // consider that there might be duplicate checks as an entity can be in multiple cells
-        let mut collision_check = vec![usize::MAX; particle_count];
+        //let mut collision_check = vec![usize::MAX; particle_count];
 
         // perform dynamic-static collision detection
         for ai in 0..particle_count {
@@ -103,15 +105,102 @@ impl SpatialHashSimdParticleSolver {
                 }
             }
         }
+    }
 
-        let mut dynamic_spatial_hash = SpatialHashSimd::<usize>::new();
+    #[inline(always)]
+    pub fn populate_dynamic_spatial_hash(&mut self, dynamic_spatial_hash: &mut SpatialHashSimd<usize>) {
+        let particle_vec = self.particle_vec_arc.as_ref().read().unwrap();        
+        let particle_count: usize = particle_vec.len();
+
+        let grow_amount: f32x1 = f32x1::splat(2.0); ///let grow_amount = vec2(2.0, 2.0); // this if like the maximum a particle should be able to move per frame - 2metres
+
         for ai in 0..particle_count {
-            if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
+            // todo: for now I disabled the is_Static and is_enabled checks to give us equal comparison between this and populate_dynamic_spatial_hash_2
+            //if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
                 let a_aabb = AabbSimd::from_position_and_radius(particle_vec.pos[ai], particle_vec.radius[ai][0] + grow_amount[0]);
                 dynamic_spatial_hash.insert_aabb(&a_aabb, ai);
+            //}
+        }
+    }
+
+    // attempt to optimise with simd
+    #[inline(always)]
+    pub fn populate_dynamic_spatial_hash_2(&mut self, dynamic_spatial_hash: &mut SpatialHashSimd2<usize>) {
+        let particle_vec = self.particle_vec_arc.as_ref().read().unwrap();        
+        let particle_count: usize = particle_vec.len();
+
+        // todo: grow amount should not be needed as I will split movement phase to occur after we compute collisions
+        // i.e. phase 1. compute collisions and store movement vectors
+        // phase 2. move the particles
+        let grow_amount: f32x4 = f32x4::splat(2.0); // this if like the maximum a particle should be able to move per frame - 2metres
+
+        // pointer to the start of the vector data
+        let pos_ptr: *const f32x4 = particle_vec.pos.as_ptr() as *const f32x4;
+        let radius_ptr: *const f32x2 = particle_vec.radius.as_ptr() as *const f32x2;
+        
+        let chunks = particle_count / 2;
+
+        const TILE_SIZE: usize = 1;
+        let tile_size_simd = f32x4::splat(TILE_SIZE as f32);
+
+        for i in 0..chunks as isize {
+
+            unsafe {
+
+                // take 2 particles at a time
+                // pos_simd has 2 positions packed in [p1.pos.x, p1.pos.y, p2.pos.x, p2.pos.y]
+                // we setup radius_simd to have [p1.radius, p1.radius, p2.radius, p2.radius]
+                let pos_simd = *pos_ptr.offset(i);
+                let mut radius_simd = f32x4::from([(*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[1], (*radius_ptr.offset(i))[1]]);
+                radius_simd += grow_amount;
+
+                // compute a bounding box using position and radius
+                let min_f32 = pos_simd - radius_simd;
+                let max_f32 = pos_simd + radius_simd;
+                
+                // divide by spatial has tile size and apply rounding to conver to "cell space"
+                let min_i: i32x4  = (min_f32 / tile_size_simd).floor().cast(); //.into();
+                let max_i: i32x4 = (max_f32 / tile_size_simd).ceil().cast(); //.into();
+
+                // now we setup 2 iterators, one for p1 and one for p2
+                let diff_i = max_i - min_i;
+                let [width_p1, height_p1, width_p2, height_p2] = diff_i.to_array();
+                let count_p1 = width_p1 * height_p1;
+                let count_p2 = width_p2 * height_p2;
+
+                let key_it_p1 = KeyIter {
+                    start: i32x2::from_array([min_i[0], min_i[1]]),
+                    current: -1,
+                    width: width_p1,
+                    count: count_p1,
+                };
+
+                let key_it_p2 = KeyIter {
+                    start: i32x2::from_array([min_i[2], min_i[3]]),
+                    current: -1,
+                    width: width_p2,
+                    count: count_p2,
+                };
+
+                // finally, for particle p1 and p2, use the iterators to add to spatial hash cells
+                // this is the slow part of this algorithm
+                let particle_idx: usize = (i * 2).try_into().unwrap();
+                for key in key_it_p1 {
+                    dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx);
+                }
+
+                for key in key_it_p2 {
+                    dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx + 1);
+                }
             }
         }
- 
+    }
+
+    #[inline(always)]
+    pub fn perform_dynamic_to_dynamic_collision_detection(&mut self, dynamic_spatial_hash: &mut SpatialHashSimd<usize>, collision_check: &mut Vec<usize>) {
+        let mut particle_vec = self.particle_vec_arc.as_ref().write().unwrap();        
+        let particle_count: usize = particle_vec.len();
+
         // perform dynamic-dynamic collision detection
         for ai in 0..particle_count {
             if !particle_vec.is_static[ai] && particle_vec.is_enabled[ai] {
@@ -194,5 +283,18 @@ impl SpatialHashSimdParticleSolver {
                 }
             }
         }
+    }
+
+    pub fn solve_collisions(&mut self) {
+        // consider that there might be duplicate checks as an entity can be in multiple cells
+        let particle_count: usize = self.particle_vec_arc.as_ref().read().unwrap().len();
+        let mut collision_check = vec![usize::MAX; particle_count];
+
+        self.perform_dynamic_to_static_collision_detection(&mut collision_check);
+
+        let mut dynamic_spatial_hash = SpatialHashSimd::<usize>::new();
+        self.populate_dynamic_spatial_hash(&mut dynamic_spatial_hash);
+       
+        self.perform_dynamic_to_dynamic_collision_detection(&mut dynamic_spatial_hash, &mut collision_check);
     }
 }

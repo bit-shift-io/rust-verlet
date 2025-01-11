@@ -10,23 +10,23 @@ use smallvec::SmallVec;
 
 use super::aabb_simd::AabbSimd;
 
-use std::simd::{f32x4, i32x4, StdFloat};
+use std::simd::{f32x4, i32x2, i32x4, StdFloat};
 
-type Key = (i32, i32);
+type Key = i32x2;
 
 /// A spatial container that allows querying for entities that share one or more grid cell
 #[derive(Default, Reflect, Debug, Clone)]
-pub struct SpatialHashSimd<T: Copy + Eq + std::hash::Hash = Entity, const TILE_SIZE: usize = 1> {
+pub struct SpatialHashSimd2<T: Copy + Eq + std::hash::Hash = Entity, const TILE_SIZE: usize = 1> {
     pub map: HashMap<Key, SmallVec<[T; 5]>>,
 }
 
-impl<T: Copy + Eq + std::hash::Hash, const TILE_SIZE: usize> SpatialHashSimd<T, TILE_SIZE> {
+impl<T: Copy + Eq + std::hash::Hash, const TILE_SIZE: usize> SpatialHashSimd2<T, TILE_SIZE> {
     pub fn new() -> Self {
         Self {
             map: HashMap::new(),
         }
     }
-
+/* 
     /// Insert an entity in the given Aabb coordinates
     pub fn insert_aabb(&mut self, aabb: &AabbSimd/*impl Into<AabbSimd>*/, entity: T) {
         for key in KeyIter::new::<TILE_SIZE>(aabb) {
@@ -67,7 +67,7 @@ impl<T: Copy + Eq + std::hash::Hash, const TILE_SIZE: usize> SpatialHashSimd<T, 
     pub fn query_aabb(&self, aabb: &AabbSimd/*impl Into<AabbSimd>*/) -> HashSet<T> {
         self.aabb_iter(aabb).collect()
     }
-
+*/
     /// Remove all entities from the map
     pub fn clear(&mut self) {
         self.map.clear();
@@ -79,13 +79,14 @@ impl<T: Copy + Eq + std::hash::Hash, const TILE_SIZE: usize> SpatialHashSimd<T, 
             vec.clear()
         }
     }
-
+    
+/* 
     fn key_from_point(point: Vec2) -> Key {
         (
             (point.x / TILE_SIZE as f32).floor() as i32,
             (point.y / TILE_SIZE as f32).floor() as i32,
         )
-    }
+    }*/
 }
 
 pub struct KeyIter {
@@ -95,6 +96,7 @@ pub struct KeyIter {
     pub count: i32,
 }
 
+/* 
 impl KeyIter {
     pub fn new<const TILE_SIZE: usize>(aabb: &AabbSimd /*impl Into<AabbSimd>*/) -> Self {
         //let AabbSimd { min, max } = aabb.into();
@@ -122,7 +124,7 @@ impl KeyIter {
             count,
         }
     }
-}
+}*/
 
 impl Iterator for KeyIter {
     type Item = Key;
@@ -131,16 +133,22 @@ impl Iterator for KeyIter {
         self.current += 1;
 
         if self.current < self.count {
+            //let next = self.start + 
+            Some(
+                i32x2::from_array([self.start[0] + self.current.rem_euclid(self.width), self.start[1] + self.current / self.width])
+            )
+            /* 
             Some((
                 self.start.0 + self.current.rem_euclid(self.width),
                 self.start.1 + self.current / self.width,
-            ))
+            ))*/
         } else {
             None
         }
     }
 }
 
+/* 
 #[cfg(test)]
 mod tests {
     use std::simd::f32x2;
@@ -177,7 +185,7 @@ mod tests {
     #[test]
     fn matches() {
         let entity = Entity::from_raw(123);
-        let mut db = SpatialHashSimd::<Entity, TILE_SIZE>::new(); //default();
+        let mut db = SpatialHashSimd2::<Entity, TILE_SIZE>::new(); //default();
         db.insert_aabb(
             &AabbSimd::from_min_max(
                 f32x2::from_array([-0.001, -0.001]),
@@ -210,7 +218,7 @@ mod tests {
 
     #[test]
     fn query_points() {
-        let mut db = SpatialHashSimd::<Entity, TILE_SIZE>::new(); //default();
+        let mut db = SpatialHashSimd2::<Entity, TILE_SIZE>::new(); //default();
         let e1 = Entity::from_raw(1);
         let e2 = Entity::from_raw(2);
         db.insert_point(vec2(0.5, 0.5), e1);
@@ -224,7 +232,7 @@ mod tests {
 
     #[test]
     fn query_points_negative() {
-        let mut db = SpatialHashSimd::<Entity, TILE_SIZE>::new(); //default();
+        let mut db = SpatialHashSimd2::<Entity, TILE_SIZE>::new(); //default();
         let e1 = Entity::from_raw(1);
         let e2 = Entity::from_raw(2);
         db.insert_point(vec2(0.5, 0.5), e1);
@@ -242,7 +250,7 @@ mod tests {
         let e1 = Entity::from_raw(1);
         let e2 = Entity::from_raw(2);
         let e3 = Entity::from_raw(3);
-        let mut db: SpatialHashSimd = SpatialHashSimd::new(); //default();
+        let mut db: SpatialHashSimd2 = SpatialHashSimd2::new(); //default();
         db.insert_aabb(
             &AabbSimd::from_min_max(
                 f32x2::from_array([-h, -h]),
@@ -295,7 +303,7 @@ mod tests {
 
     #[test]
     fn query_points_tilesize_10() {
-        let mut db = SpatialHashSimd::<Entity, 10>::new(); //default();
+        let mut db = SpatialHashSimd2::<Entity, 10>::new(); //default();
         let e1 = Entity::from_raw(1);
         let e2 = Entity::from_raw(2);
         let e3 = Entity::from_raw(3);
@@ -314,7 +322,7 @@ mod tests {
         let h = TILE_SIZE as f32 / 2.0;
         let e1 = 1;
         let e2 = 2;
-        let mut db = SpatialHashSimd::<usize>::new(); //default();
+        let mut db = SpatialHashSimd2::<usize>::new(); //default();
         db.insert_aabb(
             &AabbSimd::from_min_max(
                 f32x2::from_array([-h, -h]),
@@ -340,3 +348,4 @@ mod tests {
         assert!(matches.contains(&e2));
     }
 }
+*/
