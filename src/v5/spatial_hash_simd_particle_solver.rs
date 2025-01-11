@@ -196,6 +196,103 @@ impl SpatialHashSimdParticleSolver {
         }
     }
 
+
+    // attempt to optimise with simd + trying to optimise hash map insertion
+    #[inline(always)]
+    pub fn populate_dynamic_spatial_hash_3(&mut self, dynamic_spatial_hash: &mut SpatialHashSimd2<usize>) {
+        let particle_vec = self.particle_vec_arc.as_ref().read().unwrap();        
+        let particle_count: usize = particle_vec.len();
+
+        // todo: grow amount should not be needed as I will split movement phase to occur after we compute collisions
+        // i.e. phase 1. compute collisions and store movement vectors
+        // phase 2. move the particles
+        let grow_amount: f32x4 = f32x4::splat(2.0); // this if like the maximum a particle should be able to move per frame - 2metres
+
+        // pointer to the start of the vector data
+        let pos_ptr: *const f32x4 = particle_vec.pos.as_ptr() as *const f32x4;
+        let radius_ptr: *const f32x2 = particle_vec.radius.as_ptr() as *const f32x2;
+        
+        let chunks = particle_count / 2;
+
+        const TILE_SIZE: usize = 1;
+        let tile_size_simd = f32x4::splat(TILE_SIZE as f32);
+
+        for i in 0..chunks as isize {
+
+            unsafe {
+
+                // take 2 particles at a time
+                // pos_simd has 2 positions packed in [p1.pos.x, p1.pos.y, p2.pos.x, p2.pos.y]
+                // we setup radius_simd to have [p1.radius, p1.radius, p2.radius, p2.radius]
+                let pos_simd = *pos_ptr.offset(i);
+                let mut radius_simd = f32x4::from([(*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[1], (*radius_ptr.offset(i))[1]]);
+                radius_simd += grow_amount;
+
+                // compute a bounding box using position and radius
+                let min_f32 = pos_simd - radius_simd;
+                let max_f32 = pos_simd + radius_simd;
+                
+                // divide by spatial has tile size and apply rounding to conver to "cell space"
+                let min_i: i32x4  = (min_f32 / tile_size_simd).floor().cast(); //.into();
+                let max_i: i32x4 = (max_f32 / tile_size_simd).ceil().cast(); //.into();
+
+                // now we setup 2 iterators, one for p1 and one for p2
+                //let diff_i = max_i - min_i;
+                //let [width_p1, height_p1, width_p2, height_p2] = diff_i.to_array();
+
+                /*
+                let count_p1 = width_p1 * height_p1;
+                let count_p2 = width_p2 * height_p2;
+
+                let key_it_p1 = KeyIter {
+                    start: i32x2::from_array([min_i[0], min_i[1]]),
+                    current: -1,
+                    width: width_p1,
+                    count: count_p1,
+                };
+
+                let key_it_p2 = KeyIter {
+                    start: i32x2::from_array([min_i[2], min_i[3]]),
+                    current: -1,
+                    width: width_p2,
+                    count: count_p2,
+                };*/
+
+                // finally, for particle p1 and p2, use the iterators to add to spatial hash cells
+                // this is the slow part of this algorithm
+                let particle_idx: usize = (i * 2).try_into().unwrap();
+                /*
+                for key in key_it_p1 {
+                    //println!("key: {:?}", key);
+                    dynamic_spatial_hash.map.get_mut(&key).unwrap().push(particle_idx);
+                }*/
+
+                for y in min_i[1]..max_i[1] {
+                    for x in min_i[0]..max_i[0] {
+                        let key = i32x2::from_array([x, y]);
+                        dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx);
+                        //dynamic_spatial_hash.map.get_mut(&key).unwrap().push(particle_idx);
+                    }
+                }
+
+                for y in min_i[3]..max_i[3] {
+                    for x in min_i[2]..max_i[2] {
+                        let key = i32x2::from_array([x, y]);
+                        dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx + 1);
+                        //dynamic_spatial_hash.map.get_mut(&key).unwrap().push(particle_idx + 1);
+                    }
+                }
+
+                /*
+                for key in key_it_p2 {
+                    //println!("key: {:?}", key);
+                    dynamic_spatial_hash.map.get_mut(&key).unwrap().push(particle_idx + 1);
+                }*/
+            }
+        }
+    }
+
+
     #[inline(always)]
     pub fn perform_dynamic_to_dynamic_collision_detection(&mut self, dynamic_spatial_hash: &mut SpatialHashSimd<usize>, collision_check: &mut Vec<usize>) {
         let mut particle_vec = self.particle_vec_arc.as_ref().write().unwrap();        

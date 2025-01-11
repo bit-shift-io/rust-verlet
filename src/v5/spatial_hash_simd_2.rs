@@ -79,6 +79,15 @@ impl<T: Copy + Eq + std::hash::Hash, const TILE_SIZE: usize> SpatialHashSimd2<T,
             vec.clear()
         }
     }
+
+    pub fn prepopulate(&mut self, x_min: i32, x_max: i32, y_min: i32, y_max: i32) {
+        for y in y_min..y_max {
+            for x in x_min..x_max {
+                self.map.insert(i32x2::from_array([x, y]), SmallVec::default());
+                //self.map.entry(i32x2::from_array([x, y])).or_default();
+            }
+        }
+    }
     
 /* 
     fn key_from_point(point: Vec2) -> Key {

@@ -102,6 +102,24 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    // this is the winner so far
+    // seem soft_clear or clear doesn't make any difference
+    // prepopulate didnt make any noticable difference, so easier to not have it as it takes more work to use
+    group.bench_function("SpatialHashSimdParticleSolver - populate_dynamic_spatial_hash_3 + soft_clear + prepopulate", |b| {
+        let mut solver = SpatialHashSimdParticleSolver::default();
+        let mut shared_particle_vec = SharedParticleVec::default();
+        setup_sim_solver_test(&mut shared_particle_vec, 0.1);
+        solver.bind(&shared_particle_vec);
+
+        let mut dynamic_spatial_hash = SpatialHashSimd2::<usize>::new();
+        //dynamic_spatial_hash.prepopulate(-200, 200, -200, 200);
+
+        b.iter(|| {
+            dynamic_spatial_hash.soft_clear();
+            solver.populate_dynamic_spatial_hash_3(&mut dynamic_spatial_hash);
+        })
+    });
+
     
 
     /* 
