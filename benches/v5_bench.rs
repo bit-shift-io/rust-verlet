@@ -105,7 +105,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     // this is the winner so far
     // seem soft_clear or clear doesn't make any difference
     // prepopulate didnt make any noticable difference, so easier to not have it as it takes more work to use
-    group.bench_function("SpatialHashSimdParticleSolver - populate_dynamic_spatial_hash_3 + soft_clear + prepopulate", |b| {
+    group.bench_function("SpatialHashSimdParticleSolver - populate_dynamic_spatial_hash_3 + soft_clear", |b| {
         let mut solver = SpatialHashSimdParticleSolver::default();
         let mut shared_particle_vec = SharedParticleVec::default();
         setup_sim_solver_test(&mut shared_particle_vec, 0.1);
