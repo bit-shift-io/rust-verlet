@@ -10,7 +10,7 @@ pub mod spatial_hash;
 pub mod spatial_hash_simd;
 pub mod spatial_hash_simd_2;
 pub mod aabb2d_ext;
-
+pub mod particle_system;
 pub mod shape_builder;
 pub mod simd_ext;
 
