@@ -1,6 +1,6 @@
 use bevy::math::{bounding::Aabb2d, Vec2};
 
-use crate::v5::{particle::Particle, particle_handle::ParticleHandle, particle_vec::SharedParticleVec};
+use crate::v5::{particle::Particle, particle_handle::ParticleHandle, particle_system::ParticleSystem, particle_vec::SharedParticleVec};
 
 
 
@@ -114,6 +114,12 @@ impl ShapeBuilder {
     pub fn create_in_shared_particle_vec(&mut self, shared_particle_vec: &SharedParticleVec) -> &mut Self {
         let mut particle_vec = shared_particle_vec.as_ref().write().unwrap();
         let mut particle_handles = particle_vec.add_vec(&self.particles);
+        self.particle_handles.append(&mut particle_handles);
+        self
+    }
+
+    pub fn create_in_particle_system(&mut self, particle_system: &mut ParticleSystem) -> &mut Self {
+        let mut particle_handles = (*particle_system).add_particles(&self.particles);
         self.particle_handles.append(&mut particle_handles);
         self
     }

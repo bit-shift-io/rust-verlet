@@ -15,5 +15,6 @@ pub mod shape_builder;
 pub mod simd_ext;
 
 pub mod aabb_simd;
+pub mod particle_data;
 
 pub mod tests;

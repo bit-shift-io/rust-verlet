@@ -6,7 +6,7 @@ use std::simd::f32x2;
 
 use bevy::{color::{Color, LinearRgba}, math::{bounding::Aabb2d, vec2}};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use v5::{aabb_simd::AabbSimd, naive_particle_solver::NaiveParticleSolver, particle::Particle, particle_vec::SharedParticleVec, shape_builder::{circle::{self, Circle}, line_segment::LineSegment, rectangle::Rectangle, shape_builder::ShapeBuilder}, spatial_hash::SpatialHash, spatial_hash_particle_solver::SpatialHashParticleSolver, spatial_hash_simd::SpatialHashSimd, spatial_hash_simd_2::SpatialHashSimd2, spatial_hash_simd_particle_solver::SpatialHashSimdParticleSolver};
+use v5::{aabb_simd::AabbSimd, naive_particle_solver::NaiveParticleSolver, particle::Particle, particle_system::ParticleSystem, particle_vec::SharedParticleVec, shape_builder::{circle::{self, Circle}, line_segment::LineSegment, rectangle::Rectangle, shape_builder::ShapeBuilder}, spatial_hash::SpatialHash, spatial_hash_particle_solver::SpatialHashParticleSolver, spatial_hash_simd::SpatialHashSimd, spatial_hash_simd_2::SpatialHashSimd2, spatial_hash_simd_particle_solver::SpatialHashSimdParticleSolver};
 
 #[path = "../src/v5/mod.rs"]
 mod v5;
@@ -35,6 +35,30 @@ fn setup_sim_solver_test(shared_particle_vec: &mut SharedParticleVec, particle_r
         .set_particle_template(Particle::default().set_mass(20.0 * 0.001).set_radius(particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
         .apply_operation(Rectangle::from_center_size(vec2(0.0, 0.0), vec2(120.0, 120.0)))
         .create_in_shared_particle_vec(shared_particle_vec);
+
+    //println!("# particles: {:?}", shared_particle_vec.as_ref().read().unwrap().len());
+}
+
+fn particle_system_setup_sim_solver_test(particle_system: &mut ParticleSystem, particle_radius: f32) {
+    //let particle_radius = 0.5;
+
+    // static
+    let mut perimeter = ShapeBuilder::new();
+    perimeter.set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone())
+        .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 100.0))
+        .create_in_particle_system(particle_system);
+
+    let mut perimeter2 = ShapeBuilder::new();
+    perimeter2.set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone())
+        .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 100.0 + (particle_radius * 2.0)))
+        .create_in_particle_system(particle_system);
+
+    // some dynamic particles on the inside
+    let mut liquid = ShapeBuilder::new();
+    liquid
+        .set_particle_template(Particle::default().set_mass(20.0 * 0.001).set_radius(particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
+        .apply_operation(Rectangle::from_center_size(vec2(0.0, 0.0), vec2(120.0, 120.0)))
+        .create_in_particle_system(particle_system);
 
     //println!("# particles: {:?}", shared_particle_vec.as_ref().read().unwrap().len());
 }
@@ -184,14 +208,12 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    group.bench_function("SpatialHashSimdParticleSolver solve_collisions", |b| {
-        let mut solver = SpatialHashSimdParticleSolver::default();
-        let mut shared_particle_vec = SharedParticleVec::default();
-        setup_sim_solver_test(&mut shared_particle_vec, 1.0);
-        solver.bind(&shared_particle_vec);
+    group.bench_function("ParticleSystem/SpatialHashSimdParticleSolver solve_collisions", |b| {
+        let mut particle_system = ParticleSystem::default();
+        particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
 
         b.iter(|| {
-            solver.solve_collisions();
+            particle_system.solve_collisions();
             //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
         })
     });

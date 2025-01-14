@@ -1,27 +1,29 @@
-use super::particle::Particle;
+use super::{particle::Particle, particle_data::ParticleData, particle_handle::ParticleHandle, spatial_hash_simd_particle_solver::SpatialHashSimdParticleSolver};
 
-pub trait ParticleVec {
-    fn add_vec(&mut self, particles: &Vec<Particle>);
+
+pub struct ParticleSystem {
+    particle_data: ParticleData,
+    solver: SpatialHashSimdParticleSolver,
 }
 
-pub trait Solver {
-    fn add_vec(&mut self, particles: &Vec<Particle>);
+impl ParticleSystem {
+
+    pub fn add_particles(&mut self, particles: &Vec<Particle>) -> Vec<ParticleHandle>{
+        let mut handles = self.particle_data.add_particles(particles);
+        self.solver.notify_particle_data_changed(&mut self.particle_data);
+        handles
+    }
+
+    pub fn solve_collisions(&mut self) {
+        self.solver.solve_collisions(&mut self.particle_data);
+    }
 }
 
-pub struct ParticleSystem<PV, S> 
-where
-    PV: ParticleVec,
-{
-    particle_vec: PV,
-    solver: S,
-}
-
-impl<PV, S> ParticleSystem<PV, S>
-where
-    PV: ParticleVec,
-{
-
-    fn add_particles(&mut self, particles: &Vec<Particle>) {
-        self.particle_vec.add_vec(particles);
+impl Default for ParticleSystem {
+    fn default() -> Self {
+        Self { 
+            particle_data: ParticleData::default(),
+            solver: SpatialHashSimdParticleSolver::default(),
+        }
     }
 }
