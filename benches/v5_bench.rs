@@ -52,6 +52,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("v5");
     //group.sample_size(20);//.measurement_time(Duration::from_secs(10));
 
+    /*
     group.bench_function("SpatialHashSimdParticleSolver - populate_dynamic_spatial_hash", |b| {
         let mut solver = SpatialHashSimdParticleSolver::default();
         let mut shared_particle_vec = SharedParticleVec::default();
@@ -111,15 +112,12 @@ fn criterion_benchmark(c: &mut Criterion) {
         setup_sim_solver_test(&mut shared_particle_vec, 0.1);
         solver.bind(&shared_particle_vec);
 
-        let mut dynamic_spatial_hash = SpatialHashSimd2::<usize>::new();
-        //dynamic_spatial_hash.prepopulate(-200, 200, -200, 200);
-
         b.iter(|| {
-            dynamic_spatial_hash.soft_clear();
-            solver.populate_dynamic_spatial_hash_3(&mut dynamic_spatial_hash);
+            solver.dynamic_spatial_hash.soft_clear();
+            solver.populate_dynamic_spatial_hash_3();
         })
     });
-
+*/
     
 
     /* 
@@ -161,7 +159,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
     */
 
-/* 
+
     group.bench_function("NaiveParticleSolver solve_collisions", |b| {
         let mut solver = NaiveParticleSolver::default();
         let mut shared_particle_vec = SharedParticleVec::default();
@@ -197,7 +195,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
         })
     });
-
+/*
 
     group.bench_function("SpatialHash insert_aabb + aabb_iter", |b| {
 

@@ -10,7 +10,8 @@ use smallvec::SmallVec;
 
 use super::aabb_simd::AabbSimd;
 
-use std::simd::{f32x4, i32x2, i32x4, StdFloat};
+use std::simd::num::SimdFloat;
+use std::simd::{f32x1, f32x2, f32x4, i32x2, i32x4, StdFloat};
 
 type Key = i32x2;
 
@@ -39,7 +40,7 @@ impl<T: Copy + Eq + std::hash::Hash, const TILE_SIZE: usize> SpatialHashSimd2<T,
         let key = Self::key_from_point(point);
         self.map.entry(key).or_default().push(entity);
     }
-
+*/
     /// Get an iterator with the entities in the grid cells covered by the given [`AabbSimd`]
     ///
     /// may contain duplicates if some entities are in more than one grid cell
@@ -50,7 +51,7 @@ impl<T: Copy + Eq + std::hash::Hash, const TILE_SIZE: usize> SpatialHashSimd2<T,
             .flatten()
             .copied()
     }
-
+/*
     /// Get an iterator with the entities in the grid cells at the given point
     #[inline]
     pub fn point_iter(&'_ self, point: Vec2) -> impl Iterator<Item = T> + '_ {
@@ -105,7 +106,7 @@ pub struct KeyIter {
     pub count: i32,
 }
 
-/* 
+
 impl KeyIter {
     pub fn new<const TILE_SIZE: usize>(aabb: &AabbSimd /*impl Into<AabbSimd>*/) -> Self {
         //let AabbSimd { min, max } = aabb.into();
@@ -120,11 +121,11 @@ impl KeyIter {
         let floor = div.floor(); // as i32x4;
         let ceil = div.ceil();// as i32x4;
         
-        let min = (floor[0] as i32, floor[1] as i32);
-        let max = (ceil[2] as i32, ceil[3] as i32);
+        let min: i32x2 = i32x2::from_array([floor[0] as i32, floor[1] as i32]); //(floor[0] as i32, floor[1] as i32);
+        let max = i32x2::from_array([ceil[2] as i32, ceil[3] as i32]); //(ceil[2] as i32, ceil[3] as i32);
         
-        let width = max.0 - min.0;
-        let height = max.1 - min.1;
+        let width = max[0] - min[0];
+        let height = max[1] - min[1];
         let count = width * height;
         Self {
             start: min,
@@ -133,7 +134,7 @@ impl KeyIter {
             count,
         }
     }
-}*/
+}
 
 impl Iterator for KeyIter {
     type Item = Key;

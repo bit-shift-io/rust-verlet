@@ -15,8 +15,9 @@ use super::spatial_hash_simd_2::SpatialHashSimd2;
 /// based on real world testing.
 /// We should try Octree's in future also.
 pub struct SpatialHashSimdParticleSolver {
-    particle_vec_arc: SharedParticleVec,
-    static_spatial_hash: SpatialHashSimd<usize>
+    pub particle_vec_arc: SharedParticleVec,
+    pub static_spatial_hash: SpatialHashSimd<usize>,
+    pub dynamic_spatial_hash: SpatialHashSimd2<usize>,
 }
 
 impl Default for SpatialHashSimdParticleSolver {
@@ -24,6 +25,7 @@ impl Default for SpatialHashSimdParticleSolver {
         Self { 
             particle_vec_arc: SharedParticleVec::default(),
             static_spatial_hash: SpatialHashSimd::<usize>::new(),
+            dynamic_spatial_hash: SpatialHashSimd2::<usize>::new(),
         }
     }
 }
@@ -199,7 +201,7 @@ impl SpatialHashSimdParticleSolver {
 
     // attempt to optimise with simd + trying to optimise hash map insertion
     #[inline(always)]
-    pub fn populate_dynamic_spatial_hash_3(&mut self, dynamic_spatial_hash: &mut SpatialHashSimd2<usize>) {
+    pub fn populate_dynamic_spatial_hash_3(&mut self) {
         let particle_vec = self.particle_vec_arc.as_ref().read().unwrap();        
         let particle_count: usize = particle_vec.len();
 
@@ -270,7 +272,7 @@ impl SpatialHashSimdParticleSolver {
                 for y in min_i[1]..max_i[1] {
                     for x in min_i[0]..max_i[0] {
                         let key = i32x2::from_array([x, y]);
-                        dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx);
+                        self.dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx);
                         //dynamic_spatial_hash.map.get_mut(&key).unwrap().push(particle_idx);
                     }
                 }
@@ -278,7 +280,7 @@ impl SpatialHashSimdParticleSolver {
                 for y in min_i[3]..max_i[3] {
                     for x in min_i[2]..max_i[2] {
                         let key = i32x2::from_array([x, y]);
-                        dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx + 1);
+                        self.dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx + 1);
                         //dynamic_spatial_hash.map.get_mut(&key).unwrap().push(particle_idx + 1);
                     }
                 }
@@ -294,7 +296,7 @@ impl SpatialHashSimdParticleSolver {
 
 
     #[inline(always)]
-    pub fn perform_dynamic_to_dynamic_collision_detection(&mut self, dynamic_spatial_hash: &mut SpatialHashSimd<usize>, collision_check: &mut Vec<usize>) {
+    pub fn perform_dynamic_to_dynamic_collision_detection(&mut self, collision_check: &mut Vec<usize>) {
         let mut particle_vec = self.particle_vec_arc.as_ref().write().unwrap();        
         let particle_count: usize = particle_vec.len();
 
@@ -304,7 +306,7 @@ impl SpatialHashSimdParticleSolver {
 
                 let a_aabb = AabbSimd::from_position_and_radius(particle_vec.pos[ai], particle_vec.radius[ai][0]);
                 
-                for bi in dynamic_spatial_hash.aabb_iter(&a_aabb) {
+                for bi in self.dynamic_spatial_hash.aabb_iter(&a_aabb) {
                     // skip self-collision, and anything that is before ai
                     if bi <= ai {
                         continue;
@@ -389,9 +391,9 @@ impl SpatialHashSimdParticleSolver {
 
         self.perform_dynamic_to_static_collision_detection(&mut collision_check);
 
-        let mut dynamic_spatial_hash = SpatialHashSimd::<usize>::new();
-        self.populate_dynamic_spatial_hash(&mut dynamic_spatial_hash);
+        self.dynamic_spatial_hash.soft_clear();
+        self.populate_dynamic_spatial_hash_3();
        
-        self.perform_dynamic_to_dynamic_collision_detection(&mut dynamic_spatial_hash, &mut collision_check);
+        self.perform_dynamic_to_dynamic_collision_detection(&mut collision_check);
     }
 }
