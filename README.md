@@ -42,8 +42,8 @@ src/v2 - version 2 verlet systems
 
 ### Manually
 
-        cargo build
-        cargo run
+        ```cargo build``` or ```cargo build --release```
+        ```cargo run```  or ```cargo run --release```
 
         cargo add XXX # to add a cargo package
 
