@@ -242,8 +242,8 @@ impl ParticleVec {
     
                 debug_assert!(!new_pos[0].is_nan());
                 debug_assert!(!new_pos[1].is_nan());
+                debug_assert!(!new_pos[2].is_nan());
                 debug_assert!(!new_pos[3].is_nan());
-                debug_assert!(!new_pos[4].is_nan());
 
                 *pos_ptr.offset(i) = new_pos;
             }
@@ -268,6 +268,29 @@ impl ParticleVec {
             */
         }
     }
+
+
+    pub fn reset_forces(&mut self, gravity: f32x2) {
+        let gravity_simd = f32x4::from_array([gravity[0], gravity[1], gravity[0], gravity[1]]);
+        let particle_count = self.len();
+
+        let force_ptr: *mut f32x4 = self.force.as_mut_ptr() as *mut f32x4;
+        let mass_ptr: *mut f32x2 = self.mass.as_mut_ptr() as *mut f32x2;
+
+        let chunks = particle_count / 2;
+
+        // todo: handle any left over particles if there is an odd number of particles (as is done by the example urls below)!
+
+        for i in 0..chunks as isize {
+            unsafe {
+                let mass_simd = f32x4::from_array([(*mass_ptr.offset(i))[0], (*mass_ptr.offset(i))[0], (*mass_ptr.offset(i))[1], (*mass_ptr.offset(i))[1]]);
+                let force = gravity_simd * mass_simd; // f = m * a
+                *force_ptr.offset(i) = force;
+            }
+        }         
+    }
+
+
 }
 
 impl Default for ParticleVec {

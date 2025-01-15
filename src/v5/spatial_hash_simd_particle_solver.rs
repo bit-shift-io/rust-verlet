@@ -79,7 +79,17 @@ impl SpatialHashSimdParticleSolver {
 
                 if dist_squared < min_dist_squared {
                     let dist = f32::sqrt(dist_squared);
+
+                    // particles are too close to each other.
+                    // just let them pass through each other
+                    if dist <= f32::EPSILON {
+                        continue;
+                    }
+
                     let n = collision_axis / f32x2::splat(dist); //::from_array([dist, dist]);
+                    debug_assert!(!n[0].is_nan());
+                    debug_assert!(!n[1].is_nan());
+
                     let delta = min_dist - dist;
                     let delta_f32x2 = f32x2::splat(delta); //from_array([delta, delta]);
                     let movement = delta_f32x2 * n;
@@ -87,9 +97,12 @@ impl SpatialHashSimdParticleSolver {
                     //let mut_particle_a = &mut particle_vec.particles[ai];
                     //mut_particle_a.pos += movement;
 
+                    debug_assert!(!movement[0].is_nan());
+                    debug_assert!(!movement[1].is_nan());
+
                     a_pos += movement;
-                    //debug_assert!(!a_pos.x.is_nan());
-                    //debug_assert!(!a_pos.y.is_nan());
+                    debug_assert!(!a_pos[0].is_nan());
+                    debug_assert!(!a_pos[1].is_nan());
                     dynamic_particles.pos[ai] = a_pos;
 
                     // as the particle moves we need to move the aabb around
@@ -351,8 +364,8 @@ impl SpatialHashSimdParticleSolver {
                         //mut_particle_a.pos += movement;
 
                         a_pos += movement;
-                        //debug_assert!(!a_pos.x.is_nan());
-                        //debug_assert!(!a_pos.y.is_nan());
+                        debug_assert!(!a_pos[0].is_nan());
+                        debug_assert!(!a_pos[1].is_nan());
                         dynamic_particles.pos[ai] = a_pos;
 
                         // as the particle moves we need to move the aabb around
@@ -361,8 +374,8 @@ impl SpatialHashSimdParticleSolver {
 
                     {
                         b_pos -= movement;
-                        //debug_assert!(!b_pos.x.is_nan());
-                        //debug_assert!(!b_pos.y.is_nan());
+                        debug_assert!(!b_pos[0].is_nan());
+                        debug_assert!(!b_pos[1].is_nan());
                         dynamic_particles.pos[bi] = b_pos;
 
                         // as the particle moves we need to move the aabb around

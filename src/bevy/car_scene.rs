@@ -16,7 +16,7 @@ use bevy::{
 use bytemuck::{Pod, Zeroable};
 use rand_pcg::Pcg64;
 
-use crate::{level::level::{setup_level, update_level}, random::Random, v4::{constraint_container::ConstraintContainer, constraints::stick_constraint::StickConstraint, particle::Particle, particle_container::ParticleContainer, particle_sim::ParticleSim, particle_solvers::{naive_particle_solver::NaiveParticleSolver, spatial_hash_particle_solver::SpatialHashParticleSolver}, shape_builder::{circle, line_segment::LineSegment, rectangle::Rectangle, rectangle_stick_grid::RectangleStickGrid, shape_builder::{radius_divisions_between_points, ShapeBuilder}}}};
+use crate::{level::level::{setup_level, update_level}, random::Random, v4::{particle_sim::ParticleSim, particle_solvers::spatial_hash_particle_solver::SpatialHashParticleSolver}, v5::{particle::Particle, particle_system::ParticleSystem, shape_builder::{circle, rectangle, shape_builder::ShapeBuilder}}};
 
 use super::{car::{self, Car}, instance_material_data::{InstanceData, InstanceMaterialData}, performance_ui::performance_ui_build};
 
@@ -36,7 +36,7 @@ pub struct CarSceneContext<'a> {
     //pub keyboard: &'a mut Keyboard,
     //pub mouse: &'a mut Mouse,
     pub keys: Res<'a, ButtonInput<KeyCode>>,
-    pub particle_sim: &'a mut ParticleSim,
+    //pub particle_sim: &'a mut ParticleSim,
 }
 
 /* 
@@ -60,13 +60,18 @@ impl CarComponent {
 pub struct CarScene {
     pub car: Option<Car>,
 
-    pub particle_sim: ParticleSim,
+    pub particle_sim: ParticleSim, // todo: remove this
+    
+    pub particle_system: ParticleSystem,
     //pub rng: Pcg64,
     paused: bool,
 }
 
 impl CarScene {
     pub fn new() -> Self {
+        let mut particle_system = ParticleSystem::default();
+
+        // todo: remove this
         let particle_solver = Box::new(SpatialHashParticleSolver::new()); // SpatialHashParticleSolver::new()); // NaiveParticleSolver::new()); 
         //let particle_solver = Box::new(SpatialHashParticleSolver::new()); // SpatialHashParticleSolver::new()); // NaiveParticleSolver::new()); 
         let mut particle_sim = ParticleSim::new(particle_solver);
@@ -145,19 +150,19 @@ impl CarScene {
                 let mut perimeter = ShapeBuilder::new();
                 perimeter.set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone())
                     .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 100.0))
-                    .create_in_particle_sim(&mut particle_sim);
+                    .create_in_particle_system(&mut particle_system);
 
                 let mut perimeter2 = ShapeBuilder::new();
                 perimeter2.set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone())
                     .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 100.0 + (particle_radius * 2.0)))
-                    .create_in_particle_sim(&mut particle_sim);
+                    .create_in_particle_system(&mut particle_system);
 
                 // some dynamic particles on the inside
                 let mut liquid = ShapeBuilder::new();
                 liquid
                     .set_particle_template(Particle::default().set_mass(20.0 * 0.001).set_radius(particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
-                    .apply_operation(Rectangle::from_center_size(vec2(0.0, 0.0), vec2(120.0, 120.0)))
-                    .create_in_particle_sim(&mut particle_sim);
+                    .apply_operation(rectangle::Rectangle::from_center_size(vec2(0.0, 0.0), vec2(120.0, 120.0)))
+                    .create_in_particle_system(&mut particle_system);
             }
 
             /* 
@@ -214,7 +219,7 @@ impl CarScene {
         }
 
         // let particle system know all static particles have been built
-        particle_sim.notify_particle_container_changed();
+        //particle_sim.notify_particle_container_changed();
 
         // SWITCH THE FOLLOWING TO LINES TO ENABLE THE CAR:
         //let car = Some(Car::new(&mut particle_sim, Vec2::new(0.0, 0.5)));
@@ -223,6 +228,7 @@ impl CarScene {
         Self {
             car,
             particle_sim,
+            particle_system,
             //rng: Random::seed_from_beginning_of_week(),
             paused: true,
         }
@@ -240,18 +246,20 @@ impl CarScene {
             return;
         }
 
-        self.particle_sim.pre_update();
+        self.particle_system.pre_update();
     
+    /* 
         // do other physics here...
         // now update the car which will setup its forces on the particles
         match self.car {
             Some(ref mut car) => {
-                car.update(&mut self.particle_sim, keys);
+                car.update(&mut self.particle_system, keys);
             }
             None => (),
         };
+*/
 
-        self.particle_sim.update(delta_seconds);
+        self.particle_system.update(delta_seconds);
     }
     
 }
@@ -305,6 +313,7 @@ pub fn setup_car_scene(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
 
     //let car = CarComponent::new(&mut car_scene.particle_sim);
 
+    /* todo: remove
     let instance_data = {
         let particle_container_ref = car_scene.particle_sim.particle_container.as_ref().read().unwrap();
         let particle_container = &*particle_container_ref;
@@ -317,6 +326,35 @@ pub fn setup_car_scene(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
             color: particle.color.to_linear().to_f32_array(), //LinearRgba::from(Color::srgba_u8(particle.color.r, particle.color.g, particle.color.b, particle.color.a)).to_f32_array(),
         })
         .collect());
+        instance_data
+    };*/
+
+    // this is the v5 version. should we split it into static and dynamic parts? maybe not, I only update the dynamic particles
+    let instance_data = {
+        let particle_data = &car_scene.particle_system.particle_data;
+        let dynamic_particles = &particle_data.dynamic_particles;
+        let static_particles = &particle_data.static_particles;
+
+        let mut instance_data: Vec<InstanceData> = vec![]; 
+        
+        for i in 0..dynamic_particles.len() {
+            instance_data.push(InstanceData {
+                position: Vec3::new(dynamic_particles.pos[i][0], dynamic_particles.pos[i][1], 0.0),
+                scale: dynamic_particles.radius[i][0],
+                color: dynamic_particles.color[i].to_linear().to_f32_array(),
+            });
+        }
+
+        for i in 0..static_particles.len() {
+            instance_data.push(InstanceData {
+                position: Vec3::new(static_particles.pos[i][0], static_particles.pos[i][1], 0.0),
+                scale: static_particles.radius[i][0],
+                color: static_particles.color[i].to_linear().to_f32_array(),
+            });
+        }
+
+        // create the required particles
+        let instance_data = InstanceMaterialData(instance_data);
         instance_data
     };
 
@@ -362,86 +400,44 @@ fn update_particle_instances(
 
     let car_scene = query_car_scenes.single_mut();
 
-    let mut instance_material_data = instance_material_data_query.single_mut();
+    let particle_data = &car_scene.particle_system.particle_data;
+    let dynamic_particles = &particle_data.dynamic_particles;
+    let static_particles = &particle_data.static_particles;
 
-    let particle_container_ref = car_scene.particle_sim.particle_container.as_ref().read().unwrap();
-    let particle_container = &*particle_container_ref;
+    let combined_length = dynamic_particles.len() + static_particles.len();
 
+    let mut instance_data = instance_material_data_query.single_mut();
 
-    if instance_material_data.len() != particle_container.particles.len() {
-        // delete old instance data
-
-        /* 
-        for entity in instance_material_data_query.iter() {
-            commands.entity(entity).remove::<InstanceMaterialData>();
-        }*/
-
-        instance_material_data.resize(particle_container.particles.len(), InstanceData {
+    if instance_data.len() != combined_length {
+ 
+        instance_data.resize(combined_length, InstanceData {
             scale: 1.0,
             position: Vec3::default(),
             color: Color::WHITE.to_linear().to_f32_array(),
         });
+        
+        for i in 0..dynamic_particles.len() {
+            instance_data[i] = InstanceData {
+                position: Vec3::new(dynamic_particles.pos[i][0], dynamic_particles.pos[i][1], 0.0),
+                scale: dynamic_particles.radius[i][0],
+                color: dynamic_particles.color[i].to_linear().to_f32_array(),
+            };
+        }
 
-        let mut i = 0;
-        for instance in instance_material_data.iter_mut() {
-            let particle = &car_scene.particle_sim.particle_container.as_ref().read().unwrap().particles[i];
-            instance.position = Vec3::new(particle.pos.x, particle.pos.y, 0.0);
-            instance.scale = particle.radius;
-            instance.color = particle.color.to_linear().to_f32_array();
-            i += 1;
-        } 
+        for i in 0..static_particles.len() {
+            let idx = i + dynamic_particles.len();
+            instance_data[idx] = InstanceData {
+                position: Vec3::new(static_particles.pos[i][0], static_particles.pos[i][1], 0.0),
+                scale: static_particles.radius[i][0],
+                color: static_particles.color[i].to_linear().to_f32_array(),
+            };
+        }
 
-        /* 
-        instance_material_data = particle_container.particles.iter().map(|(particle)| InstanceData {
-            position: Vec3::new(particle.pos.x, particle.pos.y, 0.0),
-            scale: particle.radius,
-            //color: LinearRgba::from(Color::hsla(x * 360., y, 0.5, 1.0)).to_f32_array(),
-            color: particle.color.to_linear().to_f32_array(), //LinearRgba::from(Color::srgba_u8(particle.color.r, particle.color.g, particle.color.b, particle.color.a)).to_f32_array(),
-        }*/
-
-        /* 
-        let instance_data = {
-            
-            // create the required particles
-            let instance_data = InstanceMaterialData(particle_container.particles.iter().map(|(particle)| InstanceData {
-                position: Vec3::new(particle.pos.x, particle.pos.y, 0.0),
-                scale: particle.radius,
-                //color: LinearRgba::from(Color::hsla(x * 360., y, 0.5, 1.0)).to_f32_array(),
-                color: particle.color.to_linear().to_f32_array(), //LinearRgba::from(Color::srgba_u8(particle.color.r, particle.color.g, particle.color.b, particle.color.a)).to_f32_array(),
-            })
-            .collect());
-            instance_data
-        };*/
-
-        /* 
-        // create a particle from each particle in the particle_accelerator
-        let circle = Circle { radius: 1.0 };
-        commands.spawn((
-            //meshes.add(Cuboid::new(0.5, 0.5, 0.5)),
-            meshes.add(circle),
-            SpatialBundle::INHERITED_IDENTITY,
-            instance_data,
-            // NOTE: Frustum culling is done based on the Aabb of the Mesh and the GlobalTransform.
-            // As the cube is at the origin, if its Aabb moves outside the view frustum, all the
-            // instanced cubes will be culled.
-            // The InstanceMaterialData contains the 'GlobalTransform' information for this custom
-            // instancing, and that is not taken into account with the built-in frustum culling.
-            // We must disable the built-in frustum culling by adding the `NoFrustumCulling` marker
-            // component to avoid incorrect culling.
-            NoFrustumCulling,
-        ));*/
     } else {
 
-        //for mut instance_material_data in &mut instance_material_data_query {
-            // https://www.reddit.com/r/bevy/comments/1e23o1z/animate_instance_data_in_update_loop/
-            let mut i = 0;
-            for instance in instance_material_data.iter_mut() {
-                let particle = &car_scene.particle_sim.particle_container.as_ref().read().unwrap().particles[i];
-                instance.position = Vec3::new(particle.pos.x, particle.pos.y, 0.0);
-                //instance.scale += (time.elapsed_seconds()).sin() * 0.01;
-                i += 1;
-            } 
-        //}
+        for i in 0..dynamic_particles.len() {
+            instance_data[i].position = Vec3::new(dynamic_particles.pos[i][0], dynamic_particles.pos[i][1], 0.0);
+        }
     }
 }
 

@@ -38,6 +38,7 @@ fn performance_ui_update(
     mut perf_metrics: ResMut<PerfMetrics>,
     mut query_car_scenes: Query<(&mut CarScene)>,
 ) {
+    /*
     let mut car_scene = query_car_scenes.single_mut();
     let delta_seconds = time.delta_seconds();
     
@@ -49,6 +50,7 @@ fn performance_ui_update(
     }
 
     perf_metrics.num_collision_checks_last_second += car_scene.particle_sim.particle_solver.get_metrics().num_collision_checks;
+    */
 }
 
 fn performance_ui_setup(mut commands: Commands) {
