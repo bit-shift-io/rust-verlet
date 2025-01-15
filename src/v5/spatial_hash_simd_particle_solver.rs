@@ -337,6 +337,13 @@ impl SpatialHashSimdParticleSolver {
                 if dist_squared < min_dist_squared {
                     let mut dist = f32::sqrt(dist_squared);
 
+
+                    // particles are too close to each other.
+                    // just let them pass through each other
+                    if dist <= f32::EPSILON {
+                        continue;
+                    }
+                    /*
                     if dist <= 0.0 {
                         // dist is zero, but min_dist_squared might have some tiny value. If so, use that.
                         if min_dist_squared > 0.0 {
@@ -346,7 +353,7 @@ impl SpatialHashSimdParticleSolver {
                             // todo: move the particles towards the prev pos instead to make some distance between them?
                             continue;
                         }
-                    }
+                    }*/
 
                     let n = collision_axis / f32x2::splat(dist); //from_array([dist, dist]);
                     let delta = min_dist - dist;

@@ -46,9 +46,12 @@ impl ParticleSystem {
     }
 
     pub fn update_step(&mut self, delta_seconds: f32) {
+        //println!("delta_seconds: {}", delta_seconds);
+
         self.solve_collisions();
 
         self.particle_data.dynamic_particles.update_positions_3(delta_seconds);
+        //self.particle_data.dynamic_particles.update_positions(delta_seconds);
         /* 
         self.constraint_solver.update_constraints(delta_seconds);
         self.particle_solver.update_particle_positions(delta_seconds);
