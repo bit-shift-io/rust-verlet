@@ -202,20 +202,20 @@ impl ParticleVec {
     // attempt to process 2 particles at once. This kicks ass!
     pub fn update_positions_3(&mut self, delta_seconds: f32) {
         let delta_seconds_sqrd = delta_seconds * delta_seconds;
+        let delta_seconds_sqrd_simd_2 = f32x2::splat(delta_seconds_sqrd);//([delta_seconds_sqrd, delta_seconds_sqrd]);
         let delta_seconds_sqrd_simd = f32x4::splat(delta_seconds_sqrd);//([delta_seconds_sqrd, delta_seconds_sqrd]);
 
         // todo: can we take 2x f32x2 and stuff into f32x4 to process 2 particles at once doubling the speed?
-        let particle_count = self.len();
+        let particle_count = self.len() as isize;
 
         // pointer to the start of the vector data
         let pos_ptr: *mut f32x4 = self.pos.as_mut_ptr() as *mut f32x4;
-        let pos_prev_ptr: *mut f32x4 = self.pos_prev.as_ptr() as *mut f32x4;
+        let pos_prev_ptr: *mut f32x4 = self.pos_prev.as_mut_ptr() as *mut f32x4;
         let force_ptr: *mut f32x4 = self.force.as_mut_ptr() as *mut f32x4;
         let mass_ptr: *mut f32x2 = self.mass.as_mut_ptr() as *mut f32x2;
 
         let chunks = particle_count / 2;
-
-        // todo: handle any left over particles if there is an odd number of particles (as is done by the example urls below)!
+        let remainder = particle_count - (chunks * 2);
 
         for i in 0..chunks as isize {
 
@@ -267,19 +267,43 @@ impl ParticleVec {
             self.pos[i] = new_pos;
             */
         }
+
+        // handle the remainders
+        {
+            let pos_ptr = self.pos.as_mut_ptr();
+            let pos_prev_ptr = self.pos_prev.as_mut_ptr();
+            let force_ptr = self.force.as_mut_ptr();
+            let mass_ptr = self.mass.as_mut_ptr();
+
+            for i in (particle_count-remainder)..particle_count {
+                unsafe {
+                    let velocity = *pos_ptr.offset(i) - *pos_prev_ptr.offset(i);
+                    let acceleration = *force_ptr.offset(i) / f32x2::from_array([(*mass_ptr.offset(i))[0], (*mass_ptr.offset(i))[0]]); //from_array([self.mass[id], self.mass[id]]);
+    
+                    *pos_prev_ptr.offset(i) = *pos_ptr.offset(i);
+                    
+                    let new_pos = *pos_ptr.offset(i) + velocity + acceleration * delta_seconds_sqrd_simd_2;
+        
+                    debug_assert!(!new_pos[0].is_nan());
+                    debug_assert!(!new_pos[1].is_nan());
+    
+                    *pos_ptr.offset(i) = new_pos;
+                }
+            }
+        }
     }
 
 
     pub fn reset_forces(&mut self, gravity: f32x2) {
         let gravity_simd = f32x4::from_array([gravity[0], gravity[1], gravity[0], gravity[1]]);
-        let particle_count = self.len();
+        let gravity_simd_2 = f32x2::from_array([gravity[0], gravity[1]]);
+        let particle_count = self.len() as isize;
 
         let force_ptr: *mut f32x4 = self.force.as_mut_ptr() as *mut f32x4;
         let mass_ptr: *mut f32x2 = self.mass.as_mut_ptr() as *mut f32x2;
 
         let chunks = particle_count / 2;
-
-        // todo: handle any left over particles if there is an odd number of particles (as is done by the example urls below)!
+        let remainder = particle_count - (chunks * 2);
 
         for i in 0..chunks as isize {
             unsafe {
@@ -287,7 +311,21 @@ impl ParticleVec {
                 let force = gravity_simd * mass_simd; // f = m * a
                 *force_ptr.offset(i) = force;
             }
-        }         
+        }    
+
+        // handle the remainders
+        {
+            let force_ptr = self.force.as_mut_ptr();
+            let mass_ptr = self.mass.as_mut_ptr();
+
+            for i in (particle_count-remainder)..particle_count {
+                unsafe {
+                    let mass_simd = f32x2::from_array([(*mass_ptr.offset(i))[0], (*mass_ptr.offset(i))[0]]);
+                    let force = gravity_simd_2 * mass_simd; // f = m * a
+                    *force_ptr.offset(i) = force;
+                }
+            }
+        }     
     }
 
 

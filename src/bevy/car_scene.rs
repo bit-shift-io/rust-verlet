@@ -156,19 +156,20 @@ impl CarScene {
                 perimeter2.set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone())
                     .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 100.0 + (particle_radius * 2.0)))
                     .create_in_particle_system(&mut particle_system);
-/* 
+ 
                 // some dynamic particles on the inside
                 let mut liquid = ShapeBuilder::new();
                 liquid
                     .set_particle_template(Particle::default().set_mass(20.0 * 0.001).set_radius(particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
                     .apply_operation(rectangle::Rectangle::from_center_size(vec2(0.0, 0.0), vec2(120.0, 120.0)))
                     .create_in_particle_system(&mut particle_system);
-*/
+/*
                 let mut liquid = ShapeBuilder::new();
                 liquid
                     .set_particle_template(Particle::default().set_mass(20.0 * 0.001).set_radius(particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
                     .add_particle_at_position(vec2(0.0, 0.0))
                     .create_in_particle_system(&mut particle_system);
+                */
             }
 
             /* 

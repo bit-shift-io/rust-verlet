@@ -49,12 +49,13 @@ impl SpatialHashSimdParticleSolver {
     }
 
     #[inline(always)]
-    pub fn perform_dynamic_to_static_collision_detection(&mut self, particle_data: &mut ParticleData, collision_check: &mut Vec<usize>) {
-        let dynamic_particles = &mut particle_data.dynamic_particles;        
+    pub fn perform_dynamic_to_static_collision_detection(&mut self, particle_data: &mut ParticleData) {
+        let dynamic_particles = &mut particle_data.dynamic_particles;  
+        let static_particles = &particle_data.static_particles;      
         let particle_count: usize = dynamic_particles.len();
 
-        // consider that there might be duplicate checks as an entity can be in multiple cells
-        //let mut collision_check = vec![usize::MAX; particle_count];
+        // consider that there might be duplicate checks as a particle can be in multiple cells
+        let mut collision_check = vec![usize::MAX; static_particles.len()];
 
         // perform dynamic-static collision detection
         for ai in 0..particle_count {
@@ -69,12 +70,12 @@ impl SpatialHashSimdParticleSolver {
                 collision_check[bi] = ai;
 
                 let mut a_pos = dynamic_particles.pos[ai]; //vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]);
-                let b_pos = dynamic_particles.pos[bi]; //vec2(particle_vec.pos_x[bi], particle_vec.pos_y[bi]);
+                let b_pos = static_particles.pos[bi]; //vec2(particle_vec.pos_x[bi], particle_vec.pos_y[bi]);
                 
                 // particle_a is dynamic while particle_b is static
                 let collision_axis = a_pos - b_pos;
                 let dist_squared = collision_axis.length_squared();
-                let min_dist = dynamic_particles.radius[ai][0] + dynamic_particles.radius[bi][0];
+                let min_dist = dynamic_particles.radius[ai][0] + static_particles.radius[bi][0];
                 let min_dist_squared = min_dist * min_dist;
 
                 if dist_squared < min_dist_squared {
@@ -301,9 +302,12 @@ impl SpatialHashSimdParticleSolver {
 
 
     #[inline(always)]
-    pub fn perform_dynamic_to_dynamic_collision_detection(&mut self, particle_data: &mut ParticleData, collision_check: &mut Vec<usize>) {
+    pub fn perform_dynamic_to_dynamic_collision_detection(&mut self, particle_data: &mut ParticleData) {
         let dynamic_particles = &mut particle_data.dynamic_particles;      
         let particle_count: usize = dynamic_particles.len();
+
+        // consider that there might be duplicate checks as a particle can be in multiple cells
+        let mut collision_check = vec![usize::MAX; dynamic_particles.len()];
 
         // perform dynamic-dynamic collision detection
         for ai in 0..particle_count {
@@ -394,16 +398,11 @@ impl SpatialHashSimdParticleSolver {
     }
 
     pub fn solve_collisions(&mut self, particle_data: &mut ParticleData) {
-        // consider that there might be duplicate checks as an entity can be in multiple cells
-        let dynamic_particles = &mut particle_data.dynamic_particles;      
-        let particle_count: usize = dynamic_particles.len();
-        let mut collision_check = vec![usize::MAX; particle_count];
-
-        self.perform_dynamic_to_static_collision_detection(particle_data, &mut collision_check);
+        self.perform_dynamic_to_static_collision_detection(particle_data);
 
         self.dynamic_spatial_hash.soft_clear();
         self.populate_dynamic_spatial_hash_3(particle_data);
        
-        self.perform_dynamic_to_dynamic_collision_detection(particle_data, &mut collision_check);
+        self.perform_dynamic_to_dynamic_collision_detection(particle_data);
     }
 }
