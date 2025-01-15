@@ -402,8 +402,7 @@ fn update_particle_instances(
     mut instance_material_data_query: Query<(&mut InstanceMaterialData)>,
     mut meshes: ResMut<Assets<Mesh>>
 ) {
-    // todo: will need to destroy the old InstanceMaterialData bundle and recreate if there is a different
-    // number of particles (i.e. particles have spawned or been destroyed)
+    // todo: can we somehow make this simd optimised?
 
     let car_scene = query_car_scenes.single_mut();
 
@@ -441,7 +440,7 @@ fn update_particle_instances(
         }
 
     } else {
-
+        // todo: simd optimise this. Vec3 is simd friendly.
         for i in 0..dynamic_particles.len() {
             instance_data[i].position = Vec3::new(dynamic_particles.pos[i][0], dynamic_particles.pos[i][1], 0.0);
         }

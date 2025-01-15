@@ -1,5 +1,5 @@
 use std::simd::num::SimdFloat;
-use std::simd::{f32x1, f32x2, f32x4, i32x2, i32x4, StdFloat};
+use std::simd::{f32x1, f32x2, f32x4, i32x1, i32x2, i32x4, StdFloat};
 use std::usize;
 
 
@@ -7,10 +7,114 @@ use crate::v5::spatial_hash_simd_2::KeyIter;
 
 use super::aabb_simd::AabbSimd;
 use super::particle_data::ParticleData;
-use super::particle_vec::SharedParticleVec;
+use super::particle_vec::{ParticleVec, SharedParticleVec};
 use super::spatial_hash_simd::{SpatialHashSimd};
 use super::simd_ext::f32x2Ext;
 use super::spatial_hash_simd_2::SpatialHashSimd2;
+
+
+
+// given a set of particles, iterate over each and generate a set of spatial hash keys for each particle index
+#[inline(always)]
+pub fn spatial_hash_keys_for_particles<F>(particles: &ParticleVec, mut func: F) 
+where 
+    F: FnMut(i32x2, usize)
+{      
+    let particle_count: usize = particles.len();
+
+    // todo: grow amount should not be needed as I will split movement phase to occur after we compute collisions
+    // i.e. phase 1. compute collisions and store movement vectors
+    // phase 2. move the particles
+    let grow_amount: f32x4 = f32x4::splat(2.0); // this if like the maximum a particle should be able to move per frame - 2metres
+
+    // pointer to the start of the vector data
+    let pos_ptr: *const f32x4 = particles.pos.as_ptr() as *const f32x4;
+    let radius_ptr: *const f32x2 = particles.radius.as_ptr() as *const f32x2;
+    
+    let chunks = particle_count / 2;
+
+    // todo: handle reminder for when we have an odd amount of particles!
+
+    const TILE_SIZE: usize = 1;
+    let tile_size_simd = f32x4::splat(TILE_SIZE as f32);
+
+    for i in 0..chunks as isize {
+
+        unsafe {
+
+            // take 2 particles at a time
+            // pos_simd has 2 positions packed in [p1.pos.x, p1.pos.y, p2.pos.x, p2.pos.y]
+            // we setup radius_simd to have [p1.radius, p1.radius, p2.radius, p2.radius]
+            let pos_simd = *pos_ptr.offset(i);
+            let mut radius_simd = f32x4::from([(*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[1], (*radius_ptr.offset(i))[1]]);
+            radius_simd += grow_amount;
+
+            // compute a bounding box using position and radius
+            let min_f32 = pos_simd - radius_simd;
+            let max_f32 = pos_simd + radius_simd;
+            
+            // divide by spatial has tile size and apply rounding to conver to "cell space"
+            let min_i: i32x4  = (min_f32 / tile_size_simd).floor().cast(); //.into();
+            let max_i: i32x4 = (max_f32 / tile_size_simd).ceil().cast(); //.into();
+
+            // now we setup 2 iterators, one for p1 and one for p2
+            //let diff_i = max_i - min_i;
+            //let [width_p1, height_p1, width_p2, height_p2] = diff_i.to_array();
+
+            /*
+            let count_p1 = width_p1 * height_p1;
+            let count_p2 = width_p2 * height_p2;
+
+            let key_it_p1 = KeyIter {
+                start: i32x2::from_array([min_i[0], min_i[1]]),
+                current: -1,
+                width: width_p1,
+                count: count_p1,
+            };
+
+            let key_it_p2 = KeyIter {
+                start: i32x2::from_array([min_i[2], min_i[3]]),
+                current: -1,
+                width: width_p2,
+                count: count_p2,
+            };*/
+
+            // finally, for particle p1 and p2, use the iterators to add to spatial hash cells
+            // this is the slow part of this algorithm
+            let particle_idx: usize = (i * 2).try_into().unwrap();
+            /*
+            for key in key_it_p1 {
+                //println!("key: {:?}", key);
+                dynamic_spatial_hash.map.get_mut(&key).unwrap().push(particle_idx);
+            }*/
+
+            for y in min_i[1]..max_i[1] {
+                for x in min_i[0]..max_i[0] {
+                    let key = i32x2::from_array([x, y]);
+                    func(key, particle_idx);
+                    //self.dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx);
+                    //dynamic_spatial_hash.map.get_mut(&key).unwrap().push(particle_idx);
+                }
+            }
+
+            for y in min_i[3]..max_i[3] {
+                for x in min_i[2]..max_i[2] {
+                    let key = i32x2::from_array([x, y]);
+                    func(key, particle_idx + 1);
+                    //self.dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx + 1);
+                    //dynamic_spatial_hash.map.get_mut(&key).unwrap().push(particle_idx + 1);
+                }
+            }
+
+            /*
+            for key in key_it_p2 {
+                //println!("key: {:?}", key);
+                dynamic_spatial_hash.map.get_mut(&key).unwrap().push(particle_idx + 1);
+            }*/
+        }
+    }
+}
+
 
 /// This seems to be around 2x better than naive implementation
 /// based on real world testing.
@@ -18,7 +122,7 @@ use super::spatial_hash_simd_2::SpatialHashSimd2;
 pub struct SpatialHashSimdParticleSolver {
     //pub particle_data: ParticleData,
     //pub particle_vec_arc: SharedParticleVec,
-    pub static_spatial_hash: SpatialHashSimd<usize>,
+    pub static_spatial_hash: SpatialHashSimd2<usize>,
     pub dynamic_spatial_hash: SpatialHashSimd2<usize>,
 }
 
@@ -27,7 +131,7 @@ impl Default for SpatialHashSimdParticleSolver {
         Self { 
             //particle_data: ParticleData::default(),
             //particle_vec_arc: SharedParticleVec::default(),
-            static_spatial_hash: SpatialHashSimd::<usize>::new(),
+            static_spatial_hash: SpatialHashSimd2::<usize>::new(),
             dynamic_spatial_hash: SpatialHashSimd2::<usize>::new(),
         }
     }
@@ -37,15 +141,13 @@ impl SpatialHashSimdParticleSolver {
 
     pub fn notify_particle_data_changed(&mut self, particle_data: &mut ParticleData) {
         // rebuild the static spatial hash if a static particle was changed
-        self.static_spatial_hash = SpatialHashSimd::new();
+        self.static_spatial_hash = SpatialHashSimd2::new();
 
-        let static_particles = &particle_data.static_particles;       
-        let particle_count: usize = static_particles.len();
+        let static_particles = &particle_data.static_particles;
 
-        for ai in 0..particle_count {
-            let a_aabb = AabbSimd::from_position_and_radius(static_particles.pos[ai], static_particles.radius[ai][0]);
-            self.static_spatial_hash.insert_aabb(&a_aabb, ai);
-        }
+        spatial_hash_keys_for_particles(static_particles, |key: i32x2, particle_idx: usize| {
+            self.static_spatial_hash.map.entry(key).or_default().push(particle_idx);
+        });
     }
 
     #[inline(always)]
@@ -84,6 +186,7 @@ impl SpatialHashSimdParticleSolver {
                     // particles are too close to each other.
                     // just let them pass through each other
                     if dist <= f32::EPSILON {
+                        println!("distance too small, skipping collision check {} and {}", bi, ai);
                         continue;
                     }
 
@@ -111,6 +214,85 @@ impl SpatialHashSimdParticleSolver {
                 }
             }
         }
+    }
+
+
+    // this is terribly slow, why?
+    // it is the same as perform_dynamic_to_static_collision_detection, except I have replaced the loops with spatial_hash_keys_for_particles
+    #[inline(always)]
+    pub fn perform_dynamic_to_static_collision_detection_2(&mut self, particle_data: &mut ParticleData) {
+        let dynamic_particles = &mut particle_data.dynamic_particles;  
+        let static_particles = &particle_data.static_particles;
+
+        // consider that there might be duplicate checks as a particle can be in multiple cells
+        let mut collision_check = vec![usize::MAX; static_particles.len()];
+  
+        let dynamic_pos_ptr: *mut f32x2 = dynamic_particles.pos.as_mut_ptr() as *mut f32x2;
+        let dynamic_radius_ptr: *const f32x1 = dynamic_particles.radius.as_ptr() as *const f32x1;
+
+        let static_pos_ptr: *const f32x2 = static_particles.pos.as_ptr() as *const f32x2;
+        let static_radius_ptr: *const f32x1 = static_particles.radius.as_ptr() as *const f32x1;
+
+        spatial_hash_keys_for_particles(dynamic_particles, |key: i32x2, dynamic_particle_idx: usize| {
+            let dynamic_idx = dynamic_particle_idx as isize;
+
+            let cell = self.static_spatial_hash.map.get(&key);
+            match cell {
+                Some(small_vec) => {
+                    for &static_particle_idx in small_vec {
+                        let static_idx = static_particle_idx as isize;
+
+                        if collision_check[static_particle_idx] == dynamic_particle_idx {
+                            //println!("static skipping collision check between {} and {}", static_idx, dynamic_idx);
+                            return;
+                        }
+                        collision_check[static_particle_idx] = dynamic_particle_idx;
+
+                        unsafe {
+                            let collision_axis = *dynamic_pos_ptr.offset(dynamic_idx) - *static_pos_ptr.offset(static_idx);
+
+                            let dist_squared = collision_axis.length_squared_1();
+
+                            let min_dist = *dynamic_radius_ptr.offset(dynamic_idx) + *static_radius_ptr.offset(static_idx);
+                            let min_dist_squared = min_dist * min_dist;
+
+                            if dist_squared < min_dist_squared {
+                                let dist = f32x1::sqrt(dist_squared);
+
+                                // particles are too close to each other.
+                                // just let them pass through each other
+                                if dist[0] <= f32::EPSILON {
+                                    return;
+                                }
+
+                                let n = collision_axis / f32x2::splat(dist[0]);
+                                debug_assert!(!n[0].is_nan());
+                                debug_assert!(!n[1].is_nan());
+
+                                let delta = min_dist - dist;
+                                let delta_f32x2 = f32x2::splat(delta[0]);
+                                let movement = delta_f32x2 * n;
+
+                                debug_assert!(!movement[0].is_nan());
+                                debug_assert!(!movement[1].is_nan());
+
+                                *dynamic_pos_ptr.offset(dynamic_idx) += movement;
+                                debug_assert!(!(*dynamic_pos_ptr.offset(dynamic_idx))[0].is_nan());
+                                debug_assert!(!(*dynamic_pos_ptr.offset(dynamic_idx))[1].is_nan());
+                            }
+                        }
+                    }
+                },
+                None => {}
+            }
+        });
+    }
+
+
+    #[inline(always)]
+    pub fn perform_dynamic_to_static_collision_detection_3(&mut self, particle_data: &mut ParticleData) {
+        // todo: copy perform_dynamic_to_static_collision_detection
+        // but instead check against 2 static particles at once...
     }
 
     /*
@@ -222,6 +404,8 @@ impl SpatialHashSimdParticleSolver {
         
         let chunks = particle_count / 2;
 
+        // todo: handle reminder for when we have an odd amount of particles!
+
         const TILE_SIZE: usize = 1;
         let tile_size_simd = f32x4::splat(TILE_SIZE as f32);
 
@@ -299,6 +483,17 @@ impl SpatialHashSimdParticleSolver {
             }
         }
     }
+
+
+    // attempt to optimise with simd + trying to optimise hash map insertion
+    #[inline(always)]
+    pub fn populate_dynamic_spatial_hash_4(&mut self, particle_data: &mut ParticleData) {
+        let dynamic_particles = &particle_data.dynamic_particles;   
+        spatial_hash_keys_for_particles(dynamic_particles, |key: i32x2, particle_idx: usize| {
+            self.dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx);
+        });
+    }
+
 
 
     #[inline(always)]
@@ -401,7 +596,7 @@ impl SpatialHashSimdParticleSolver {
         self.perform_dynamic_to_static_collision_detection(particle_data);
 
         self.dynamic_spatial_hash.soft_clear();
-        self.populate_dynamic_spatial_hash_3(particle_data);
+        self.populate_dynamic_spatial_hash_4(particle_data);
        
         self.perform_dynamic_to_dynamic_collision_detection(particle_data);
     }

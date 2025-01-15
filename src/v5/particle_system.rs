@@ -18,7 +18,7 @@ fn range_substeps(delta_seconds: f32, desired_hertz: f32) -> Vec<f32> {
 
 pub struct ParticleSystem {
     pub particle_data: ParticleData,
-    solver: SpatialHashSimdParticleSolver,
+    pub solver: SpatialHashSimdParticleSolver,
     desired_hertz: f32,
     gravity: f32x2
 }

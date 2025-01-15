@@ -73,75 +73,122 @@ fn run_sim_solver_test(particle_sim: &mut ParticleSim) {
 
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let mut group = c.benchmark_group("v5");
     //group.sample_size(20);//.measurement_time(Duration::from_secs(10));
 
+    // this group is measuring optimisations for perform_dynamic_to_static_collision_detection
+    {
+        let mut group_2 = c.benchmark_group("v5 - dynamic-static collision detection");
+
+        group_2.bench_function("perform_dynamic_to_static_collision_detection", |b| {
+            let mut particle_system = ParticleSystem::default();
+            particle_system_setup_sim_solver_test(&mut particle_system, 0.1);
+
+            b.iter(|| {
+                particle_system.solver.perform_dynamic_to_static_collision_detection(&mut particle_system.particle_data);
+            })
+        });
+
+        // this is way slower than the origional!
+        group_2.bench_function("perform_dynamic_to_static_collision_detection_2", |b| {
+            let mut particle_system = ParticleSystem::default();
+            particle_system_setup_sim_solver_test(&mut particle_system, 0.1);
+
+            b.iter(|| {
+                particle_system.solver.perform_dynamic_to_static_collision_detection_2(&mut particle_system.particle_data);
+            })
+        });
+    }
+
     /*
-    group.bench_function("SpatialHashSimdParticleSolver - populate_dynamic_spatial_hash", |b| {
-        let mut solver = SpatialHashSimdParticleSolver::default();
-        let mut shared_particle_vec = SharedParticleVec::default();
-        setup_sim_solver_test(&mut shared_particle_vec, 0.1);
-        solver.bind(&shared_particle_vec);
-        
-        b.iter(|| {
-            let mut dynamic_spatial_hash = SpatialHashSimd::<usize>::new();
-            solver.populate_dynamic_spatial_hash(&mut dynamic_spatial_hash);
-        })
-    });
+    // this group is measuing optimisations for populate_dynamic_spatial_hash
+    {
+        let mut group = c.benchmark_group("v5 - populate_dynamic_spatial_hash");
 
-    group.bench_function("SpatialHashSimdParticleSolver - populate_dynamic_spatial_hash_2", |b| {
-        let mut solver = SpatialHashSimdParticleSolver::default();
-        let mut shared_particle_vec = SharedParticleVec::default();
-        setup_sim_solver_test(&mut shared_particle_vec, 0.1);
-        solver.bind(&shared_particle_vec);
+        group.bench_function("SpatialHashSimdParticleSolver - populate_dynamic_spatial_hash", |b| {
+            let mut solver = SpatialHashSimdParticleSolver::default();
+            let mut shared_particle_vec = SharedParticleVec::default();
+            setup_sim_solver_test(&mut shared_particle_vec, 0.1);
+            solver.bind(&shared_particle_vec);
+            
+            b.iter(|| {
+                let mut dynamic_spatial_hash = SpatialHashSimd::<usize>::new();
+                solver.populate_dynamic_spatial_hash(&mut dynamic_spatial_hash);
+            })
+        });
 
-        b.iter(|| {
+        group.bench_function("SpatialHashSimdParticleSolver - populate_dynamic_spatial_hash_2", |b| {
+            let mut solver = SpatialHashSimdParticleSolver::default();
+            let mut shared_particle_vec = SharedParticleVec::default();
+            setup_sim_solver_test(&mut shared_particle_vec, 0.1);
+            solver.bind(&shared_particle_vec);
+
+            b.iter(|| {
+                let mut dynamic_spatial_hash = SpatialHashSimd2::<usize>::new();
+                solver.populate_dynamic_spatial_hash_2(&mut dynamic_spatial_hash);
+            })
+        });
+
+        group.bench_function("SpatialHashSimdParticleSolver - populate_dynamic_spatial_hash_2 + clear", |b| {
+            let mut solver = SpatialHashSimdParticleSolver::default();
+            let mut shared_particle_vec = SharedParticleVec::default();
+            setup_sim_solver_test(&mut shared_particle_vec, 0.1);
+            solver.bind(&shared_particle_vec);
+
             let mut dynamic_spatial_hash = SpatialHashSimd2::<usize>::new();
-            solver.populate_dynamic_spatial_hash_2(&mut dynamic_spatial_hash);
-        })
-    });
+            b.iter(|| {
+                dynamic_spatial_hash.clear();
+                solver.populate_dynamic_spatial_hash_2(&mut dynamic_spatial_hash);
+            })
+        });
 
-    group.bench_function("SpatialHashSimdParticleSolver - populate_dynamic_spatial_hash_2 + clear", |b| {
-        let mut solver = SpatialHashSimdParticleSolver::default();
-        let mut shared_particle_vec = SharedParticleVec::default();
-        setup_sim_solver_test(&mut shared_particle_vec, 0.1);
-        solver.bind(&shared_particle_vec);
+        group.bench_function("SpatialHashSimdParticleSolver - populate_dynamic_spatial_hash_2 + soft_clear", |b| {
+            let mut solver = SpatialHashSimdParticleSolver::default();
+            let mut shared_particle_vec = SharedParticleVec::default();
+            setup_sim_solver_test(&mut shared_particle_vec, 0.1);
+            solver.bind(&shared_particle_vec);
 
-        let mut dynamic_spatial_hash = SpatialHashSimd2::<usize>::new();
-        b.iter(|| {
-            dynamic_spatial_hash.clear();
-            solver.populate_dynamic_spatial_hash_2(&mut dynamic_spatial_hash);
-        })
-    });
+            let mut dynamic_spatial_hash = SpatialHashSimd2::<usize>::new();
+            b.iter(|| {
+                dynamic_spatial_hash.soft_clear();
+                solver.populate_dynamic_spatial_hash_2(&mut dynamic_spatial_hash);
+            })
+        });
 
-    group.bench_function("SpatialHashSimdParticleSolver - populate_dynamic_spatial_hash_2 + soft_clear", |b| {
-        let mut solver = SpatialHashSimdParticleSolver::default();
-        let mut shared_particle_vec = SharedParticleVec::default();
-        setup_sim_solver_test(&mut shared_particle_vec, 0.1);
-        solver.bind(&shared_particle_vec);
 
-        let mut dynamic_spatial_hash = SpatialHashSimd2::<usize>::new();
-        b.iter(|| {
-            dynamic_spatial_hash.soft_clear();
-            solver.populate_dynamic_spatial_hash_2(&mut dynamic_spatial_hash);
-        })
-    });
+        // this is the winner so far
+        // seem soft_clear or clear doesn't make any difference
+        // prepopulate didnt make any noticable difference, so easier to not have it as it takes more work to use
+        group.bench_function("SpatialHashSimdParticleSolver - populate_dynamic_spatial_hash_3 + soft_clear", |b| {
+            let mut particle_system = ParticleSystem::default();
 
-    // this is the winner so far
-    // seem soft_clear or clear doesn't make any difference
-    // prepopulate didnt make any noticable difference, so easier to not have it as it takes more work to use
-    group.bench_function("SpatialHashSimdParticleSolver - populate_dynamic_spatial_hash_3 + soft_clear", |b| {
-        let mut solver = SpatialHashSimdParticleSolver::default();
-        let mut shared_particle_vec = SharedParticleVec::default();
-        setup_sim_solver_test(&mut shared_particle_vec, 0.1);
-        solver.bind(&shared_particle_vec);
+            //let mut solver = SpatialHashSimdParticleSolver::default();
+            //let mut shared_particle_vec = SharedParticleVec::default();
+            particle_system_setup_sim_solver_test(&mut particle_system, 0.1);
+            //solver.bind(&shared_particle_vec);
 
-        b.iter(|| {
-            solver.dynamic_spatial_hash.soft_clear();
-            solver.populate_dynamic_spatial_hash_3();
-        })
-    });
-*/
+            b.iter(|| {
+                particle_system.solver.dynamic_spatial_hash.soft_clear();
+                particle_system.solver.populate_dynamic_spatial_hash_3(&mut particle_system.particle_data);
+            })
+        });
+
+
+        // #4 tries to abstract away the AABB spatial hash cell determination
+        group.bench_function("SpatialHashSimdParticleSolver - populate_dynamic_spatial_hash_4 + soft_clear", |b| {
+            let mut particle_system = ParticleSystem::default();
+
+            //let mut solver = SpatialHashSimdParticleSolver::default();
+            //let mut shared_particle_vec = SharedParticleVec::default();
+            particle_system_setup_sim_solver_test(&mut particle_system, 0.1);
+            //solver.bind(&shared_particle_vec);
+
+            b.iter(|| {
+                particle_system.solver.dynamic_spatial_hash.soft_clear();
+                particle_system.solver.populate_dynamic_spatial_hash_4(&mut particle_system.particle_data);
+            })
+        });
+    }*/
+
     
 
     /* 
@@ -184,39 +231,45 @@ fn criterion_benchmark(c: &mut Criterion) {
     */
 
 
-    group.bench_function("NaiveParticleSolver solve_collisions", |b| {
-        let mut solver = NaiveParticleSolver::default();
-        let mut shared_particle_vec = SharedParticleVec::default();
-        setup_sim_solver_test(&mut shared_particle_vec, 1.0);
-        solver.bind(&shared_particle_vec);
+    /*
+    {
+        let mut group_1 = c.benchmark_group("v5 - solve_collisions");
+        
+        group_1.bench_function("NaiveParticleSolver solve_collisions", |b| {
+            let mut solver = NaiveParticleSolver::default();
+            let mut shared_particle_vec = SharedParticleVec::default();
+            setup_sim_solver_test(&mut shared_particle_vec, 1.0);
+            solver.bind(&shared_particle_vec);
 
-        b.iter(|| {
-            solver.solve_collisions();
-            //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
-        })
-    });
+            b.iter(|| {
+                solver.solve_collisions();
+                //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
+            })
+        });
 
-    group.bench_function("SpatialHashParticleSolver solve_collisions", |b| {
-        let mut solver = SpatialHashParticleSolver::default();
-        let mut shared_particle_vec = SharedParticleVec::default();
-        setup_sim_solver_test(&mut shared_particle_vec, 1.0);
-        solver.bind(&shared_particle_vec);
+        group_1.bench_function("SpatialHashParticleSolver solve_collisions", |b| {
+            let mut solver = SpatialHashParticleSolver::default();
+            let mut shared_particle_vec = SharedParticleVec::default();
+            setup_sim_solver_test(&mut shared_particle_vec, 1.0);
+            solver.bind(&shared_particle_vec);
 
-        b.iter(|| {
-            solver.solve_collisions();
-            //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
-        })
-    });
+            b.iter(|| {
+                solver.solve_collisions();
+                //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
+            })
+        });
 
-    group.bench_function("ParticleSystem/SpatialHashSimdParticleSolver solve_collisions", |b| {
-        let mut particle_system = ParticleSystem::default();
-        particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+        group_1.bench_function("ParticleSystem/SpatialHashSimdParticleSolver solve_collisions", |b| {
+            let mut particle_system = ParticleSystem::default();
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
 
-        b.iter(|| {
-            particle_system.solve_collisions();
-            //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
-        })
-    });
+            b.iter(|| {
+                particle_system.solve_collisions();
+                //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
+            })
+        });
+    }*/
+
 /*
 
     group.bench_function("SpatialHash insert_aabb + aabb_iter", |b| {
