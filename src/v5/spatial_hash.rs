@@ -14,7 +14,7 @@ type Key = (i32, i32);
 /// A spatial container that allows querying for entities that share one or more grid cell
 #[derive(Default, Reflect, Debug, Clone)]
 pub struct SpatialHash<T: Copy + Eq + std::hash::Hash = Entity, const TILE_SIZE: usize = 1> {
-    map: HashMap<Key, SmallVec<[T; 5]>>,
+    map: HashMap<Key, SmallVec<[T; 100]>>,
 }
 
 impl<T: Copy + Eq + std::hash::Hash, const TILE_SIZE: usize> SpatialHash<T, TILE_SIZE> {

@@ -87,7 +87,7 @@ where
 #[inline(always)]
 pub fn spatial_hash_keys_for_particles_keys<F>(particles: &ParticleVec, mut func: F) 
 where 
-    F: FnMut(usize, &SmallVec::<[i32x2; 5]>)
+    F: FnMut(usize, &SmallVec::<[i32x2; 100]>)
 {      
     let particle_count: usize = particles.len();
 
@@ -129,7 +129,7 @@ where
             let particle_idx: usize = (i * 2).try_into().unwrap();
 
             {
-                let mut keys = SmallVec::<[i32x2; 5]>::new();
+                let mut keys = SmallVec::<[i32x2; 100]>::new();
                 for y in min_i[1]..max_i[1] {
                     for x in min_i[0]..max_i[0] {
                         let key = i32x2::from_array([x, y]);
@@ -140,7 +140,7 @@ where
             }
 
             {
-                let mut keys = SmallVec::<[i32x2; 5]>::new();
+                let mut keys = SmallVec::<[i32x2; 100]>::new();
                 for y in min_i[3]..max_i[3] {
                     for x in min_i[2]..max_i[2] {
                         let key = i32x2::from_array([x, y]);
@@ -399,7 +399,7 @@ impl SpatialHashSimdParticleSolver {
 
         let dynamic_particles = &mut particle_data.dynamic_particles;
 
-        spatial_hash_keys_for_particles_keys(dynamic_particles, |dynamic_particle_idx: usize, keys: &SmallVec::<[i32x2; 5]>| {
+        spatial_hash_keys_for_particles_keys(dynamic_particles, |dynamic_particle_idx: usize, keys: &SmallVec::<[i32x2; 100]>| {
             let mut static_indicies = SmallVec::<[usize; 100]>::new();
             let mut dynamic_indicies = SmallVec::<[usize; 100]>::new();
 
@@ -446,7 +446,7 @@ impl SpatialHashSimdParticleSolver {
 
         let dynamic_particles = &mut particle_data.dynamic_particles;
 
-        spatial_hash_keys_for_particles_keys(dynamic_particles, |dynamic_particle_idx: usize, keys: &SmallVec::<[i32x2; 5]>| {
+        spatial_hash_keys_for_particles_keys(dynamic_particles, |dynamic_particle_idx: usize, keys: &SmallVec::<[i32x2; 100]>| {
             let mut dynamic_indicies = SmallVec::<[usize; 100]>::new();
 
             let dynamic_it = keys.iter()
@@ -473,7 +473,7 @@ impl SpatialHashSimdParticleSolver {
 
         let dynamic_particles = &mut particle_data.dynamic_particles;
 
-        spatial_hash_keys_for_particles_keys(dynamic_particles, |dynamic_particle_idx: usize, keys: &SmallVec::<[i32x2; 5]>| {
+        spatial_hash_keys_for_particles_keys(dynamic_particles, |dynamic_particle_idx: usize, keys: &SmallVec::<[i32x2; 100]>| {
             let mut dynamic_indicies = SmallVec::<[usize; 100]>::new();
 
             let dynamic_it = keys.iter()
@@ -812,7 +812,7 @@ impl SpatialHashSimdParticleSolver {
         let radius_ptr: *const f32x1 = enabled_particles.radius.as_ptr() as *const f32x1;
         let movement_ptr: *mut f32x2 = enabled_particles.movement.as_mut_ptr() as *mut f32x2;
 
-        spatial_hash_keys_for_particles_keys(enabled_particles, |uidx_0: usize, keys: &SmallVec::<[i32x2; 5]>| {
+        spatial_hash_keys_for_particles_keys(enabled_particles, |uidx_0: usize, keys: &SmallVec::<[i32x2; 100]>| {
             let idx_0 = uidx_0 as isize;
             let mut particle_idxs_set = SortedSet::<usize>::new();
 
@@ -944,7 +944,7 @@ impl SpatialHashSimdParticleSolver {
         let radius_ptr: *const f32x1 = enabled_particles.radius.as_ptr() as *const f32x1;
         let movement_ptr: *mut f32x2 = enabled_particles.movement.as_mut_ptr() as *mut f32x2;
 
-        spatial_hash_keys_for_particles_keys(enabled_particles, |uidx_0: usize, keys: &SmallVec::<[i32x2; 5]>| {
+        spatial_hash_keys_for_particles_keys(enabled_particles, |uidx_0: usize, keys: &SmallVec::<[i32x2; 100]>| {
             let idx_0 = uidx_0 as isize;
             let mut particle_idxs_set = SortedSet::<usize>::new();
 
@@ -1017,7 +1017,7 @@ impl SpatialHashSimdParticleSolver {
         let radius_ptr: *const f32x1 = enabled_particles.radius.as_ptr() as *const f32x1;
         let movement_ptr: *mut f32x2 = enabled_particles.movement.as_mut_ptr() as *mut f32x2;
 
-        spatial_hash_keys_for_particles_keys(enabled_particles, |uidx_0: usize, keys: &SmallVec::<[i32x2; 5]>| {
+        spatial_hash_keys_for_particles_keys(enabled_particles, |uidx_0: usize, keys: &SmallVec::<[i32x2; 100]>| {
             let idx_0 = uidx_0 as isize;
             let mut particle_idxs_set = HashSet::<usize>::new();
 
@@ -1139,6 +1139,7 @@ impl SpatialHashSimdParticleSolver {
 
     // Trying to keep seperate static and dynamic particles, while processing 2 particles at once where possible.
     // for some reason the basic solve_collisions is still faster than this... need to investigate why
+    // also processing 1 particle at once seems faster as well, do might need to try a new variation there also....
     pub fn solve_collisions_5(&mut self, particle_data: &mut ParticleData) {
         // setup the spatial hash
         self.dynamic_spatial_hash.soft_clear();
@@ -1156,7 +1157,7 @@ impl SpatialHashSimdParticleSolver {
         let static_pos_ptr: *const f32x2 = static_particles.pos.as_ptr() as *const f32x2;
         let static_radius_ptr: *const f32x1 = static_particles.radius.as_ptr() as *const f32x1;
 
-        spatial_hash_keys_for_particles_keys(dynamic_particles, |uidx_0: usize, keys: &SmallVec::<[i32x2; 5]>| {
+        spatial_hash_keys_for_particles_keys(dynamic_particles, |uidx_0: usize, keys: &SmallVec::<[i32x2; 100]>| {
             let idx_0 = uidx_0 as isize;
 
             let pos_0 = unsafe {
