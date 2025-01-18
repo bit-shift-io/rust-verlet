@@ -4,6 +4,7 @@ use std::usize;
 
 
 use smallvec::SmallVec;
+use sorted_vec::SortedSet;
 
 use crate::v5::spatial_hash_simd_2::KeyIter;
 
@@ -424,6 +425,9 @@ impl SpatialHashSimdParticleSolver {
 
 
     // This is the fastest method!
+    // There doesn't seem to be any benifit to seperating dynamic and static particles
+    // unless I spent time coming up with some sort of linked list spatial hash structure that might make 
+    // "cloning" a hash map quicker.
     #[inline(always)]
     pub fn find_colliders_option_2(&mut self, particle_data: &mut ParticleData) {
         // option 2. a single spatial hash just add all static and dynamic hashes every frame, then search through 1 spatial has
@@ -789,5 +793,48 @@ impl SpatialHashSimdParticleSolver {
         self.populate_dynamic_spatial_hash_4(particle_data);
        
         self.perform_dynamic_to_dynamic_collision_detection(particle_data);
+    }
+
+    // Here we have 1 combined spatial hash which includes all dynamic and static particles
+    // then we try to do simd collision detection on 2 particles at once
+    pub fn solve_collisions_2(&mut self, particle_data: &mut ParticleData) {
+        // setup the spatial hash
+        self.dynamic_spatial_hash.soft_clear();
+        let enabled_particles = &particle_data.enabled_particles;   
+        spatial_hash_keys_for_particles(enabled_particles, |key: i32x2, particle_idx: usize| {
+            self.dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx);
+        });
+
+        spatial_hash_keys_for_particles_keys(enabled_particles, |particle_idx: usize, keys: &SmallVec::<[i32x2; 5]>| {
+            let mut particle_idxs_set = SortedSet::<usize>::new();
+
+            let particle_idx_it = keys.iter()
+                .filter_map(|key| self.dynamic_spatial_hash.map.get(key))
+                .flatten();
+
+            // Remove any particle indexes that are less then our index.
+            // Trying to avoid checking collision twice, if we have 3 particles [a, b, c]
+            // we will end up in here with [a => b] but also [b => a] in the case a and b are in the same cells
+            // this also stops self collisions [a => a]
+            for p_idx in particle_idx_it {
+                if (*p_idx > particle_idx) {
+                    particle_idxs_set.push(*p_idx);
+                }
+            }
+
+            for particle_idxs in particle_idxs_set.windows(2) {
+                match particle_idxs {
+                    [idx_1, idx_2] => {
+                        println!("2 idxs");
+                    },
+                    [idx_1] => {
+                        println!("1 idx");
+                    },
+                    _ => {
+                        println!("more than 2 idxs");
+                    }
+                }
+            }
+        });
     }
 }

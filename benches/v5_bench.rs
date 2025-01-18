@@ -75,6 +75,7 @@ fn run_sim_solver_test(particle_sim: &mut ParticleSim) {
 fn criterion_benchmark(c: &mut Criterion) {
     //group.sample_size(20);//.measurement_time(Duration::from_secs(10));
 
+    /*
     {
         let mut group = c.benchmark_group("v5 - find colliders");
 
@@ -142,8 +143,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 particle_system.solver.find_colliders_option_3(&mut particle_system.particle_data);
             })
         });
-
-    }
+    }*/
 
     /* 
     // this group is measuring optimisations for perform_dynamic_to_static_collision_detection
@@ -302,11 +302,11 @@ fn criterion_benchmark(c: &mut Criterion) {
     */
 
 
-    /*
+    // test the whole collision solving step
     {
-        let mut group_1 = c.benchmark_group("v5 - solve_collisions");
+        let mut group = c.benchmark_group("v5 - solve_collisions");
         
-        group_1.bench_function("NaiveParticleSolver solve_collisions", |b| {
+        group.bench_function("NaiveParticleSolver solve_collisions", |b| {
             let mut solver = NaiveParticleSolver::default();
             let mut shared_particle_vec = SharedParticleVec::default();
             setup_sim_solver_test(&mut shared_particle_vec, 1.0);
@@ -318,7 +318,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             })
         });
 
-        group_1.bench_function("SpatialHashParticleSolver solve_collisions", |b| {
+        group.bench_function("SpatialHashParticleSolver solve_collisions", |b| {
             let mut solver = SpatialHashParticleSolver::default();
             let mut shared_particle_vec = SharedParticleVec::default();
             setup_sim_solver_test(&mut shared_particle_vec, 1.0);
@@ -330,7 +330,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             })
         });
 
-        group_1.bench_function("ParticleSystem/SpatialHashSimdParticleSolver solve_collisions", |b| {
+        group.bench_function("ParticleSystem solve_collisions", |b| {
             let mut particle_system = ParticleSystem::default();
             particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
 
@@ -339,7 +339,17 @@ fn criterion_benchmark(c: &mut Criterion) {
                 //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
             })
         });
-    }*/
+
+        group.bench_function("ParticleSystem solve_collisions_2", |b| {
+            let mut particle_system = ParticleSystem::default();
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+
+            b.iter(|| {
+                particle_system.solver.solve_collisions_2(&mut particle_system.particle_data);
+                //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
+            })
+        });
+    }
 
 /*
 
