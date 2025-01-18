@@ -38,6 +38,8 @@ pub type SharedParticleVec = Arc<RwLock<ParticleVec>>;
 
 
 pub struct ParticleVec {
+    pub movement: Vec<f32x2>,
+
     pub pos: Vec<f32x2>,
     pub pos_prev: Vec<f32x2>,
 
@@ -56,6 +58,7 @@ impl ParticleVec {
     pub fn add(&mut self, particle: Particle) -> ParticleHandle {
         let id = self.len();
 
+        self.movement.push(f32x2::splat(0.0)); // initialize movement to zero
         self.pos.push(f32x2::from_array([particle.pos.x, particle.pos.y]));
         self.pos_prev.push(f32x2::from_array([particle.pos_prev.x, particle.pos_prev.y]));
         self.radius.push(f32x1::from_array([particle.radius]));
@@ -334,6 +337,8 @@ impl ParticleVec {
 impl Default for ParticleVec {
     fn default() -> Self { 
         Self {
+            movement: vec![],
+            
             pos: vec![],
             pos_prev: vec![],
 

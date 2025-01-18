@@ -1,6 +1,8 @@
 #![feature(test)]
 #![feature(extract_if)]
 #![feature(portable_simd)]
+#![feature(iter_array_chunks)]
+
 /*
 mod sdl_system;
 mod keyboard;

@@ -1,5 +1,6 @@
 #![feature(extract_if)]
 #![feature(portable_simd)]
+#![feature(iter_array_chunks)]
 
 use std::time::Duration;
 use std::simd::f32x2;
@@ -306,22 +307,35 @@ fn criterion_benchmark(c: &mut Criterion) {
     {
         let mut group = c.benchmark_group("v5 - solve_collisions");
         
+        /* its slow! 
         group.bench_function("NaiveParticleSolver solve_collisions", |b| {
             let mut solver = NaiveParticleSolver::default();
             let mut shared_particle_vec = SharedParticleVec::default();
             setup_sim_solver_test(&mut shared_particle_vec, 1.0);
+            setup_sim_solver_test(&mut shared_particle_vec, 1.0);
+            setup_sim_solver_test(&mut shared_particle_vec, 1.0);
+            setup_sim_solver_test(&mut shared_particle_vec, 1.0);
+            setup_sim_solver_test(&mut shared_particle_vec, 1.0);
+            setup_sim_solver_test(&mut shared_particle_vec, 1.0);
+
             solver.bind(&shared_particle_vec);
 
             b.iter(|| {
                 solver.solve_collisions();
                 //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
             })
-        });
+        });*/
 
         group.bench_function("SpatialHashParticleSolver solve_collisions", |b| {
             let mut solver = SpatialHashParticleSolver::default();
             let mut shared_particle_vec = SharedParticleVec::default();
             setup_sim_solver_test(&mut shared_particle_vec, 1.0);
+            setup_sim_solver_test(&mut shared_particle_vec, 1.0);
+            setup_sim_solver_test(&mut shared_particle_vec, 1.0);
+            setup_sim_solver_test(&mut shared_particle_vec, 1.0);
+            setup_sim_solver_test(&mut shared_particle_vec, 1.0);
+            setup_sim_solver_test(&mut shared_particle_vec, 1.0);
+
             solver.bind(&shared_particle_vec);
 
             b.iter(|| {
@@ -333,6 +347,11 @@ fn criterion_benchmark(c: &mut Criterion) {
         group.bench_function("ParticleSystem solve_collisions", |b| {
             let mut particle_system = ParticleSystem::default();
             particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
 
             b.iter(|| {
                 particle_system.solve_collisions();
@@ -343,9 +362,62 @@ fn criterion_benchmark(c: &mut Criterion) {
         group.bench_function("ParticleSystem solve_collisions_2", |b| {
             let mut particle_system = ParticleSystem::default();
             particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
 
             b.iter(|| {
                 particle_system.solver.solve_collisions_2(&mut particle_system.particle_data);
+                //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
+            })
+        });
+
+
+        group.bench_function("ParticleSystem solve_collisions_3", |b| {
+            let mut particle_system = ParticleSystem::default();
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+
+            b.iter(|| {
+                particle_system.solver.solve_collisions_3(&mut particle_system.particle_data);
+                //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
+            })
+        });
+
+
+        group.bench_function("ParticleSystem solve_collisions_4", |b| {
+            let mut particle_system = ParticleSystem::default();
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+
+            b.iter(|| {
+                particle_system.solver.solve_collisions_4(&mut particle_system.particle_data);
+                //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
+            })
+        });
+
+
+        group.bench_function("ParticleSystem solve_collisions_5", |b| {
+            let mut particle_system = ParticleSystem::default();
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+
+            b.iter(|| {
+                particle_system.solver.solve_collisions_5(&mut particle_system.particle_data);
                 //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
             })
         });
