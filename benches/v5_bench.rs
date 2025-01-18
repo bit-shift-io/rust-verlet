@@ -75,6 +75,77 @@ fn run_sim_solver_test(particle_sim: &mut ParticleSim) {
 fn criterion_benchmark(c: &mut Criterion) {
     //group.sample_size(20);//.measurement_time(Duration::from_secs(10));
 
+    {
+        let mut group = c.benchmark_group("v5 - find colliders");
+
+        group.bench_function("find_colliders_option_1_old_iteration", |b| {
+            let mut particle_system = ParticleSystem::default();
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+
+            b.iter(|| {
+                particle_system.solver.find_colliders_option_1_old_iteration(&mut particle_system.particle_data);
+            })
+        });
+
+        group.bench_function("find_colliders_option_1_new_iteration", |b| {
+            let mut particle_system = ParticleSystem::default();
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+
+            b.iter(|| {
+                particle_system.solver.find_colliders_option_1_new_iteration(&mut particle_system.particle_data);
+            })
+        });
+
+        group.bench_function("find_colliders_option_2", |b| {
+            let mut particle_system = ParticleSystem::default();
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+
+            b.iter(|| {
+                particle_system.solver.find_colliders_option_2(&mut particle_system.particle_data);
+            })
+        });
+
+
+        group.bench_function("find_colliders_option_3", |b| {
+            let mut particle_system = ParticleSystem::default();
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+
+            b.iter(|| {
+                particle_system.solver.find_colliders_option_3(&mut particle_system.particle_data);
+            })
+        });
+
+    }
+
+    /* 
     // this group is measuring optimisations for perform_dynamic_to_static_collision_detection
     {
         let mut group_2 = c.benchmark_group("v5 - dynamic-static collision detection");
@@ -97,7 +168,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 particle_system.solver.perform_dynamic_to_static_collision_detection_2(&mut particle_system.particle_data);
             })
         });
-    }
+    }*/
 
     /*
     // this group is measuing optimisations for populate_dynamic_spatial_hash

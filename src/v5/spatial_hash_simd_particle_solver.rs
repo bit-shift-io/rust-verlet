@@ -3,6 +3,8 @@ use std::simd::{f32x1, f32x2, f32x4, i32x1, i32x2, i32x4, StdFloat};
 use std::usize;
 
 
+use smallvec::SmallVec;
+
 use crate::v5::spatial_hash_simd_2::KeyIter;
 
 use super::aabb_simd::AabbSimd;
@@ -25,7 +27,7 @@ where
     // todo: grow amount should not be needed as I will split movement phase to occur after we compute collisions
     // i.e. phase 1. compute collisions and store movement vectors
     // phase 2. move the particles
-    let grow_amount: f32x4 = f32x4::splat(2.0); // this if like the maximum a particle should be able to move per frame - 2metres
+    //let grow_amount: f32x4 = f32x4::splat(2.0); // this if like the maximum a particle should be able to move per frame - 2metres
 
     // pointer to the start of the vector data
     let pos_ptr: *const f32x4 = particles.pos.as_ptr() as *const f32x4;
@@ -39,15 +41,13 @@ where
     let tile_size_simd = f32x4::splat(TILE_SIZE as f32);
 
     for i in 0..chunks as isize {
-
         unsafe {
-
             // take 2 particles at a time
             // pos_simd has 2 positions packed in [p1.pos.x, p1.pos.y, p2.pos.x, p2.pos.y]
             // we setup radius_simd to have [p1.radius, p1.radius, p2.radius, p2.radius]
             let pos_simd = *pos_ptr.offset(i);
-            let mut radius_simd = f32x4::from([(*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[1], (*radius_ptr.offset(i))[1]]);
-            radius_simd += grow_amount;
+            let radius_simd = f32x4::from([(*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[1], (*radius_ptr.offset(i))[1]]);
+            //radius_simd += grow_amount;
 
             // compute a bounding box using position and radius
             let min_f32 = pos_simd - radius_simd;
@@ -57,43 +57,14 @@ where
             let min_i: i32x4  = (min_f32 / tile_size_simd).floor().cast(); //.into();
             let max_i: i32x4 = (max_f32 / tile_size_simd).ceil().cast(); //.into();
 
-            // now we setup 2 iterators, one for p1 and one for p2
-            //let diff_i = max_i - min_i;
-            //let [width_p1, height_p1, width_p2, height_p2] = diff_i.to_array();
-
-            /*
-            let count_p1 = width_p1 * height_p1;
-            let count_p2 = width_p2 * height_p2;
-
-            let key_it_p1 = KeyIter {
-                start: i32x2::from_array([min_i[0], min_i[1]]),
-                current: -1,
-                width: width_p1,
-                count: count_p1,
-            };
-
-            let key_it_p2 = KeyIter {
-                start: i32x2::from_array([min_i[2], min_i[3]]),
-                current: -1,
-                width: width_p2,
-                count: count_p2,
-            };*/
-
             // finally, for particle p1 and p2, use the iterators to add to spatial hash cells
             // this is the slow part of this algorithm
             let particle_idx: usize = (i * 2).try_into().unwrap();
-            /*
-            for key in key_it_p1 {
-                //println!("key: {:?}", key);
-                dynamic_spatial_hash.map.get_mut(&key).unwrap().push(particle_idx);
-            }*/
 
             for y in min_i[1]..max_i[1] {
                 for x in min_i[0]..max_i[0] {
                     let key = i32x2::from_array([x, y]);
                     func(key, particle_idx);
-                    //self.dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx);
-                    //dynamic_spatial_hash.map.get_mut(&key).unwrap().push(particle_idx);
                 }
             }
 
@@ -101,16 +72,79 @@ where
                 for x in min_i[2]..max_i[2] {
                     let key = i32x2::from_array([x, y]);
                     func(key, particle_idx + 1);
-                    //self.dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx + 1);
-                    //dynamic_spatial_hash.map.get_mut(&key).unwrap().push(particle_idx + 1);
                 }
             }
+        }
+    }
+}
 
-            /*
-            for key in key_it_p2 {
-                //println!("key: {:?}", key);
-                dynamic_spatial_hash.map.get_mut(&key).unwrap().push(particle_idx + 1);
-            }*/
+
+// given a set of particles, iterate over each and generate a set of spatial hash keys for each particle index
+#[inline(always)]
+pub fn spatial_hash_keys_for_particles_keys<F>(particles: &ParticleVec, mut func: F) 
+where 
+    F: FnMut(usize, &SmallVec::<[i32x2; 5]>)
+{      
+    let particle_count: usize = particles.len();
+
+    // todo: grow amount should not be needed as I will split movement phase to occur after we compute collisions
+    // i.e. phase 1. compute collisions and store movement vectors
+    // phase 2. move the particles
+    //let grow_amount: f32x4 = f32x4::splat(2.0); // this if like the maximum a particle should be able to move per frame - 2metres
+
+    // pointer to the start of the vector data
+    let pos_ptr: *const f32x4 = particles.pos.as_ptr() as *const f32x4;
+    let radius_ptr: *const f32x2 = particles.radius.as_ptr() as *const f32x2;
+    
+    let chunks = particle_count / 2;
+
+    // todo: handle reminder for when we have an odd amount of particles!
+
+    const TILE_SIZE: usize = 1;
+    let tile_size_simd = f32x4::splat(TILE_SIZE as f32);
+
+    for i in 0..chunks as isize {
+        unsafe {
+            // take 2 particles at a time
+            // pos_simd has 2 positions packed in [p1.pos.x, p1.pos.y, p2.pos.x, p2.pos.y]
+            // we setup radius_simd to have [p1.radius, p1.radius, p2.radius, p2.radius]
+            let pos_simd = *pos_ptr.offset(i);
+            let radius_simd = f32x4::from([(*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[1], (*radius_ptr.offset(i))[1]]);
+            //radius_simd += grow_amount;
+
+            // compute a bounding box using position and radius
+            let min_f32 = pos_simd - radius_simd;
+            let max_f32 = pos_simd + radius_simd;
+            
+            // divide by spatial has tile size and apply rounding to conver to "cell space"
+            let min_i: i32x4  = (min_f32 / tile_size_simd).floor().cast(); //.into();
+            let max_i: i32x4 = (max_f32 / tile_size_simd).ceil().cast(); //.into();
+
+            // finally, for particle p1 and p2, use the iterators to add to spatial hash cells
+            // this is the slow part of this algorithm
+            let particle_idx: usize = (i * 2).try_into().unwrap();
+
+            {
+                let mut keys = SmallVec::<[i32x2; 5]>::new();
+                for y in min_i[1]..max_i[1] {
+                    for x in min_i[0]..max_i[0] {
+                        let key = i32x2::from_array([x, y]);
+                        keys.push(key);
+                    }
+                }
+                func(particle_idx, &keys)
+            }
+
+            {
+                let mut keys = SmallVec::<[i32x2; 5]>::new();
+                for y in min_i[3]..max_i[3] {
+                    for x in min_i[2]..max_i[2] {
+                        let key = i32x2::from_array([x, y]);
+                        keys.push(key);
+                    }
+                }
+                func(particle_idx + 1, &keys);
+            }
         }
     }
 }
@@ -289,11 +323,167 @@ impl SpatialHashSimdParticleSolver {
     }
 
 
+    // there are a few ways to try to get fastest performance for finding which particles collide
+    // option 1. static hash and dynamic hash seperately. static is only regenerated when a static particle is changed
+    //      then we need to search through 2 spatial hashes for colliding particles
+    //
+    // option 2. a single spatial hash just add all static and dynamic hashes every frame, then search through 1 spatial has
+    // option 3. a static hash, computed on change, and a clone is made then dynamic is added on top, so only 1 spatial hash is searched through
+    //
+    // on top of this we need to consider how to most efficiently iterate to find colliders
+    //
+
     #[inline(always)]
-    pub fn perform_dynamic_to_static_collision_detection_3(&mut self, particle_data: &mut ParticleData) {
-        // todo: copy perform_dynamic_to_static_collision_detection
-        // but instead check against 2 static particles at once...
+    pub fn find_colliders_option_1_old_iteration(&mut self, particle_data: &mut ParticleData) {
+        // option 1. static hash and dynamic hash seperately. static is only regenerated when a static particle is changed
+        //      then we need to search through 2 spatial hashes for colliding particles
+
+        self.dynamic_spatial_hash.soft_clear();
+        self.populate_dynamic_spatial_hash_4(particle_data);
+
+        {
+            let dynamic_particles = &mut particle_data.dynamic_particles;  
+            let static_particles = &particle_data.static_particles;      
+            let particle_count: usize = dynamic_particles.len();
+
+            // consider that there might be duplicate checks as a particle can be in multiple cells
+            //let mut collision_check = vec![usize::MAX; static_particles.len()];
+
+            // perform dynamic-static collision detection
+            for ai in 0..particle_count {
+                let a_aabb = AabbSimd::from_position_and_radius(dynamic_particles.pos[ai], dynamic_particles.radius[ai][0]);
+                
+                let mut static_indicies = SmallVec::<[usize; 100]>::new();
+
+                for bi in self.static_spatial_hash.aabb_iter(&a_aabb) {
+                    static_indicies.push(bi);
+                }
+
+                //println!("static_indicies: {}", static_indicies.len());
+            }
+        }
+
+        {
+            let dynamic_particles = &mut particle_data.dynamic_particles;      
+            let particle_count: usize = dynamic_particles.len();
+
+            // consider that there might be duplicate checks as a particle can be in multiple cells
+            //let mut collision_check = vec![usize::MAX; dynamic_particles.len()];
+
+            // perform dynamic-dynamic collision detection
+            for ai in 0..particle_count {
+                let a_aabb = AabbSimd::from_position_and_radius(dynamic_particles.pos[ai], dynamic_particles.radius[ai][0]);
+                
+                let mut dynamic_indicies = SmallVec::<[usize; 100]>::new();
+
+                for bi in self.dynamic_spatial_hash.aabb_iter(&a_aabb) {
+                    dynamic_indicies.push(bi);
+                }
+
+                //println!("dynamic_indicies: {}", dynamic_indicies.len());
+            }
+        }
     }
+
+    #[inline(always)]
+    pub fn find_colliders_option_1_new_iteration(&mut self, particle_data: &mut ParticleData) {
+        // option 1. static hash and dynamic hash seperately. static is only regenerated when a static particle is changed
+        //      then we need to search through 2 spatial hashes for colliding particles
+
+        self.dynamic_spatial_hash.soft_clear();
+        self.populate_dynamic_spatial_hash_4(particle_data);
+
+        let dynamic_particles = &mut particle_data.dynamic_particles;
+
+        spatial_hash_keys_for_particles_keys(dynamic_particles, |dynamic_particle_idx: usize, keys: &SmallVec::<[i32x2; 5]>| {
+            let mut static_indicies = SmallVec::<[usize; 100]>::new();
+            let mut dynamic_indicies = SmallVec::<[usize; 100]>::new();
+
+            let static_it = keys.iter()
+                .filter_map(|key| self.static_spatial_hash.map.get(key))
+                .flatten()
+                .copied();
+
+            for static_particle_idx in static_it {
+                static_indicies.push(static_particle_idx);
+            }
+
+            let dynamic_it = keys.iter()
+                .filter_map(|key| self.dynamic_spatial_hash.map.get(key))
+                .flatten()
+                .copied();
+
+            for dynamic_particle_idx in dynamic_it {
+                dynamic_indicies.push(dynamic_particle_idx);
+            }
+
+            //println!("static_indicies: {}", static_indicies.len());
+            //println!("dynamic_indicies: {}", dynamic_indicies.len());
+        });
+    }
+
+
+    // This is the fastest method!
+    #[inline(always)]
+    pub fn find_colliders_option_2(&mut self, particle_data: &mut ParticleData) {
+        // option 2. a single spatial hash just add all static and dynamic hashes every frame, then search through 1 spatial has
+
+        self.dynamic_spatial_hash.soft_clear();
+        self.populate_dynamic_spatial_hash_4(particle_data);
+
+        // add static particles to hash
+        let static_particles = &particle_data.static_particles;   
+        spatial_hash_keys_for_particles(static_particles, |key: i32x2, particle_idx: usize| {
+            self.dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx);
+        });
+
+        let dynamic_particles = &mut particle_data.dynamic_particles;
+
+        spatial_hash_keys_for_particles_keys(dynamic_particles, |dynamic_particle_idx: usize, keys: &SmallVec::<[i32x2; 5]>| {
+            let mut dynamic_indicies = SmallVec::<[usize; 100]>::new();
+
+            let dynamic_it = keys.iter()
+                .filter_map(|key| self.dynamic_spatial_hash.map.get(key))
+                .flatten()
+                .copied();
+
+            for dynamic_particle_idx in dynamic_it {
+                dynamic_indicies.push(dynamic_particle_idx);
+            }
+
+            //println!("static_indicies: {}", static_indicies.len());
+            //println!("dynamic_indicies: {}", dynamic_indicies.len());
+        });
+    }
+
+
+    #[inline(always)]
+    pub fn find_colliders_option_3(&mut self, particle_data: &mut ParticleData) {
+        // option 3. a static hash, computed on change, and a clone is made then dynamic is added on top, so only 1 spatial hash is searched through
+
+        self.dynamic_spatial_hash = self.static_spatial_hash.clone();
+        self.populate_dynamic_spatial_hash_4(particle_data);
+
+        let dynamic_particles = &mut particle_data.dynamic_particles;
+
+        spatial_hash_keys_for_particles_keys(dynamic_particles, |dynamic_particle_idx: usize, keys: &SmallVec::<[i32x2; 5]>| {
+            let mut dynamic_indicies = SmallVec::<[usize; 100]>::new();
+
+            let dynamic_it = keys.iter()
+                .filter_map(|key| self.dynamic_spatial_hash.map.get(key))
+                .flatten()
+                .copied();
+
+            for dynamic_particle_idx in dynamic_it {
+                dynamic_indicies.push(dynamic_particle_idx);
+            }
+
+            //println!("static_indicies: {}", static_indicies.len());
+            //println!("dynamic_indicies: {}", dynamic_indicies.len());
+        });
+    }
+
+
 
     /*
     #[inline(always)]
@@ -396,7 +586,7 @@ impl SpatialHashSimdParticleSolver {
         // todo: grow amount should not be needed as I will split movement phase to occur after we compute collisions
         // i.e. phase 1. compute collisions and store movement vectors
         // phase 2. move the particles
-        let grow_amount: f32x4 = f32x4::splat(2.0); // this if like the maximum a particle should be able to move per frame - 2metres
+        //let grow_amount: f32x4 = f32x4::splat(2.0); // this if like the maximum a particle should be able to move per frame - 2metres
 
         // pointer to the start of the vector data
         let pos_ptr: *const f32x4 = dynamic_particles.pos.as_ptr() as *const f32x4;
@@ -418,7 +608,7 @@ impl SpatialHashSimdParticleSolver {
                 // we setup radius_simd to have [p1.radius, p1.radius, p2.radius, p2.radius]
                 let pos_simd = *pos_ptr.offset(i);
                 let mut radius_simd = f32x4::from([(*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[1], (*radius_ptr.offset(i))[1]]);
-                radius_simd += grow_amount;
+                //radius_simd += grow_amount;
 
                 // compute a bounding box using position and radius
                 let min_f32 = pos_simd - radius_simd;
