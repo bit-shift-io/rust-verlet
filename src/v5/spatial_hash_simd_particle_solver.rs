@@ -807,6 +807,9 @@ impl SpatialHashSimdParticleSolver {
     //
     // faster than solve_collisions, but still need to apply particle movement
     //
+    // TODO: it feels like a lot of time is wasted just iterating here, trying to build pairs in order to use simd
+    // so why not just keep it simple, and don't try to process multiple particles at once?
+    //
     pub fn solve_collisions_5(&mut self, particle_data: &mut ParticleData) {
         let dynamic_particles = &mut particle_data.dynamic_particles;
 
