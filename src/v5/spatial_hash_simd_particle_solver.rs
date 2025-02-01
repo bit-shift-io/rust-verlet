@@ -829,6 +829,10 @@ impl SpatialHashSimdParticleSolver {
 
         // iterate over each dynamic particle
         spatial_hash_keys_for_particles_keys(dynamic_particles, |uidx_0: usize, keys: &SmallVec::<[i32x2; 100]>| {
+            if keys.len() == 0 {
+                return;
+            }
+            
             let idx_0 = uidx_0 as isize;
 
             let pos_0 = unsafe {
@@ -876,6 +880,8 @@ impl SpatialHashSimdParticleSolver {
                         particle_idxs_set.push(*p_idx);
                     }
                 }*/
+
+                //println!("d: {}", particle_idxs_set.len());
 
                 for particle_idxs in particle_idxs_set.chunks(2) {
                     match particle_idxs {
@@ -984,6 +990,8 @@ impl SpatialHashSimdParticleSolver {
                         None => {}
                     }
                 }
+
+                //println!("s: {}", particle_idxs_set.len());
                 /*
 
                 let particle_idx_it = keys.iter()
