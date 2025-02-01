@@ -845,8 +845,20 @@ impl SpatialHashSimdParticleSolver {
                 // if we move this outside the loop "spatial_hash_keys_for_particles_keys" we gain 1ms, but
                 // that won't work when we go multithreaded!
                 let mut particle_idxs_set = SortedSet::<usize>::with_capacity(20); //new();
-                //particle_idxs_set.clear();
- 
+                for i in 0..keys.len() {
+                    let entry = self.dynamic_spatial_hash.map.get(&keys[i]);
+                    match entry {
+                        Some(particle_idxs) => {
+                            for p_idx in particle_idxs {
+                                if *p_idx > uidx_0 {
+                                    particle_idxs_set.push(*p_idx);
+                                }
+                            }
+                        },
+                        None => {}
+                    }
+                }
+/* 
                 let particle_idx_it = keys.iter()
                     .filter_map(|key| self.dynamic_spatial_hash.map.get(key))
                     .flatten();
@@ -863,7 +875,7 @@ impl SpatialHashSimdParticleSolver {
                     if *p_idx > uidx_0 {
                         particle_idxs_set.push(*p_idx);
                     }
-                }
+                }*/
 
                 for particle_idxs in particle_idxs_set.chunks(2) {
                     match particle_idxs {
@@ -961,6 +973,18 @@ impl SpatialHashSimdParticleSolver {
             // 1.4ms
             {
                 let mut particle_idxs_set = SortedSet::<usize>::with_capacity(20);
+                for i in 0..keys.len() {
+                    let entry = self.static_spatial_hash.map.get(&keys[i]);
+                    match entry {
+                        Some(particle_idxs) => {
+                            for p_idx in particle_idxs {
+                                particle_idxs_set.push(*p_idx);
+                            }
+                        },
+                        None => {}
+                    }
+                }
+                /*
 
                 let particle_idx_it = keys.iter()
                     .filter_map(|key| self.static_spatial_hash.map.get(key))
@@ -968,7 +992,7 @@ impl SpatialHashSimdParticleSolver {
 
                 for p_idx in particle_idx_it {
                     particle_idxs_set.push(*p_idx);
-                }
+                }*/
 
                 for particle_idxs in particle_idxs_set.chunks(2) {
                     match particle_idxs {
