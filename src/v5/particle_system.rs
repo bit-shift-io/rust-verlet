@@ -32,7 +32,8 @@ impl ParticleSystem {
     }
 
     pub fn solve_collisions(&mut self) {
-        self.solver.solve_collisions(&mut self.particle_data);
+        //self.solver.solve_collisions(&mut self.particle_data);
+        self.solver.solve_collisions_6(&mut self.particle_data);
     }
 
     pub fn pre_update(&mut self) {

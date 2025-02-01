@@ -38,8 +38,7 @@ where
     let radius_ptr: *const f32x2 = particles.radius.as_ptr() as *const f32x2;
     
     let chunks = particle_count / 2;
-
-    // todo: handle reminder for when we have an odd amount of particles!
+    let remainder = particle_count - (chunks * 2);
 
     const TILE_SIZE: usize = 1;
     let tile_size_simd = f32x4::splat(TILE_SIZE as f32);
@@ -80,6 +79,42 @@ where
             }
         }
     }
+
+    // handle the remainders
+    {
+        let tile_size_simd = f32x2::splat(TILE_SIZE as f32);
+        for ui in (particle_count-remainder)..particle_count {
+            let i = ui as isize;
+
+            unsafe {
+                // take 1 particles at a time
+                // pos_simd has 1 positions packed in [p1.pos.x, p1.pos.y]
+                // we setup radius_simd to have [p1.radius, p1.radius]
+                let pos_simd = *(pos_ptr.offset(i) as *const f32x2);
+                let radius_simd = f32x2::from([(*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[0]]);
+                //radius_simd += grow_amount;
+    
+                // compute a bounding box using position and radius
+                let min_f32 = pos_simd - radius_simd;
+                let max_f32 = pos_simd + radius_simd;
+                
+                // divide by spatial has tile size and apply rounding to conver to "cell space"
+                let min_i: i32x2  = (min_f32 / tile_size_simd).floor().cast(); //.into();
+                let max_i: i32x2 = (max_f32 / tile_size_simd).ceil().cast(); //.into();
+    
+                // finally, for particle p1, use the iterators to add to spatial hash cells
+                // this is the slow part of this algorithm
+                let particle_idx: usize = (i * 2).try_into().unwrap();
+    
+                for y in min_i[1]..max_i[1] {
+                    for x in min_i[0]..max_i[0] {
+                        let key = i32x2::from_array([x, y]);
+                        func(key, particle_idx);
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -101,8 +136,7 @@ where
     let radius_ptr: *const f32x2 = particles.radius.as_ptr() as *const f32x2;
     
     let chunks = particle_count / 2;
-
-    // todo: handle reminder for when we have an odd amount of particles!
+    let remainder = particle_count - (chunks * 2);
 
     const TILE_SIZE: usize = 1;
     let tile_size_simd = f32x4::splat(TILE_SIZE as f32);
@@ -148,6 +182,46 @@ where
                     }
                 }
                 func(particle_idx + 1, &keys);
+            }
+        }
+    }
+
+    // handle the remainders
+    {
+        let tile_size_simd = f32x2::splat(TILE_SIZE as f32);
+        for ui in (particle_count-remainder)..particle_count {
+            let i = ui as isize;
+
+            unsafe {
+                // take 2 particles at a time
+                // pos_simd has 2 positions packed in [p1.pos.x, p1.pos.y, p2.pos.x, p2.pos.y]
+                // we setup radius_simd to have [p1.radius, p1.radius, p2.radius, p2.radius]
+                let pos_simd = *(pos_ptr.offset(i) as *const f32x2);
+                let radius_simd = f32x2::from([(*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[0]]);
+                //radius_simd += grow_amount;
+    
+                // compute a bounding box using position and radius
+                let min_f32 = pos_simd - radius_simd;
+                let max_f32 = pos_simd + radius_simd;
+                
+                // divide by spatial has tile size and apply rounding to conver to "cell space"
+                let min_i: i32x2  = (min_f32 / tile_size_simd).floor().cast(); //.into();
+                let max_i: i32x2 = (max_f32 / tile_size_simd).ceil().cast(); //.into();
+    
+                // finally, for particle p1 and p2, use the iterators to add to spatial hash cells
+                // this is the slow part of this algorithm
+                let particle_idx: usize = (i * 2).try_into().unwrap();
+    
+                {
+                    let mut keys = SmallVec::<[i32x2; 100]>::new();
+                    for y in min_i[1]..max_i[1] {
+                        for x in min_i[0]..max_i[0] {
+                            let key = i32x2::from_array([x, y]);
+                            keys.push(key);
+                        }
+                    }
+                    func(particle_idx, &keys)
+                }
             }
         }
     }
