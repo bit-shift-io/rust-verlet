@@ -842,8 +842,11 @@ impl SpatialHashSimdParticleSolver {
             // dynamic particle collisions
             // 7.1 ms
             {
-                let mut particle_idxs_set = SortedSet::<usize>::new();
-
+                // if we move this outside the loop "spatial_hash_keys_for_particles_keys" we gain 1ms, but
+                // that won't work when we go multithreaded!
+                let mut particle_idxs_set = SortedSet::<usize>::with_capacity(20); //new();
+                //particle_idxs_set.clear();
+ 
                 let particle_idx_it = keys.iter()
                     .filter_map(|key| self.dynamic_spatial_hash.map.get(key))
                     .flatten();
@@ -852,6 +855,10 @@ impl SpatialHashSimdParticleSolver {
                 // Trying to avoid checking collision twice, if we have 3 particles [a, b, c]
                 // we will end up in here with [a => b] but also [b => a] in the case a and b are in the same cells
                 // this also stops self collisions [a => a]
+                //
+                // 6.8ms! - TODO: I think this is slow due to the above iterator being used.
+                // I could try iterating over the data manually
+                //
                 for p_idx in particle_idx_it {
                     if *p_idx > uidx_0 {
                         particle_idxs_set.push(*p_idx);
@@ -864,7 +871,7 @@ impl SpatialHashSimdParticleSolver {
                             let idx_1 = *uidx_1 as isize;
                             let idx_2 = *uidx_2 as isize;
 
-                            unsafe {
+                            unsafe { 
                                 let pos_1 = f32x4::from_array([(*pos_ptr.offset(idx_1))[0], (*pos_ptr.offset(idx_1))[1], (*pos_ptr.offset(idx_2))[0], (*pos_ptr.offset(idx_2))[1]]);
 
                                 let collision_axis = pos_0 - pos_1;
@@ -873,6 +880,7 @@ impl SpatialHashSimdParticleSolver {
                                 let min_dist = radius_0 + f32x4::from_array([(*radius_ptr.offset(idx_1))[0], (*radius_ptr.offset(idx_1))[0], (*radius_ptr.offset(idx_2))[0], (*radius_ptr.offset(idx_2))[0]]);
                                 let min_dist_squared = min_dist * min_dist;
 
+                                
                                 if dist_squared < min_dist_squared {
                                     let dist = f32x4::sqrt(dist_squared);
 
@@ -910,13 +918,14 @@ impl SpatialHashSimdParticleSolver {
                         [uidx_1] => {
                             let idx_1 = *uidx_1 as isize;
 
-                            unsafe {
+                            unsafe { 
                                 let collision_axis = *pos_ptr.offset(idx_0) - *pos_ptr.offset(idx_1);
                                 let dist_squared = collision_axis.length_squared_2_into_2();
 
                                 let min_dist = f32x2::splat((*radius_ptr.offset(idx_0))[0]) + f32x2::splat((*radius_ptr.offset(idx_1))[0]);
                                 let min_dist_squared = min_dist * min_dist;
 
+                                 
                                 if dist_squared < min_dist_squared {
                                     let dist = f32x2::sqrt(dist_squared);
 
@@ -951,7 +960,7 @@ impl SpatialHashSimdParticleSolver {
             // static particle collisions
             // 1.4ms
             {
-                let mut particle_idxs_set = SortedSet::<usize>::new();
+                let mut particle_idxs_set = SortedSet::<usize>::with_capacity(20);
 
                 let particle_idx_it = keys.iter()
                     .filter_map(|key| self.static_spatial_hash.map.get(key))
