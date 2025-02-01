@@ -374,6 +374,21 @@ fn criterion_benchmark(c: &mut Criterion) {
                 //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
             })
         });
+
+        group.bench_function("ParticleSystem solve_collisions_6", |b| {
+            let mut particle_system = ParticleSystem::default();
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
+
+            b.iter(|| {
+                particle_system.solver.solve_collisions_6(&mut particle_system.particle_data);
+                //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
+            })
+        });
     }
 
 /*

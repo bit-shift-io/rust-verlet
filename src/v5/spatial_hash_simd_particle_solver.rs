@@ -1095,4 +1095,148 @@ impl SpatialHashSimdParticleSolver {
         // todo: go through each particle an apply movement to the particle
     }
 
+    // Like #5, but it seems like all the sorting and filtering to try to use simd is wasting a lot of time
+    // so I cut all the crap and simplify
+    //
+    // 6.5ms where solve_collisions was taking 13ms, and solve_collisions_5 was taking 12ms
+    pub fn solve_collisions_6(&mut self, particle_data: &mut ParticleData) {
+        let dynamic_particles = &mut particle_data.dynamic_particles;
+
+        // setup the spatial hash
+        // 3.7ms
+        self.dynamic_spatial_hash.soft_clear();
+           
+        spatial_hash_keys_for_particles(dynamic_particles, |key: i32x2, particle_idx: usize| {
+            self.dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx);
+        });
+        //
+
+        let pos_ptr: *const f32x2 = dynamic_particles.pos.as_ptr() as *const f32x2;
+        let radius_ptr: *const f32x1 = dynamic_particles.radius.as_ptr() as *const f32x1;
+        let movement_ptr: *mut f32x2 = dynamic_particles.movement.as_mut_ptr() as *mut f32x2;
+
+        let static_particles = &mut particle_data.static_particles; 
+        let static_pos_ptr: *const f32x2 = static_particles.pos.as_ptr() as *const f32x2;
+        let static_radius_ptr: *const f32x1 = static_particles.radius.as_ptr() as *const f32x1;
+
+        // iterate over each dynamic particle
+        // 2.8ms! wow nice!
+        spatial_hash_keys_for_particles_keys(dynamic_particles, |uidx_0: usize, keys: &SmallVec::<[i32x2; 100]>| {
+            let idx_0 = uidx_0 as isize;
+
+            // dynamic particle collisions
+            {
+                for i in 0..keys.len() {
+                    let entry = self.dynamic_spatial_hash.map.get(&keys[i]);
+                    match entry {
+                        Some(particle_idxs) => {
+                            for p_idx in particle_idxs {
+                                if *p_idx <= uidx_0 {
+                                    continue;
+                                }
+
+                                let idx_1 = *p_idx as isize;
+
+                                unsafe { 
+                                    let collision_axis = *pos_ptr.offset(idx_0) - *pos_ptr.offset(idx_1);
+                                    let dist_squared = collision_axis.length_squared_2_into_2();
+
+                                    let min_dist = f32x2::splat((*radius_ptr.offset(idx_0))[0]) + f32x2::splat((*radius_ptr.offset(idx_1))[0]);
+                                    let min_dist_squared = min_dist * min_dist;
+
+                                    
+                                    if dist_squared < min_dist_squared {
+                                        let dist = f32x2::sqrt(dist_squared);
+
+                                        // particles are too close to each other.
+                                        // just let them pass through each other
+                                        if dist[0] <= f32::EPSILON {
+                                            return;
+                                        }
+
+                                        // n = normalised vector between particles
+                                        let n = collision_axis / dist;
+                                        debug_assert!(!n[0].is_nan());
+                                        debug_assert!(!n[1].is_nan());
+
+                                        let delta = min_dist - dist;
+                                        //let delta_f32x2 = f32x4::from_array([dist[0], dist[0], dist[1], dist[1]]); //f32x2::splat(delta[0]);
+                                        let movement = delta * n;
+
+                                        debug_assert!(!movement[0].is_nan());
+                                        debug_assert!(!movement[1].is_nan());
+
+                                        *movement_ptr.offset(idx_0) += movement;
+                                    }
+                                }
+                            }
+                        },
+                        None => {}
+                    }
+                }
+            }
+             
+            // static particle collisions
+            {
+                for i in 0..keys.len() {
+                    let entry = self.static_spatial_hash.map.get(&keys[i]);
+                    match entry {
+                        Some(particle_idxs) => {
+                            for p_idx in particle_idxs {
+                                let idx_1 = *p_idx as isize;
+
+                                unsafe {
+                                    let collision_axis = *pos_ptr.offset(idx_0) - *static_pos_ptr.offset(idx_1);
+                                    let dist_squared = collision_axis.length_squared_2_into_2();
+
+                                    let min_dist = f32x2::splat((*radius_ptr.offset(idx_0))[0]) + f32x2::splat((*static_radius_ptr.offset(idx_1))[0]);
+                                    let min_dist_squared = min_dist * min_dist;
+
+                                    if dist_squared < min_dist_squared {
+                                        let dist = f32x2::sqrt(dist_squared);
+
+                                        // particles are too close to each other.
+                                        // just let them pass through each other
+                                        if dist[0] <= f32::EPSILON {
+                                            return;
+                                        }
+
+                                        // n = normalised vector between particles
+                                        let n = collision_axis / dist;
+                                        debug_assert!(!n[0].is_nan());
+                                        debug_assert!(!n[1].is_nan());
+
+                                        let delta = min_dist - dist;
+                                        //let delta_f32x2 = f32x4::from_array([dist[0], dist[0], dist[1], dist[1]]); //f32x2::splat(delta[0]);
+                                        let movement = delta * n;
+
+                                        debug_assert!(!movement[0].is_nan());
+                                        debug_assert!(!movement[1].is_nan());
+
+                                        *movement_ptr.offset(idx_0) += movement;
+                                    }
+                                }
+
+                            }
+                        },
+                        None => {}
+                    }
+                }
+            }
+        });
+
+        // go through each particle an apply movement to the particle
+        // todo: process multiple particles at once with simd!
+        {
+            let pos_ptr: *mut f32x2 = dynamic_particles.pos.as_mut_ptr() as *mut f32x2;
+            for i in 0..dynamic_particles.len() {
+                unsafe {
+                    let movement = *movement_ptr.offset(i as isize);
+                    *pos_ptr.offset(i as isize) += movement;
+                    *movement_ptr.offset(i as isize) = f32x2::splat(0.0);
+                }
+            }
+        }
+    }
+
 }
