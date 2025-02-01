@@ -829,10 +829,6 @@ impl SpatialHashSimdParticleSolver {
 
         // iterate over each dynamic particle
         spatial_hash_keys_for_particles_keys(dynamic_particles, |uidx_0: usize, keys: &SmallVec::<[i32x2; 100]>| {
-            if keys.len() == 0 {
-                return;
-            }
-            
             let idx_0 = uidx_0 as isize;
 
             let pos_0 = unsafe {
