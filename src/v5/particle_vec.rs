@@ -120,6 +120,7 @@ impl ParticleVec {
         self.pos.len()
     }
 
+    /*
     pub fn update_positions(&mut self, delta_seconds: f32) {
         let delta_seconds_sqrd = delta_seconds * delta_seconds;
         let delta_seconds_sqrd_f32x2 = f32x2::splat(delta_seconds_sqrd);//([delta_seconds_sqrd, delta_seconds_sqrd]);
@@ -147,9 +148,9 @@ impl ParticleVec {
 
             self.pos[id] = new_pos;
         }
-    }
+    }*/
 
-
+    /*
     // attempt to try to use SIMD to process 2 particles at once. Its slower!
     pub fn update_positions_2(&mut self, delta_seconds: f32) {
         let delta_seconds_sqrd = delta_seconds * delta_seconds;
@@ -199,7 +200,7 @@ impl ParticleVec {
             }
         
         }
-    }
+    }*/
 
 
     // attempt to process 2 particles at once. This kicks ass!

@@ -326,6 +326,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             })
         });*/
 
+        /*
         group.bench_function("SpatialHashParticleSolver solve_collisions", |b| {
             let mut solver = SpatialHashParticleSolver::default();
             let mut shared_particle_vec = SharedParticleVec::default();
@@ -342,7 +343,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 solver.solve_collisions();
                 //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
             })
-        });
+        });*/
 
         group.bench_function("ParticleSystem solve_collisions", |b| {
             let mut particle_system = ParticleSystem::default();
@@ -358,54 +359,6 @@ fn criterion_benchmark(c: &mut Criterion) {
                 //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
             })
         });
-
-        group.bench_function("ParticleSystem solve_collisions_2", |b| {
-            let mut particle_system = ParticleSystem::default();
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-
-            b.iter(|| {
-                particle_system.solver.solve_collisions_2(&mut particle_system.particle_data);
-                //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
-            })
-        });
-
-
-        group.bench_function("ParticleSystem solve_collisions_3", |b| {
-            let mut particle_system = ParticleSystem::default();
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-
-            b.iter(|| {
-                particle_system.solver.solve_collisions_3(&mut particle_system.particle_data);
-                //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
-            })
-        });
-
-
-        group.bench_function("ParticleSystem solve_collisions_4", |b| {
-            let mut particle_system = ParticleSystem::default();
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-            particle_system_setup_sim_solver_test(&mut particle_system, 1.0);
-
-            b.iter(|| {
-                particle_system.solver.solve_collisions_4(&mut particle_system.particle_data);
-                //shared_particle_vec.as_ref().write().unwrap().update_positions(0.01);
-            })
-        });
-
 
         group.bench_function("ParticleSystem solve_collisions_5", |b| {
             let mut particle_system = ParticleSystem::default();
