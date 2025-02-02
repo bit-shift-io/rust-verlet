@@ -1,5 +1,13 @@
 # rust-verlet
 
+## Future notes/todo list
+
+* Rayon support (https://docs.rs/rayon/latest/rayon/)
+* Check CPU flags and add 512bit / other SIMD levels support. I think i'm ony using sse2 atm.
+* If there a f16 instead of f32? 
+* Sweep sphere
+    https://www.reddit.com/r/gamedev/comments/105qvy2/collision_detection_of_moving_circles_between/
+* freeze particles that become motionless
 
 ## v1
 
@@ -13,6 +21,11 @@ Attempt to unify into a workable library of sorts.
 
 Adding abstractions in order to support SIMD or GPU support if required.
 Refer to: https://www.rustsim.org/blog/2020/03/23/simd-aosoa-in-nalgebra/
+
+## v5
+
+Simplification.
+Simd + multithreading support
 
 ## Controls
 
@@ -59,11 +72,6 @@ Bench mark uses https://lib.rs/crates/criterion
 
     cargo bench
     cargo test
-
-## Future
-
-    * Switch to bevy math library: https://docs.rs/bevy/latest/bevy/math/ ?
-    * Use Arena allocators for Particles, Sticks etc to get ride of Rc<RefCell> usage
 
 ## Tutorials & Links
 

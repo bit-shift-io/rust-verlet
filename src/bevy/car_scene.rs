@@ -157,8 +157,9 @@ impl CarScene {
                     .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 100.0 + (particle_radius * 2.0)))
                     .create_in_particle_system(&mut particle_system);
  
-  /* 
+   
                 // some dynamic particles on the inside
+                /* 
                 let mut liquid = ShapeBuilder::new();
                 liquid
                     .set_particle_template(Particle::default().set_mass(20.0 * 0.001).set_radius(particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
@@ -166,13 +167,22 @@ impl CarScene {
                     .create_in_particle_system(&mut particle_system);
 */
 
+                // todo: some instability here, might need to increase radius by epsilon?
+                let mut liquid3 = ShapeBuilder::new();
+                liquid3
+                    .set_particle_template(Particle::default().set_mass(20.0 * 0.01).set_radius(particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
+                    .apply_operation(rectangle::Rectangle::from_center_size(vec2(0.0, 0.0), vec2(50.0, 50.0)))
+                    .create_in_particle_system(&mut particle_system);
+
+/*
                 // a single particle for testing
                 let mut liquid2 = ShapeBuilder::new();
                 liquid2
-                    .set_particle_template(Particle::default().set_mass(20.0 * 0.001).set_radius(particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
+                    .set_particle_template(Particle::default().set_mass(20.0 * 0.001).set_radius(particle_radius).set_color(Color::from(LinearRgba::RED)).clone())
                     .add_particle_at_position(vec2(0.0, 0.0))
+                    .add_particle_at_position(vec2(0.0, 3.0))
                     .create_in_particle_system(&mut particle_system);
-                
+                */
             }
 
             /* 

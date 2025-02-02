@@ -1193,12 +1193,14 @@ impl SpatialHashSimdParticleSolver {
         let static_pos_ptr: *const f32x2 = static_particles.pos.as_ptr() as *const f32x2;
         let static_radius_ptr: *const f32x1 = static_particles.radius.as_ptr() as *const f32x1;
 
-        let mut col_count = 0; // this is just for debugging. it can go in future
+        //let mut col_count = 0; // this is just for debugging. it can go in future
 
         // todo: should these be small vecs?
         // consider that there might be duplicate checks as a particle can be in multiple cells
         let mut dynamic_collision_check = vec![isize::MAX; dynamic_particles.len()];
         let mut static_collision_check = vec![isize::MAX; static_particles.len()];
+
+        //println!("------- start of frame -------");
 
         // iterate over each dynamic particle
         // 2.8ms! wow nice!
@@ -1252,12 +1254,20 @@ impl SpatialHashSimdParticleSolver {
 
                                         let delta = min_dist - dist;
                                         //let delta_f32x2 = f32x4::from_array([dist[0], dist[0], dist[1], dist[1]]); //f32x2::splat(delta[0]);
-                                        let movement = delta * n;
+                                        let movement = (delta * n) * f32x2::splat(0.5);
 
                                         debug_assert!(!movement[0].is_nan());
                                         debug_assert!(!movement[1].is_nan());
 
+                                        /* 
+                                        println!("particle {}, collided with dyn: {}", idx_0, idx_1);
+                                        println!("collision_axis: {}, {}", collision_axis[0], collision_axis[1]);
+                                        println!("movement: {}, {}", movement[0], movement[1]);
+                                        println!("dist: {}", dist[0]);
+                                        */
+
                                         *movement_ptr.offset(idx_0) += movement;
+                                        *movement_ptr.offset(idx_1) -= movement;
                                         //*pos_ptr.offset(idx_0) += movement;
                                     }
                                 }
@@ -1312,14 +1322,15 @@ impl SpatialHashSimdParticleSolver {
 
                                         debug_assert!(!movement[0].is_nan());
                                         debug_assert!(!movement[1].is_nan());
-
+ 
                                         /* 
-                                        println!("collided with: {}", idx_1);
+                                        println!("particle {}, collided with static: {}", idx_0, idx_1);
                                         println!("collision_axis: {}, {}", collision_axis[0], collision_axis[1]);
                                         println!("movement: {}, {}", movement[0], movement[1]);
                                         println!("dist: {}", dist[0]);
-                                        */
+                                        
                                         col_count += 1;
+                                        */
 
                                         *movement_ptr.offset(idx_0) += movement;
 
