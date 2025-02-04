@@ -1178,9 +1178,12 @@ impl SpatialHashSimdParticleSolver {
 
         // setup the spatial hash
         // 3.7ms
-        self.dynamic_spatial_hash.soft_clear();
-           
+        self.dynamic_spatial_hash.soft_clear();   
         spatial_hash_keys_for_particles(dynamic_particles, |key: i32x2, particle_idx: usize| {
+            if particle_idx >= dynamic_particles.len() {
+                println!("error adding particle to spatial hash. particle idx: {} (# particles {})", particle_idx, dynamic_particles.len());
+            }
+            debug_assert!(particle_idx < dynamic_particles.len());
             self.dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx);
         });
         //
@@ -1197,8 +1200,11 @@ impl SpatialHashSimdParticleSolver {
 
         // todo: should these be small vecs?
         // consider that there might be duplicate checks as a particle can be in multiple cells
-        let mut dynamic_collision_check = vec![isize::MAX; dynamic_particles.len()];
-        let mut static_collision_check = vec![isize::MAX; static_particles.len()];
+        //let mut dynamic_collision_check = vec![isize::MAX; dynamic_particles.len()];
+        //let mut static_collision_check = vec![isize::MAX; static_particles.len()];
+
+        let mut dynamic_dynamic_collision_matrix = vec![false; dynamic_particles.len() * dynamic_particles.len()];
+        let mut dynamic_static_collision_matrix = vec![false; dynamic_particles.len() * static_particles.len()];
 
         //println!("------- start of frame -------");
 
@@ -1215,6 +1221,27 @@ impl SpatialHashSimdParticleSolver {
                     match entry {
                         Some(particle_idxs) => {
                             for p_idx in particle_idxs {
+                                // avoid self collision
+                                if uidx_0 == *p_idx {
+                                    continue;
+                                }
+
+                                // stop checking the same particle-particle collision
+                                let collision_matrix_idx = uidx_0 * (*p_idx);
+
+                                if *p_idx >= dynamic_particles.len() {
+                                    println!("error in particle idx: {} while checking: {} (# particles {})", p_idx, uidx_0, dynamic_particles.len());
+                                }
+
+                                debug_assert!(uidx_0 < dynamic_particles.len());
+                                debug_assert!(*p_idx < dynamic_particles.len());
+                                if dynamic_dynamic_collision_matrix[collision_matrix_idx] {
+                                    //println!("stopped double col check dyn-static {} {}", uidx_0, p_idx);
+                                    continue;
+                                }
+                                dynamic_dynamic_collision_matrix[collision_matrix_idx] = true;
+
+                                /*
                                 if *p_idx <= uidx_0 {
                                     continue;
                                 }
@@ -1227,6 +1254,7 @@ impl SpatialHashSimdParticleSolver {
                                     continue;
                                 }
                                 dynamic_collision_check[*p_idx] = idx_0;
+                                */
 
                                 let idx_1 = *p_idx as isize;
 
@@ -1259,6 +1287,11 @@ impl SpatialHashSimdParticleSolver {
                                         debug_assert!(!movement[0].is_nan());
                                         debug_assert!(!movement[1].is_nan());
 
+                                        println!("movement: {:?},{:?} for distance: {:?},{:?}", movement[0], movement[1], delta[0], delta[1]);
+                                        if movement[1].abs() > 0.01 {
+                                            println!("too much movement in y axis! for {}", uidx_0);
+                                        }
+
                                         /* 
                                         println!("particle {}, collided with dyn: {}", idx_0, idx_1);
                                         println!("collision_axis: {}, {}", collision_axis[0], collision_axis[1]);
@@ -1269,6 +1302,11 @@ impl SpatialHashSimdParticleSolver {
                                         *movement_ptr.offset(idx_0) += movement;
                                         *movement_ptr.offset(idx_1) -= movement;
                                         //*pos_ptr.offset(idx_0) += movement;
+
+
+                                        if (*movement_ptr.offset(idx_0))[1].abs() > 0.01 {
+                                            println!("too much movement in y axis! for {}", uidx_0);
+                                        }
                                     }
                                 }
                             }
@@ -1285,8 +1323,18 @@ impl SpatialHashSimdParticleSolver {
                     match entry {
                         Some(particle_idxs) => {
                             for p_idx in particle_idxs {
-                                let idx_1 = *p_idx as isize;
+                                // stop checking the same particle-particle collision
+                                let collision_matrix_idx = uidx_0 * (*p_idx);
+                                debug_assert!(uidx_0 < dynamic_particles.len());
+                                debug_assert!(*p_idx < static_particles.len());
+                                if dynamic_static_collision_matrix[collision_matrix_idx] {
+                                    //println!("stopped double col check dyn-static {} {}", uidx_0, p_idx);
+                                    continue;
+                                }
+                                dynamic_static_collision_matrix[collision_matrix_idx] = true;
 
+                                let idx_1 = *p_idx as isize;
+/* 
                                 // avoid double checking against the same particle
                                 // todo: double check this is exhaustive!
                                 if static_collision_check[idx_1 as usize] == idx_0 {
@@ -1294,7 +1342,7 @@ impl SpatialHashSimdParticleSolver {
                                     continue;
                                 }
                                 static_collision_check[idx_1 as usize] = idx_0;
-
+*/
                                 unsafe {
                                     let collision_axis = *pos_ptr.offset(idx_0) - *static_pos_ptr.offset(idx_1);
                                     let dist_squared = collision_axis.length_squared_2_into_2();
@@ -1349,6 +1397,7 @@ impl SpatialHashSimdParticleSolver {
         // go through each particle an apply movement to the particle
         // todo: process multiple particles at once with simd!
         {
+            /*
             let pos_ptr: *mut f32x2 = dynamic_particles.pos.as_mut_ptr() as *mut f32x2;
             for i in 0..dynamic_particles.len() {
                 unsafe {
@@ -1363,6 +1412,12 @@ impl SpatialHashSimdParticleSolver {
                     *pos_ptr.offset(i as isize) += movement;
                     *movement_ptr.offset(i as isize) = f32x2::splat(0.0);
                 }
+            }*/
+
+            // checking for buffer overrun errors!
+            for i in 0..dynamic_particles.len() {
+                dynamic_particles.pos[i] += dynamic_particles.movement[i];
+                dynamic_particles.movement[i] = f32x2::splat(0.0);
             }
         }
     }
