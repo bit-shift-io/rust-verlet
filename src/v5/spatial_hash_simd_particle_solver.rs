@@ -104,12 +104,15 @@ where
     
                 // finally, for particle p1, use the iterators to add to spatial hash cells
                 // this is the slow part of this algorithm
-                let particle_idx: usize = (i * 2).try_into().unwrap();
+                if ui >= particle_count {
+                    println!("spatial_hash_keys_for_particles error. particle idx: {} (# particles {})", ui, particle_count);
+                }
+                debug_assert!(ui < particle_count);
     
                 for y in min_i[1]..max_i[1] {
                     for x in min_i[0]..max_i[0] {
                         let key = i32x2::from_array([x, y]);
-                        func(key, particle_idx);
+                        func(key, ui);
                     }
                 }
             }
@@ -1280,6 +1283,9 @@ impl SpatialHashSimdParticleSolver {
                                         debug_assert!(!n[0].is_nan());
                                         debug_assert!(!n[1].is_nan());
 
+                                        let n_length = f32::sqrt((n[0] * n[0]) + (n[1] * n[1]));
+                                        //debug_assert!(n_length == 1.0);
+
                                         let delta = min_dist - dist;
                                         //let delta_f32x2 = f32x4::from_array([dist[0], dist[0], dist[1], dist[1]]); //f32x2::splat(delta[0]);
                                         let movement = (delta * n) * f32x2::splat(0.5);
@@ -1287,8 +1293,14 @@ impl SpatialHashSimdParticleSolver {
                                         debug_assert!(!movement[0].is_nan());
                                         debug_assert!(!movement[1].is_nan());
 
-                                        println!("movement: {:?},{:?} for distance: {:?},{:?}", movement[0], movement[1], delta[0], delta[1]);
-                                        if movement[1].abs() > 0.01 {
+
+                                        println!("collision occured. idx_0: {:?}, idx_1: {:?}, pos_0: {:?}, pos_1: {:?}, radius_0: {:?}, radius_1: {:?}, dist: {:?}, min_dist_squared: {:?}, dist_squared: {:?}, delta(overlap): {:?}, movement: {:?}, n(dir): {:?}, n_length: {:?}", 
+                                            idx_0, idx_1, *pos_ptr.offset(idx_0), *pos_ptr.offset(idx_1),
+                                            *radius_ptr.offset(idx_0), *radius_ptr.offset(idx_1),
+                                            dist[0], min_dist_squared, dist_squared,
+                                            delta, movement, n, n_length);
+
+                                        if movement[1].abs() > 0.3 {
                                             println!("too much movement in y axis! for {}", uidx_0);
                                         }
 
