@@ -44,7 +44,7 @@ fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera3dBundle {
         projection: OrthographicProjection {
             // n world units (metres) per window height.
-            scaling_mode: ScalingMode::FixedVertical(20.0), //200.0), // was 10
+            scaling_mode: ScalingMode::FixedVertical(150.0), //200.0), // was 10
             ..default()
         }
         .into(),

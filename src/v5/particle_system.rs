@@ -42,11 +42,23 @@ impl ParticleSystem {
 
     pub fn update(&mut self, delta_seconds: f32) {
         // disable sub steps for now, so we can see each frame
-        self.update_step(delta_seconds);
+        //self.update_step(delta_seconds);
+ 
+        let range = range_substeps(delta_seconds, self.desired_hertz);
+        
         /*
-        for sub_dt in range_substeps(delta_seconds, self.desired_hertz).iter() {
-            self.update_step(*sub_dt);
+        if range.len() > 0 {
+            println!("update step: {}, # substeps: {}, sub step: {}", delta_seconds, range.len(), range[0]);
         }*/
+        
+        if range.len() > 5 {
+            println!("[ParticleSystem.update] frame rate too low. Dropping some physics frames.");
+            return;
+        }
+
+        for sub_dt in range.iter() {
+            self.update_step(*sub_dt);
+        }
     }
 
     pub fn update_step(&mut self, delta_seconds: f32) {

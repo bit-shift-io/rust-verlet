@@ -144,30 +144,30 @@ impl CarScene {
             // this is the bench
             {
                 // the ideal is particle size around diamter 1, radius = 0.5, as the spatial has has a grid size of 1!
-                let particle_radius = 0.5;
+                let particle_radius = 1.0; //0.5;
 
                 // static
                 let mut perimeter = ShapeBuilder::new();
                 perimeter.set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone())
-                    .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 3.0))
+                    .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 60.0))
                     .create_in_particle_system(&mut particle_system);
 
-                    /* 
+                     
                 let mut perimeter2 = ShapeBuilder::new();
                 perimeter2.set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone())
-                    .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 10.0 + (particle_radius * 2.0)))
+                    .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 60.0 + (particle_radius * 2.0)))
                     .create_in_particle_system(&mut particle_system);
-                */
+                
  
    
                 // some dynamic particles on the inside
-                /* 
+                 
                 let mut liquid = ShapeBuilder::new();
                 liquid
                     .set_particle_template(Particle::default().set_mass(20.0 * 0.001).set_radius(particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
-                    .apply_operation(rectangle::Rectangle::from_center_size(vec2(0.0, 0.0), vec2(120.0, 120.0)))
+                    .apply_operation(rectangle::Rectangle::from_center_size(vec2(0.0, 0.0), vec2(60.0, 60.0)))
                     .create_in_particle_system(&mut particle_system);
-*/
+/* 
 
                 // todo: some instability here, might need to increase radius by epsilon?
                 let mut liquid3 = ShapeBuilder::new();
@@ -175,7 +175,7 @@ impl CarScene {
                     .set_particle_template(Particle::default().set_mass(20.0 * 0.01).set_radius(particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
                     .apply_operation(rectangle::Rectangle::from_center_size(vec2(0.0, 0.0), vec2(3.0, 3.0)))
                     .create_in_particle_system(&mut particle_system);
-
+*/
 /*
                 // a single particle for testing
                 let mut liquid2 = ShapeBuilder::new();
@@ -282,7 +282,7 @@ impl CarScene {
 */
 
         // default to 100hz for teting for now
-        self.particle_system.update(0.001); //delta_seconds);
+        self.particle_system.update(delta_seconds);
     }
     
 }
@@ -300,7 +300,7 @@ impl Plugin for CarScenePlugin {
                 // ENABLE THIS TO GET THE RANDOM LEVEL GENERATOR WORKING:
                 //setup_level.after(setup_car_scene) // https://github.com/bevyengine/bevy/blob/main/examples/ecs/one_shot_systems.rs
             ))
-            .add_systems(Update, update_car_scene)
+            .add_systems(FixedUpdate, update_car_scene)// frame rate independant
             .add_systems(Update, update_level)
             .add_systems(Update, update_particle_instances)
             .add_systems(Update, update_camera)

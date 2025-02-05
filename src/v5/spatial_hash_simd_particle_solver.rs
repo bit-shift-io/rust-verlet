@@ -1518,11 +1518,14 @@ impl SpatialHashSimdParticleSolver {
         // go through each particle an apply movement to the particle
         // todo: process multiple particles at once with simd!
         {
-            
+            // drain energy out of the system
+            // todo: does this need to be multiplied by frame rate?
+            let damping = f32x2::splat(0.5);
+
             let pos_ptr: *mut f32x2 = dynamic_particles.pos.as_mut_ptr() as *mut f32x2;
             for i in 0..dynamic_particles.len() {
                 unsafe {
-                    let movement = *movement_ptr.offset(i as isize);
+                    let movement = *movement_ptr.offset(i as isize) * damping;
 
                     /*
                     if col_count > 0 {
