@@ -62,6 +62,8 @@ where
             let min_i: i32x4  = (min_f32 / tile_size_simd).floor().cast(); //.into();
             let max_i: i32x4 = (max_f32 / tile_size_simd).ceil().cast(); //.into();
 
+            //println!("i: {}, pos: {}, radius: {}, min_f32: {}, max_f32: {}", i, pos_simd, radius_simd, min_f32, max_f32);
+
             // finally, for particle p1 and p2, use the iterators to add to spatial hash cells
             // this is the slow part of this algorithm
             let particle_idx: usize = (i * 2).try_into().unwrap();
@@ -84,6 +86,9 @@ where
 
     // handle the remainders
     {
+        let pos_ptr: *const f32x2 = particles.pos.as_ptr() as *const f32x2;
+        let radius_ptr: *const f32x1 = particles.radius.as_ptr() as *const f32x1;
+
         let tile_size_simd = f32x2::splat(TILE_SIZE as f32);
         for ui in (particle_count-remainder)..particle_count {
             let i = ui as isize;
@@ -92,7 +97,7 @@ where
                 // take 1 particles at a time
                 // pos_simd has 1 positions packed in [p1.pos.x, p1.pos.y]
                 // we setup radius_simd to have [p1.radius, p1.radius]
-                let pos_simd = *(pos_ptr.offset(i) as *const f32x2);
+                let pos_simd = *pos_ptr.offset(i);
                 let radius_simd = f32x2::from([(*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[0]]);
                 //radius_simd += grow_amount;
     
@@ -146,6 +151,7 @@ where
     const TILE_SIZE: usize = 1;
     let tile_size_simd = f32x4::splat(TILE_SIZE as f32);
 
+     
     for i in 0..chunks as isize {
         unsafe {
             // take 2 particles at a time
@@ -194,6 +200,9 @@ where
 
     // handle the remainders
     {
+        let pos_ptr: *const f32x2 = particles.pos.as_ptr() as *const f32x2;
+        let radius_ptr: *const f32x1 = particles.radius.as_ptr() as *const f32x1;
+
         let tile_size_simd = f32x2::splat(TILE_SIZE as f32);
         for ui in (particle_count-remainder)..particle_count {
             let i = ui as isize;
@@ -202,7 +211,7 @@ where
                 // take 2 particles at a time
                 // pos_simd has 2 positions packed in [p1.pos.x, p1.pos.y, p2.pos.x, p2.pos.y]
                 // we setup radius_simd to have [p1.radius, p1.radius, p2.radius, p2.radius]
-                let pos_simd = *(pos_ptr.offset(i) as *const f32x2);
+                let pos_simd = *pos_ptr.offset(i);
                 let radius_simd = f32x2::from([(*radius_ptr.offset(i))[0], (*radius_ptr.offset(i))[0]]);
                 //radius_simd += grow_amount;
     
@@ -250,7 +259,7 @@ impl Default for SpatialHashSimdParticleSolver {
     fn default() -> Self {
 
         let mut file = File::create("output.csv").expect("Couldn't create file");
-        file.write_all(format!("frame; idx_0; idx_1; pos_0; pos_1; radius_0; radius_1; dist; min_dist_squared; dist_squared; delta(overlap); movement; n(dir); n_length\n").as_bytes()).unwrap();
+        file.write_all(format!("frame; d-?; idx_0; idx_1; pos_0; pos_1; dist; min_dist_squared; dist_squared; delta(overlap); movement; n(dir)\n").as_bytes()).unwrap();
 
         Self { 
             //particle_data: ParticleData::default(),
@@ -271,7 +280,10 @@ impl SpatialHashSimdParticleSolver {
 
         let static_particles = &particle_data.static_particles;
 
+        println!("static particles: {:?}", static_particles.len());
+
         spatial_hash_keys_for_particles(static_particles, |key: i32x2, particle_idx: usize| {
+            debug_assert!(particle_idx < static_particles.len());
             self.static_spatial_hash.map.entry(key).or_default().push(particle_idx);
         });
     }
@@ -367,6 +379,7 @@ impl SpatialHashSimdParticleSolver {
                 Some(small_vec) => {
                     for &static_particle_idx in small_vec {
                         let static_idx = static_particle_idx as isize;
+                        debug_assert!(static_particle_idx < static_particles.len());
 
                         if collision_check[static_particle_idx] == dynamic_particle_idx {
                             //println!("static skipping collision check between {} and {}", static_idx, dynamic_idx);
@@ -1194,9 +1207,10 @@ impl SpatialHashSimdParticleSolver {
         // 3.7ms
         self.dynamic_spatial_hash.soft_clear();   
         spatial_hash_keys_for_particles(dynamic_particles, |key: i32x2, particle_idx: usize| {
+            /*
             if particle_idx >= dynamic_particles.len() {
                 println!("error adding particle to spatial hash. particle idx: {} (# particles {})", particle_idx, dynamic_particles.len());
-            }
+            }*/
             debug_assert!(particle_idx < dynamic_particles.len());
             self.dynamic_spatial_hash.map.entry(key).or_default().push(particle_idx);
         });
@@ -1217,11 +1231,12 @@ impl SpatialHashSimdParticleSolver {
         //let mut dynamic_collision_check = vec![isize::MAX; dynamic_particles.len()];
         //let mut static_collision_check = vec![isize::MAX; static_particles.len()];
 
-        let mut dynamic_dynamic_collision_matrix = vec![false; dynamic_particles.len() * dynamic_particles.len()];
-        let mut dynamic_static_collision_matrix = vec![false; dynamic_particles.len() * static_particles.len()];
+        // +1 as we need to use a 1 based index as 0 * X = 0, so 0 based index doesn't work
+        let mut dynamic_dynamic_collision_matrix = vec![false; (dynamic_particles.len()+1) * (dynamic_particles.len()+1)];
+        let mut dynamic_static_collision_matrix = vec![false; (dynamic_particles.len()+1) * (static_particles.len()+1)];
 
         //println!("------- start of frame -------");
-
+        
         // iterate over each dynamic particle
         // 2.8ms! wow nice!
         spatial_hash_keys_for_particles_keys(dynamic_particles, |uidx_0: usize, keys: &SmallVec::<[i32x2; 100]>| {
@@ -1241,11 +1256,12 @@ impl SpatialHashSimdParticleSolver {
                                 }
 
                                 // stop checking the same particle-particle collision
-                                let collision_matrix_idx = uidx_0 * (*p_idx);
+                                let collision_matrix_idx = (uidx_0+1) * ((*p_idx)+1);
 
+                                /*
                                 if *p_idx >= dynamic_particles.len() {
                                     println!("error in particle idx: {} while checking: {} (# particles {})", p_idx, uidx_0, dynamic_particles.len());
-                                }
+                                }*/
 
                                 debug_assert!(uidx_0 < dynamic_particles.len());
                                 debug_assert!(*p_idx < dynamic_particles.len());
@@ -1286,7 +1302,7 @@ impl SpatialHashSimdParticleSolver {
                                         // particles are too close to each other.
                                         // just let them pass through each other
                                         if dist[0] <= f32::EPSILON {
-                                            return;
+                                            continue;
                                         }
 
                                         // n = normalised vector between particles
@@ -1294,7 +1310,7 @@ impl SpatialHashSimdParticleSolver {
                                         debug_assert!(!n[0].is_nan());
                                         debug_assert!(!n[1].is_nan());
 
-                                        let n_length = f32::sqrt((n[0] * n[0]) + (n[1] * n[1]));
+                                        //let n_length = f32::sqrt((n[0] * n[0]) + (n[1] * n[1]));
                                         //debug_assert!(n_length == 1.0);
 
                                         let delta = min_dist - dist;
@@ -1305,23 +1321,26 @@ impl SpatialHashSimdParticleSolver {
                                         debug_assert!(!movement[1].is_nan());
 
 
+                                        /* 
                                         println!("collision occured. idx_0: {:?}, idx_1: {:?}, pos_0: {:?}, pos_1: {:?}, radius_0: {:?}, radius_1: {:?}, dist: {:?}, min_dist_squared: {:?}, dist_squared: {:?}, delta(overlap): {:?}, movement: {:?}, n(dir): {:?}, n_length: {:?}", 
                                             idx_0, idx_1, *pos_ptr.offset(idx_0), *pos_ptr.offset(idx_1),
                                             *radius_ptr.offset(idx_0), *radius_ptr.offset(idx_1),
                                             dist[0], min_dist_squared, dist_squared,
                                             delta, movement, n, n_length);
+                                        */
 
 
-                                        self.file.write_all(format!("{:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}\n", 
+                                        /* 
+                                        self.file.write_all(format!("{:?}; d-d; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}\n", 
                                             self.frame, idx_0, idx_1, *pos_ptr.offset(idx_0), *pos_ptr.offset(idx_1),
-                                            *radius_ptr.offset(idx_0), *radius_ptr.offset(idx_1),
                                             dist[0], min_dist_squared, dist_squared,
-                                            delta, movement, n, n_length).as_bytes()).unwrap();
+                                            delta, movement, n).as_bytes()).unwrap();
+                                        self.file.flush().unwrap();
 
 
                                         if movement[1].abs() > 0.3 {
                                             println!("too much movement in y axis! for {}", uidx_0);
-                                        }
+                                        }*/
 
                                         /* 
                                         println!("particle {}, collided with dyn: {}", idx_0, idx_1);
@@ -1335,9 +1354,10 @@ impl SpatialHashSimdParticleSolver {
                                         //*pos_ptr.offset(idx_0) += movement;
 
 
+                                        /*
                                         if (*movement_ptr.offset(idx_0))[1].abs() > 0.01 {
                                             println!("too much movement in y axis! for {}", uidx_0);
-                                        }
+                                        }*/
                                     }
                                 }
                             }
@@ -1347,6 +1367,30 @@ impl SpatialHashSimdParticleSolver {
                 }
             }
              
+            /*
+            // testing problem with static cols
+            {
+                let ai = uidx_0;
+                let a_aabb = AabbSimd::from_position_and_radius(dynamic_particles.pos[ai], dynamic_particles.radius[ai][0]);
+            
+                for bi in self.static_spatial_hash.aabb_iter(&a_aabb) {
+                    let mut a_pos = dynamic_particles.pos[ai]; //vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]);
+                    let b_pos = static_particles.pos[bi]; //vec2(particle_vec.pos_x[bi], particle_vec.pos_y[bi]);
+                    
+                    // particle_a is dynamic while particle_b is static
+                    let collision_axis = a_pos - b_pos;
+                    let dist_squared = collision_axis.length_squared();
+                    let min_dist = dynamic_particles.radius[ai][0] + static_particles.radius[bi][0];
+                    let min_dist_squared = min_dist * min_dist;
+    
+                    if dist_squared < min_dist_squared {
+                        let dist = f32::sqrt(dist_squared);
+    
+                        println!("dyn-stat collision between: {} and {}", ai, bi);
+                    }
+                }
+            }*/
+
             // static particle collisions
             {
                 for i in 0..keys.len() {
@@ -1354,8 +1398,10 @@ impl SpatialHashSimdParticleSolver {
                     match entry {
                         Some(particle_idxs) => {
                             for p_idx in particle_idxs {
+                                //println!("dyn-static check for col between: {} and {}", uidx_0, p_idx);
+
                                 // stop checking the same particle-particle collision
-                                let collision_matrix_idx = uidx_0 * (*p_idx);
+                                let collision_matrix_idx = (uidx_0+1) * ((*p_idx)+1);
                                 debug_assert!(uidx_0 < dynamic_particles.len());
                                 debug_assert!(*p_idx < static_particles.len());
                                 if dynamic_static_collision_matrix[collision_matrix_idx] {
@@ -1376,6 +1422,10 @@ impl SpatialHashSimdParticleSolver {
 */
                                 unsafe {
                                     let collision_axis = *pos_ptr.offset(idx_0) - *static_pos_ptr.offset(idx_1);
+
+                                    debug_assert!(!(*static_pos_ptr.offset(idx_1))[0].is_nan());
+                                    debug_assert!(!(*static_pos_ptr.offset(idx_1))[1].is_nan());
+
                                     let dist_squared = collision_axis.length_squared_2_into_2();
 
                                     let min_dist = f32x2::splat((*radius_ptr.offset(idx_0))[0]) + f32x2::splat((*static_radius_ptr.offset(idx_1))[0]);
@@ -1387,13 +1437,15 @@ impl SpatialHashSimdParticleSolver {
                                         // particles are too close to each other.
                                         // just let them pass through each other
                                         if dist[0] <= f32::EPSILON {
-                                            return;
+                                            continue;
                                         }
 
                                         // n = normalised vector between particles
                                         let n = collision_axis / dist;
                                         debug_assert!(!n[0].is_nan());
                                         debug_assert!(!n[1].is_nan());
+
+                                        //let n_length = f32::sqrt((n[0] * n[0]) + (n[1] * n[1]));
 
                                         let delta = min_dist - dist;
                                         //let delta_f32x2 = f32x4::from_array([dist[0], dist[0], dist[1], dist[1]]); //f32x2::splat(delta[0]);
@@ -1409,6 +1461,14 @@ impl SpatialHashSimdParticleSolver {
                                         println!("dist: {}", dist[0]);
                                         
                                         col_count += 1;
+                                        */
+
+                                        /*
+                                        self.file.write_all(format!("{:?}; d-s; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}\n", 
+                                            self.frame, idx_0, idx_1, *pos_ptr.offset(idx_0), *static_pos_ptr.offset(idx_1),
+                                            dist[0], min_dist_squared, dist_squared,
+                                            delta, movement, n).as_bytes()).unwrap();
+                                        self.file.flush().unwrap();
                                         */
 
                                         *movement_ptr.offset(idx_0) += movement;
@@ -1428,7 +1488,7 @@ impl SpatialHashSimdParticleSolver {
         // go through each particle an apply movement to the particle
         // todo: process multiple particles at once with simd!
         {
-            /*
+            
             let pos_ptr: *mut f32x2 = dynamic_particles.pos.as_mut_ptr() as *mut f32x2;
             for i in 0..dynamic_particles.len() {
                 unsafe {
@@ -1443,14 +1503,21 @@ impl SpatialHashSimdParticleSolver {
                     *pos_ptr.offset(i as isize) += movement;
                     *movement_ptr.offset(i as isize) = f32x2::splat(0.0);
                 }
-            }*/
+            }
 
+            /*
             // checking for buffer overrun errors!
             for i in 0..dynamic_particles.len() {
                 dynamic_particles.pos[i] += dynamic_particles.movement[i];
                 dynamic_particles.movement[i] = f32x2::splat(0.0);
-            }
+            }*/
         }
+
+        /*
+        {
+            self.perform_dynamic_to_static_collision_detection(particle_data);
+        }*/
+
 
         self.frame += 1;
     }
