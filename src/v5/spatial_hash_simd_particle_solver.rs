@@ -1,4 +1,6 @@
 use std::collections::HashSet;
+use std::fs::File;
+use std::io::Write;
 use std::simd::num::SimdFloat;
 use std::simd::{f32x1, f32x2, f32x4, i32x1, i32x2, i32x4, StdFloat};
 use std::usize;
@@ -240,15 +242,23 @@ pub struct SpatialHashSimdParticleSolver {
     //pub particle_vec_arc: SharedParticleVec,
     pub static_spatial_hash: SpatialHashSimd2<usize>,
     pub dynamic_spatial_hash: SpatialHashSimd2<usize>,
+    pub frame: usize,
+    pub file: File,
 }
 
 impl Default for SpatialHashSimdParticleSolver {
     fn default() -> Self {
+
+        let mut file = File::create("output.csv").expect("Couldn't create file");
+        file.write_all(format!("frame; idx_0; idx_1; pos_0; pos_1; radius_0; radius_1; dist; min_dist_squared; dist_squared; delta(overlap); movement; n(dir); n_length\n").as_bytes()).unwrap();
+
         Self { 
             //particle_data: ParticleData::default(),
             //particle_vec_arc: SharedParticleVec::default(),
             static_spatial_hash: SpatialHashSimd2::<usize>::new(),
             dynamic_spatial_hash: SpatialHashSimd2::<usize>::new(),
+            frame: 0,
+            file: file
         }
     }
 }
@@ -1301,6 +1311,14 @@ impl SpatialHashSimdParticleSolver {
                                             dist[0], min_dist_squared, dist_squared,
                                             delta, movement, n, n_length);
 
+
+                                        self.file.write_all(format!("{:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}; {:?}\n", 
+                                            self.frame, idx_0, idx_1, *pos_ptr.offset(idx_0), *pos_ptr.offset(idx_1),
+                                            *radius_ptr.offset(idx_0), *radius_ptr.offset(idx_1),
+                                            dist[0], min_dist_squared, dist_squared,
+                                            delta, movement, n, n_length).as_bytes()).unwrap();
+
+
                                         if movement[1].abs() > 0.3 {
                                             println!("too much movement in y axis! for {}", uidx_0);
                                         }
@@ -1433,6 +1451,8 @@ impl SpatialHashSimdParticleSolver {
                 dynamic_particles.movement[i] = f32x2::splat(0.0);
             }
         }
+
+        self.frame += 1;
     }
 
 }

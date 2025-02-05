@@ -143,19 +143,21 @@ impl CarScene {
 
             // this is the bench
             {
-                // the ideal is particle size around 1, as the spatial has has a grid size of 1!
-                let particle_radius = 1.0;
+                // the ideal is particle size around diamter 1, radius = 0.5, as the spatial has has a grid size of 1!
+                let particle_radius = 0.5;
 
                 // static
                 let mut perimeter = ShapeBuilder::new();
                 perimeter.set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone())
-                    .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 100.0))
+                    .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 3.0))
                     .create_in_particle_system(&mut particle_system);
 
+                    /* 
                 let mut perimeter2 = ShapeBuilder::new();
                 perimeter2.set_particle_template(Particle::default().set_static(true).set_radius(particle_radius).clone())
-                    .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 100.0 + (particle_radius * 2.0)))
+                    .apply_operation(circle::Circle::new(vec2(0.0, 0.0), 10.0 + (particle_radius * 2.0)))
                     .create_in_particle_system(&mut particle_system);
+                */
  
    
                 // some dynamic particles on the inside
@@ -171,7 +173,7 @@ impl CarScene {
                 let mut liquid3 = ShapeBuilder::new();
                 liquid3
                     .set_particle_template(Particle::default().set_mass(20.0 * 0.01).set_radius(particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
-                    .apply_operation(rectangle::Rectangle::from_center_size(vec2(0.0, 0.0), vec2(10.0, 10.0)))
+                    .apply_operation(rectangle::Rectangle::from_center_size(vec2(0.0, 0.0), vec2(2.0, 2.0)))
                     .create_in_particle_system(&mut particle_system);
 
 /*
