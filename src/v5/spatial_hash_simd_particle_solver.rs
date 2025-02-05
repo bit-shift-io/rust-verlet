@@ -1232,15 +1232,43 @@ impl SpatialHashSimdParticleSolver {
         //let mut static_collision_check = vec![isize::MAX; static_particles.len()];
 
         // +1 as we need to use a 1 based index as 0 * X = 0, so 0 based index doesn't work
-        let mut dynamic_dynamic_collision_matrix = vec![false; (dynamic_particles.len()+1) * (dynamic_particles.len()+1)];
-        let mut dynamic_static_collision_matrix = vec![false; (dynamic_particles.len()+1) * (static_particles.len()+1)];
+        let mut dynamic_dynamic_collision_matrix = vec![false; dynamic_particles.len() * dynamic_particles.len()];
+        let mut dynamic_static_collision_matrix = vec![false; dynamic_particles.len() * static_particles.len()];
 
-        //println!("------- start of frame -------");
+        //println!("------- start of frame: {} -------", self.frame);
         
         // iterate over each dynamic particle
         // 2.8ms! wow nice!
         spatial_hash_keys_for_particles_keys(dynamic_particles, |uidx_0: usize, keys: &SmallVec::<[i32x2; 100]>| {
             let idx_0 = uidx_0 as isize;
+
+            /*
+            // testing problem with dynamic cols
+            {
+                let ai = uidx_0;
+                let a_aabb = AabbSimd::from_position_and_radius(dynamic_particles.pos[ai], dynamic_particles.radius[ai][0]);
+            
+                for bi in self.dynamic_spatial_hash.aabb_iter(&a_aabb) {
+                    if (ai == bi) {
+                        continue;
+                    }
+
+                    let mut a_pos = dynamic_particles.pos[ai]; //vec2(particle_vec.pos_x[ai], particle_vec.pos_y[ai]);
+                    let b_pos = dynamic_particles.pos[bi]; //vec2(particle_vec.pos_x[bi], particle_vec.pos_y[bi]);
+                    
+                    // particle_a is dynamic while particle_b is static
+                    let collision_axis = a_pos - b_pos;
+                    let dist_squared = collision_axis.length_squared();
+                    let min_dist = dynamic_particles.radius[ai][0] + dynamic_particles.radius[bi][0];
+                    let min_dist_squared = min_dist * min_dist;
+    
+                    if dist_squared < min_dist_squared {
+                        let dist = f32::sqrt(dist_squared);
+    
+                        println!("[test] dyn-dyn collision between: {} and {}", ai, bi);
+                    }
+                }
+            }*/
 
             // dynamic particle collisions
             {
@@ -1256,12 +1284,14 @@ impl SpatialHashSimdParticleSolver {
                                 }
 
                                 // stop checking the same particle-particle collision
-                                let collision_matrix_idx = (uidx_0+1) * ((*p_idx)+1);
+                                let collision_matrix_idx = uidx_0 + (dynamic_particles.len() * (*p_idx)); //(uidx_0+1) * ((*p_idx)+1);
 
                                 /*
                                 if *p_idx >= dynamic_particles.len() {
                                     println!("error in particle idx: {} while checking: {} (# particles {})", p_idx, uidx_0, dynamic_particles.len());
                                 }*/
+
+                                //println!("dyn-dyn collision between: {} and {}", uidx_0, p_idx);
 
                                 debug_assert!(uidx_0 < dynamic_particles.len());
                                 debug_assert!(*p_idx < dynamic_particles.len());
@@ -1401,7 +1431,7 @@ impl SpatialHashSimdParticleSolver {
                                 //println!("dyn-static check for col between: {} and {}", uidx_0, p_idx);
 
                                 // stop checking the same particle-particle collision
-                                let collision_matrix_idx = (uidx_0+1) * ((*p_idx)+1);
+                                let collision_matrix_idx = uidx_0 + (dynamic_particles.len() * (*p_idx)); //(uidx_0+1) * ((*p_idx)+1);
                                 debug_assert!(uidx_0 < dynamic_particles.len());
                                 debug_assert!(*p_idx < static_particles.len());
                                 if dynamic_static_collision_matrix[collision_matrix_idx] {

@@ -173,7 +173,7 @@ impl CarScene {
                 let mut liquid3 = ShapeBuilder::new();
                 liquid3
                     .set_particle_template(Particle::default().set_mass(20.0 * 0.01).set_radius(particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
-                    .apply_operation(rectangle::Rectangle::from_center_size(vec2(0.0, 0.0), vec2(2.0, 2.0)))
+                    .apply_operation(rectangle::Rectangle::from_center_size(vec2(0.0, 0.0), vec2(3.0, 3.0)))
                     .create_in_particle_system(&mut particle_system);
 
 /*
@@ -281,7 +281,8 @@ impl CarScene {
         };
 */
 
-        self.particle_system.update(delta_seconds);
+        // default to 100hz for teting for now
+        self.particle_system.update(0.001); //delta_seconds);
     }
     
 }
