@@ -164,6 +164,7 @@ where
             // finally, for particle p1 and p2, use the iterators to add to spatial hash cells
             // this is the slow part of this algorithm
             let particle_idx: usize = (i * 2).try_into().unwrap();
+            debug_assert!(particle_idx < particle_count);
 
             {
                 let mut keys = SmallVec::<[i32x2; 100]>::new();
@@ -213,8 +214,8 @@ where
     
                 // finally, for particle p1 and p2, use the iterators to add to spatial hash cells
                 // this is the slow part of this algorithm
-                let particle_idx: usize = (i * 2).try_into().unwrap();
-    
+                debug_assert!(ui < particle_count);
+
                 {
                     let mut keys = SmallVec::<[i32x2; 100]>::new();
                     for y in min_i[1]..max_i[1] {
@@ -223,7 +224,7 @@ where
                             keys.push(key);
                         }
                     }
-                    func(particle_idx, &keys)
+                    func(ui, &keys)
                 }
             }
         }

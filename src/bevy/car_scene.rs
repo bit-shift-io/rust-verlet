@@ -171,7 +171,7 @@ impl CarScene {
                 let mut liquid3 = ShapeBuilder::new();
                 liquid3
                     .set_particle_template(Particle::default().set_mass(20.0 * 0.01).set_radius(particle_radius).set_color(Color::from(LinearRgba::BLUE)).clone())
-                    .apply_operation(rectangle::Rectangle::from_center_size(vec2(0.0, 0.0), vec2(50.0, 50.0)))
+                    .apply_operation(rectangle::Rectangle::from_center_size(vec2(0.0, 0.0), vec2(10.0, 10.0)))
                     .create_in_particle_system(&mut particle_system);
 
 /*

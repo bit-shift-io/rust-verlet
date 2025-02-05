@@ -41,9 +41,12 @@ impl ParticleSystem {
     }
 
     pub fn update(&mut self, delta_seconds: f32) {
+        // disable sub steps for now, so we can see each frame
+        self.update_step(delta_seconds);
+        /*
         for sub_dt in range_substeps(delta_seconds, self.desired_hertz).iter() {
             self.update_step(*sub_dt);
-        }
+        }*/
     }
 
     pub fn update_step(&mut self, delta_seconds: f32) {
